@@ -20,6 +20,8 @@ src/app                 Halaman aplikasi Next.js
 src/components/ui       Komponen shadcn/ui
 src/lib                 Helper aplikasi
 prisma/schema.prisma    Schema database PostgreSQL
+docs/LOCAL_DATABASE.md  Panduan PostgreSQL lokal
+docs/NEON_DATABASE.md   Panduan PostgreSQL online Neon
 .env.example            Contoh environment variable
 ```
 
@@ -32,6 +34,7 @@ npm.cmd run dev
 npm.cmd run lint
 npm.cmd run db:generate
 npm.cmd run db:push
+npm.cmd run db:seed
 npm.cmd run db:studio
 ```
 
@@ -81,6 +84,11 @@ Untuk database baru:
 ```bash
 npm.cmd run db:generate
 npm.cmd run db:push
+npm.cmd run db:seed
 ```
 
 `db:push` akan membuat tabel berdasarkan `prisma/schema.prisma` ke database yang ada di `DATABASE_URL`.
+
+Panduan lengkap database lokal ada di `docs/LOCAL_DATABASE.md`.
+
+Untuk database online agar bisa dipakai dari banyak laptop dan Vercel, gunakan `docs/NEON_DATABASE.md`.
