@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -14,10 +15,22 @@ import { loginAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
+function getDashboardPath(role: string) {
+  if (role === "SUPER_ADMIN") {
+    return "/super-admin";
+  }
+
+  if (role === "ADMIN") {
+    return "/admin";
+  }
+
+  return "/member";
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; registered?: string }>;
 }) {
   const [currentUser, params] = await Promise.all([
     getCurrentUser(),
@@ -25,10 +38,11 @@ export default async function LoginPage({
   ]);
 
   if (currentUser) {
-    redirect(currentUser.role === "SUPER_ADMIN" ? "/super-admin" : "/");
+    redirect(getDashboardPath(currentUser.role));
   }
 
   const hasError = params.error === "invalid";
+  const isRegistered = params.registered === "1";
 
   return (
     <main className="grid min-h-screen place-items-center bg-zinc-50 px-6 py-10 text-zinc-950">
@@ -74,10 +88,25 @@ export default async function LoginPage({
                 Email atau password tidak sesuai.
               </p>
             ) : null}
+            {isRegistered ? (
+              <p className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                Registrasi berhasil. Silakan login sebagai Member.
+              </p>
+            ) : null}
             <Button type="submit" className="w-full">
               Login
             </Button>
           </form>
+
+          <Link
+            href="/register"
+            className={buttonVariants({
+              variant: "ghost",
+              className: "mt-3 w-full",
+            })}
+          >
+            Daftar akun Member
+          </Link>
 
           <div className="mt-5 rounded-md bg-zinc-100 p-3 text-xs text-zinc-600">
             <p className="font-medium text-zinc-800">Akun preview lokal</p>
