@@ -5,10 +5,8 @@ import {
   Home,
   QrCode,
 } from "lucide-react";
-import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,7 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { requireUser } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -135,14 +133,9 @@ async function getMemberDashboardData(userId: string) {
 }
 
 export default async function MemberDashboardPage() {
-  const currentUser = await requireUser();
-
-  if (currentUser.role !== "MEMBER" && currentUser.role !== "SUPER_ADMIN") {
-    redirect("/");
-  }
+  const currentUser = await requireRole("MEMBER");
 
   const data = await getMemberDashboardData(currentUser.id);
-  const isPreview = currentUser.role === "SUPER_ADMIN";
   const metrics = [
     {
       label: `Presensi ${data.monthLabel}`,
@@ -168,7 +161,7 @@ export default async function MemberDashboardPage() {
     <DashboardShell
       user={currentUser}
       currentPath="/member"
-      badge={isPreview ? "Preview Super Admin" : "Welcome, Member"}
+      badge="Welcome, Member"
       title="Dashboard Member"
       description={`Halo ${currentUser.name}. Dashboard ini fokus ke presensi pribadi, jadwal, QR card, dan request izin.`}
     >
@@ -203,14 +196,14 @@ export default async function MemberDashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-2">
-              <Link href="/" className={buttonVariants()}>
+              <Button disabled>
                 <QrCode aria-hidden="true" />
                 Mulai Presensi
-              </Link>
-              <Link href="/" className={buttonVariants({ variant: "outline" })}>
+              </Button>
+              <Button variant="outline" disabled>
                 <CalendarDays aria-hidden="true" />
                 Kalender Saya
-              </Link>
+              </Button>
             </CardContent>
           </Card>
 

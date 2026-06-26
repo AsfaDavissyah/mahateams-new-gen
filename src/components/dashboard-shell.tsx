@@ -8,7 +8,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   Home,
-  LayoutDashboard,
   LogOut,
   MapPin,
   QrCode,
@@ -56,7 +55,7 @@ function getPrimaryDashboard(role: DashboardUser["role"]) {
 function getMenuGroups(role: DashboardUser["role"]) {
   const main: MenuItem[] = [
     {
-      label: "Dashboard Saya",
+      label: "Dashboard",
       href: getPrimaryDashboard(role),
       icon:
         role === "SUPER_ADMIN"
@@ -65,7 +64,6 @@ function getMenuGroups(role: DashboardUser["role"]) {
             ? UserCog
             : UserRound,
     },
-    { label: "Overview", href: "/", icon: LayoutDashboard },
   ];
 
   if (role === "SUPER_ADMIN") {

@@ -10,23 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, getDashboardPath } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { registerMemberAction } from "./actions";
 
 export const dynamic = "force-dynamic";
-
-function getDashboardPath(role: string) {
-  if (role === "SUPER_ADMIN") {
-    return "/super-admin";
-  }
-
-  if (role === "ADMIN") {
-    return "/admin";
-  }
-
-  return "/member";
-}
 
 export default async function RegisterPage({
   searchParams,

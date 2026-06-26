@@ -1,7 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { clearSession, setSession, verifyPassword } from "@/lib/auth";
+import {
+  clearSession,
+  getDashboardPath,
+  setSession,
+  verifyPassword,
+} from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function loginAction(formData: FormData) {
@@ -27,16 +32,7 @@ export async function loginAction(formData: FormData) {
   }
 
   await setSession(user.id);
-
-  if (user.role === "SUPER_ADMIN") {
-    redirect("/super-admin");
-  }
-
-  if (user.role === "ADMIN") {
-    redirect("/admin");
-  }
-
-  redirect("/member");
+  redirect(getDashboardPath(user.role));
 }
 
 export async function logoutAction() {

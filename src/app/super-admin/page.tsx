@@ -11,7 +11,6 @@ import {
   UsersRound,
 } from "lucide-react";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { hashPassword, requireUser } from "@/lib/auth";
+import { hashPassword, requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ROLE_LABEL } from "@/lib/roles";
 
@@ -100,13 +99,7 @@ function parseAccountStatus(value: string): EditableAccountStatus {
 }
 
 async function requireSuperAdminActor() {
-  const actor = await requireUser();
-
-  if (actor.role !== "SUPER_ADMIN") {
-    throw new Error("Hanya Super Admin yang bisa mengelola user.");
-  }
-
-  return actor;
+  return requireRole("SUPER_ADMIN");
 }
 
 async function createManagedUserAction(formData: FormData) {
@@ -485,11 +478,7 @@ async function getSuperAdminDashboardData() {
 }
 
 export default async function SuperAdminDashboardPage() {
-  const currentUser = await requireUser();
-
-  if (currentUser.role !== "SUPER_ADMIN") {
-    redirect("/");
-  }
+  const currentUser = await requireRole("SUPER_ADMIN");
 
   const data = await getSuperAdminDashboardData();
   const metrics = [

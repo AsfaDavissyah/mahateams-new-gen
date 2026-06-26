@@ -4,7 +4,6 @@ import {
   Clock3,
   UsersRound,
 } from "lucide-react";
-import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -22,7 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { requireUser } from "@/lib/auth";
+import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -169,14 +168,9 @@ async function getAdminDashboardData(defaultStudioId: string | null) {
 }
 
 export default async function AdminDashboardPage() {
-  const currentUser = await requireUser();
-
-  if (currentUser.role !== "ADMIN" && currentUser.role !== "SUPER_ADMIN") {
-    redirect("/");
-  }
+  const currentUser = await requireRole("ADMIN");
 
   const data = await getAdminDashboardData(currentUser.defaultStudioId);
-  const isPreview = currentUser.role === "SUPER_ADMIN";
   const metrics = [
     {
       label: "User Aktif",
@@ -208,7 +202,7 @@ export default async function AdminDashboardPage() {
     <DashboardShell
       user={currentUser}
       currentPath="/admin"
-      badge={isPreview ? "Preview Super Admin" : "Welcome, Admin"}
+      badge="Welcome, Admin"
       title="Dashboard Admin"
       description={`Fokus untuk operasional studio, presensi tim, dan request member. Scope saat ini: ${data.studio?.name ?? "semua studio"}.`}
     >

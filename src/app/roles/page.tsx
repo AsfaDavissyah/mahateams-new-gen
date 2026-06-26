@@ -25,7 +25,7 @@ import {
   REGISTRATION_DEFAULT_ROLE,
   ROLE_LABEL,
 } from "@/lib/roles";
-import { requireUser } from "@/lib/auth";
+import { getDashboardPath, requireAnyRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -35,15 +35,26 @@ async function updateUserRole(formData: FormData) {
   const userId = String(formData.get("userId") ?? "");
   const nextRole = String(formData.get("nextRole") ?? "");
 
-  const actor = await requireUser();
+  const actor = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true },
+    select: { id: true, role: true, defaultStudioId: true },
   });
 
   if (!target) {
     throw new Error("User tidak ditemukan.");
+  }
+
+  if (target.id === actor.id) {
+    throw new Error("Role sendiri tidak bisa diubah dari halaman ini.");
+  }
+
+  if (
+    actor.role === "ADMIN" &&
+    (!actor.defaultStudioId || target.defaultStudioId !== actor.defaultStudioId)
+  ) {
+    throw new Error("Admin hanya bisa mengubah user di studio yang sama.");
   }
 
   if (
@@ -73,15 +84,26 @@ async function updateUserRole(formData: FormData) {
   ]);
 
   revalidatePath("/roles");
-  revalidatePath("/");
+  revalidatePath(getDashboardPath(actor.role));
 }
 
-async function getRoleData() {
+async function getRoleData(actor: Awaited<ReturnType<typeof requireAnyRole>>) {
+  const scopedWhere =
+    actor.role === "SUPER_ADMIN"
+      ? {
+          accountStatus: "ACTIVE" as const,
+        }
+      : {
+          accountStatus: "ACTIVE" as const,
+          defaultStudioId: actor.defaultStudioId ?? "__NO_STUDIO__",
+          role: {
+            not: "SUPER_ADMIN" as const,
+          },
+        };
+
   const [users, roleCounts] = await Promise.all([
     prisma.user.findMany({
-      where: {
-        accountStatus: "ACTIVE",
-      },
+      where: scopedWhere,
       orderBy: [{ role: "asc" }, { name: "asc" }],
       select: {
         id: true,
@@ -98,9 +120,7 @@ async function getRoleData() {
     }),
     prisma.user.groupBy({
       by: ["role"],
-      where: {
-        accountStatus: "ACTIVE",
-      },
+      where: scopedWhere,
       _count: {
         role: true,
       },
@@ -116,9 +136,9 @@ async function getRoleData() {
 }
 
 export default async function RolesPage() {
-  const [currentUser, data] = await Promise.all([requireUser(), getRoleData()]);
-  const canManageRoles =
-    currentUser.role === "ADMIN" || currentUser.role === "SUPER_ADMIN";
+  const currentUser = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
+  const data = await getRoleData(currentUser);
+  const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
 
   return (
     <DashboardShell
@@ -126,7 +146,11 @@ export default async function RolesPage() {
       currentPath="/roles"
       badge="Role MVP"
       title="Role dan Akses"
-      description={`Super Admin dibuat manual lewat seed/sistem. Registrasi publik nanti hanya membuat role ${ROLE_LABEL[REGISTRATION_DEFAULT_ROLE]}. Role Admin dapat diberikan kepada Member dari halaman ini.`}
+      description={
+        isSuperAdmin
+          ? `Super Admin melihat semua studio. Registrasi publik nanti hanya membuat role ${ROLE_LABEL[REGISTRATION_DEFAULT_ROLE]}.`
+          : `Admin hanya melihat dan mengelola user aktif di studio ${currentUser.defaultStudio?.name ?? "yang sama"}.`
+      }
     >
         <section className="grid gap-3 text-center sm:grid-cols-3">
           <Card>
@@ -206,7 +230,7 @@ export default async function RolesPage() {
                             <ShieldCheck className="size-4" />
                             Manual sistem
                           </span>
-                        ) : canManageRoles ? (
+                        ) : (
                           <form action={updateUserRole}>
                             <input
                               type="hidden"
@@ -224,10 +248,6 @@ export default async function RolesPage() {
                                 : "Jadikan Admin"}
                             </Button>
                           </form>
-                        ) : (
-                          <span className="text-xs text-zinc-500">
-                            Tidak ada akses
-                          </span>
                         )}
                       </TableCell>
                     </TableRow>

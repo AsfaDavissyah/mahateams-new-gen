@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 const SESSION_COOKIE = "mahateams_session";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
+export type AppRole = "SUPER_ADMIN" | "ADMIN" | "MEMBER";
+
 function getAuthSecret() {
   const secret = process.env.AUTH_SECRET;
 
@@ -133,6 +135,38 @@ export async function requireUser() {
 
   if (!user) {
     redirect("/login");
+  }
+
+  return user;
+}
+
+export function getDashboardPath(role: AppRole) {
+  if (role === "SUPER_ADMIN") {
+    return "/super-admin";
+  }
+
+  if (role === "ADMIN") {
+    return "/admin";
+  }
+
+  return "/member";
+}
+
+export async function requireRole(role: AppRole) {
+  const user = await requireUser();
+
+  if (user.role !== role) {
+    redirect(getDashboardPath(user.role));
+  }
+
+  return user;
+}
+
+export async function requireAnyRole(roles: AppRole[]) {
+  const user = await requireUser();
+
+  if (!roles.includes(user.role)) {
+    redirect(getDashboardPath(user.role));
   }
 
   return user;
