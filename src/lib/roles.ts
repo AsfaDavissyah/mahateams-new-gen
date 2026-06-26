@@ -12,7 +12,7 @@ export function canManageTargetRole(actorRole: string, targetRole: string) {
     return false;
   }
 
-  return actorRole === "ADMIN" || actorRole === "SUPER_ADMIN";
+  return actorRole === "SUPER_ADMIN";
 }
 
 export function canAssignRole(actorRole: string, nextRole: string) {
@@ -20,5 +20,5 @@ export function canAssignRole(actorRole: string, nextRole: string) {
     return false;
   }
 
-  return actorRole === "ADMIN" || actorRole === "SUPER_ADMIN";
+  return actorRole === "SUPER_ADMIN";
 }

@@ -97,7 +97,7 @@ function getMenuGroups(role: DashboardUser["role"]) {
       {
         label: "Operasional",
         items: [
-          { label: "User & Role", href: "/roles", icon: UsersRound },
+          { label: "User Studio", href: "/roles", icon: UsersRound },
           { label: "Presensi Tim", icon: ClipboardCheck, badge: "Next" },
           { label: "Izin/Sakit/Cuti", icon: ClipboardList, badge: "Next" },
           { label: "Koreksi Presensi", icon: Archive, badge: "Next" },

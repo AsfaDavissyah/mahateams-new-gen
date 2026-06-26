@@ -25,7 +25,7 @@ import {
   REGISTRATION_DEFAULT_ROLE,
   ROLE_LABEL,
 } from "@/lib/roles";
-import { getDashboardPath, requireAnyRole } from "@/lib/auth";
+import { getDashboardPath, requireAnyRole, requireRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +35,11 @@ async function updateUserRole(formData: FormData) {
   const userId = String(formData.get("userId") ?? "");
   const nextRole = String(formData.get("nextRole") ?? "");
 
-  const actor = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
+  const actor = await requireRole("SUPER_ADMIN");
 
   const target = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, defaultStudioId: true },
+    select: { id: true, role: true },
   });
 
   if (!target) {
@@ -48,13 +48,6 @@ async function updateUserRole(formData: FormData) {
 
   if (target.id === actor.id) {
     throw new Error("Role sendiri tidak bisa diubah dari halaman ini.");
-  }
-
-  if (
-    actor.role === "ADMIN" &&
-    (!actor.defaultStudioId || target.defaultStudioId !== actor.defaultStudioId)
-  ) {
-    throw new Error("Admin hanya bisa mengubah user di studio yang sama.");
   }
 
   if (
@@ -138,18 +131,18 @@ async function getRoleData(actor: Awaited<ReturnType<typeof requireAnyRole>>) {
 export default async function RolesPage() {
   const currentUser = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
   const data = await getRoleData(currentUser);
-  const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
+  const canEditRoles = currentUser.role === "SUPER_ADMIN";
 
   return (
     <DashboardShell
       user={currentUser}
       currentPath="/roles"
-      badge="Role MVP"
-      title="Role dan Akses"
+      badge={canEditRoles ? "Role MVP" : "View Only"}
+      title={canEditRoles ? "Role dan Akses" : "User Studio"}
       description={
-        isSuperAdmin
+        canEditRoles
           ? `Super Admin melihat semua studio. Registrasi publik nanti hanya membuat role ${ROLE_LABEL[REGISTRATION_DEFAULT_ROLE]}.`
-          : `Admin hanya melihat dan mengelola user aktif di studio ${currentUser.defaultStudio?.name ?? "yang sama"}.`
+          : `Admin hanya melihat user aktif di studio ${currentUser.defaultStudio?.name ?? "yang sama"}. Perubahan role hanya bisa dilakukan Super Admin.`
       }
     >
         <section className="grid gap-3 text-center sm:grid-cols-3">
@@ -180,23 +173,27 @@ export default async function RolesPage() {
               Daftar User Aktif
             </CardTitle>
             <CardDescription>
-              Role Admin diberikan kepada Member oleh user yang sedang login.
+              {canEditRoles
+                ? "Super Admin dapat memberi atau mencabut akses Admin."
+                : "Admin hanya dapat melihat daftar user di studio sendiri."}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>Studio</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
+                  <TableRow>
+                    <TableHead>Nama</TableHead>
+                    <TableHead>Studio</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    {canEditRoles ? (
+                      <TableHead className="text-right">Aksi</TableHead>
+                    ) : null}
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {data.users.map((user) => {
-                  const isSuperAdmin = user.role === "SUPER_ADMIN";
+                  const isSystemSuperAdmin = user.role === "SUPER_ADMIN";
 
                   return (
                     <TableRow key={user.id}>
@@ -214,7 +211,7 @@ export default async function RolesPage() {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={isSuperAdmin ? "default" : "secondary"}
+                          variant={isSystemSuperAdmin ? "default" : "secondary"}
                           className={
                             user.role === "ADMIN"
                               ? "bg-blue-100 text-blue-800"
@@ -224,8 +221,9 @@ export default async function RolesPage() {
                           {ROLE_LABEL[user.role]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        {isSuperAdmin ? (
+                      {canEditRoles ? (
+                        <TableCell className="text-right">
+                          {user.role === "SUPER_ADMIN" ? (
                           <span className="inline-flex items-center gap-2 text-xs text-zinc-500">
                             <ShieldCheck className="size-4" />
                             Manual sistem
@@ -249,7 +247,8 @@ export default async function RolesPage() {
                             </Button>
                           </form>
                         )}
-                      </TableCell>
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   );
                 })}
