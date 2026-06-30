@@ -1,8 +1,11 @@
 import {
-  CalendarRange,
-  ClipboardList,
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardCheck,
   Clock3,
-  UsersRound,
+  HeartPulse,
+  Home,
+  ShieldMinus,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,6 +24,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
+import {
+  formatMonthLabel,
+  getMonthRange,
+  normalizeReportMonth,
+  summarizeAttendanceStatuses,
+} from "@/lib/attendance-report";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -52,18 +61,6 @@ const statusColor: Record<string, string> = {
   OFF_DAY: "bg-zinc-200 text-zinc-700",
 };
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
-
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -73,18 +70,15 @@ function formatDate(date: Date) {
 }
 
 async function getAdminDashboardData(defaultStudioId: string | null) {
-  const today = startOfDay(new Date());
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+  const month = normalizeReportMonth();
+  const { start, endExclusive } = getMonthRange(month);
   const studioFilter = defaultStudioId ? { ownerStudioId: defaultStudioId } : {};
   const userFilter = defaultStudioId ? { defaultStudioId } : {};
 
   const [
     studio,
     activeMembers,
-    presentThisMonth,
-    lateThisMonth,
-    wfhThisMonth,
+    groups,
     pendingRequests,
     recentAttendance,
   ] = await Promise.all([
@@ -100,26 +94,13 @@ async function getAdminDashboardData(defaultStudioId: string | null) {
         accountStatus: "ACTIVE",
       },
     }),
-    prisma.attendanceRecord.count({
+    prisma.attendanceRecord.groupBy({
+      by: ["status"],
       where: {
         ...studioFilter,
-        attendanceDate: { gte: monthStart, lte: monthEnd },
-        status: { in: ["PRESENT", "ON_TIME"] },
+        attendanceDate: { gte: start, lt: endExclusive },
       },
-    }),
-    prisma.attendanceRecord.count({
-      where: {
-        ...studioFilter,
-        attendanceDate: { gte: monthStart, lte: monthEnd },
-        status: "LATE",
-      },
-    }),
-    prisma.attendanceRecord.count({
-      where: {
-        ...studioFilter,
-        attendanceDate: { gte: monthStart, lte: monthEnd },
-        status: "WFH",
-      },
+      _count: { _all: true },
     }),
     prisma.request.count({
       where: {
@@ -155,15 +136,10 @@ async function getAdminDashboardData(defaultStudioId: string | null) {
   return {
     studio,
     activeMembers,
-    presentThisMonth,
-    lateThisMonth,
-    wfhThisMonth,
+    summary: summarizeAttendanceStatuses(groups),
     pendingRequests,
     recentAttendance,
-    monthLabel: new Intl.DateTimeFormat("id-ID", {
-      month: "long",
-      year: "numeric",
-    }).format(today),
+    monthLabel: formatMonthLabel(month),
   };
 }
 
@@ -173,28 +149,46 @@ export default async function AdminDashboardPage() {
   const data = await getAdminDashboardData(currentUser.defaultStudioId);
   const metrics = [
     {
-      label: "User Aktif",
-      value: data.activeMembers,
-      icon: UsersRound,
-      color: "text-emerald-700",
+      label: `Jumlah Presensi ${data.monthLabel}`,
+      value: data.summary.total,
+      icon: ClipboardCheck,
+      color: "text-blue-700",
     },
     {
-      label: `Hadir ${data.monthLabel}`,
-      value: data.presentThisMonth,
-      icon: CalendarRange,
-      color: "text-sky-700",
+      label: `Izin ${data.monthLabel}`,
+      value: data.summary.permission,
+      icon: ShieldMinus,
+      color: "text-amber-700",
+    },
+    {
+      label: `Sakit ${data.monthLabel}`,
+      value: data.summary.sick,
+      icon: HeartPulse,
+      color: "text-violet-700",
     },
     {
       label: `Terlambat ${data.monthLabel}`,
-      value: data.lateThisMonth,
+      value: data.summary.late,
       icon: Clock3,
       color: "text-orange-700",
     },
     {
-      label: "Request Pending",
-      value: data.pendingRequests,
-      icon: ClipboardList,
-      color: "text-violet-700",
+      label: `Tepat Waktu ${data.monthLabel}`,
+      value: data.summary.onTime,
+      icon: CheckCircle2,
+      color: "text-emerald-700",
+    },
+    {
+      label: `Alpha ${data.monthLabel}`,
+      value: data.summary.alpha,
+      icon: AlertTriangle,
+      color: "text-red-700",
+    },
+    {
+      label: `WFH ${data.monthLabel}`,
+      value: data.summary.wfh,
+      icon: Home,
+      color: "text-sky-700",
     },
   ];
 
@@ -204,9 +198,9 @@ export default async function AdminDashboardPage() {
       currentPath="/admin"
       badge="Welcome, Admin"
       title="Dashboard Admin"
-      description={`Fokus untuk operasional studio, presensi tim, dan request member. Scope saat ini: ${data.studio?.name ?? "semua studio"}.`}
+      description={`${data.activeMembers} user aktif dan ${data.pendingRequests} request pending. Scope laporan dikunci ke ${data.studio?.name ?? "studio Admin"}.`}
     >
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {metrics.map((metric) => {
             const Icon = metric.icon;
 
@@ -232,8 +226,8 @@ export default async function AdminDashboardPage() {
           <CardHeader>
             <CardTitle>Presensi Tim Terbaru</CardTitle>
             <CardDescription>
-              Data awal untuk dashboard Admin. Nantinya halaman ini bisa
-              ditambah approval izin, jadwal WFO/WFH, dan koreksi presensi.
+              Catatan terbaru dari PostgreSQL untuk seluruh user aktif dalam
+              scope studio Admin.
             </CardDescription>
           </CardHeader>
           <CardContent>
