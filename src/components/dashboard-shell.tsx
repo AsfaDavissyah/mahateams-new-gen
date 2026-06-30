@@ -82,7 +82,11 @@ function getMenuGroups(role: DashboardUser["role"]) {
       {
         label: "Monitoring",
         items: [
-          { label: "Laporan Presensi", icon: BarChart3, badge: "Next" },
+          {
+            label: "Laporan Presensi",
+            href: "/laporan-presensi",
+            icon: BarChart3,
+          },
           { label: "Approval", icon: ClipboardCheck, badge: "Next" },
           { label: "Arsip Akun", icon: Archive, badge: "Next" },
           { label: "Pengaturan", icon: Settings, badge: "Next" },
@@ -95,10 +99,25 @@ function getMenuGroups(role: DashboardUser["role"]) {
     return [
       { label: "Utama", items: main },
       {
+        label: "Presensi Saya",
+        items: [
+          { label: "Scan QR", href: "/member/presensi", icon: QrCode },
+          {
+            label: "Riwayat Saya",
+            href: "/member/presensi/riwayat",
+            icon: ClipboardCheck,
+          },
+        ],
+      },
+      {
         label: "Operasional",
         items: [
           { label: "User Studio", href: "/roles", icon: UsersRound },
-          { label: "Presensi Tim", icon: ClipboardCheck, badge: "Next" },
+          {
+            label: "Laporan Presensi",
+            href: "/laporan-presensi",
+            icon: BarChart3,
+          },
           { label: "Izin/Sakit/Cuti", icon: ClipboardList, badge: "Next" },
           { label: "Koreksi Presensi", icon: Archive, badge: "Next" },
           { label: "Piket & Pengingat", icon: CalendarDays, badge: "Next" },
@@ -114,7 +133,11 @@ function getMenuGroups(role: DashboardUser["role"]) {
       items: [
         { label: "Scan QR", href: "/member/presensi", icon: QrCode },
         { label: "Jadwal Saya", icon: CalendarDays, badge: "Next" },
-        { label: "Riwayat Saya", icon: ClipboardCheck, badge: "Next" },
+        {
+          label: "Riwayat Saya",
+          href: "/member/presensi/riwayat",
+          icon: ClipboardCheck,
+        },
         { label: "Izin/Sakit/Cuti", icon: ClipboardList, badge: "Next" },
         { label: "Laporan WFH", icon: Home, badge: "Next" },
       ],

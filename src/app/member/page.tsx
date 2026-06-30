@@ -1,9 +1,12 @@
 import {
+  AlertTriangle,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  HeartPulse,
   Home,
   QrCode,
+  ShieldMinus,
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +27,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
+import {
+  formatMonthLabel,
+  getMonthRange,
+  normalizeReportMonth,
+  summarizeAttendanceStatuses,
+} from "@/lib/attendance-report";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
@@ -55,18 +64,6 @@ const statusColor: Record<string, string> = {
   OFF_DAY: "bg-zinc-200 text-zinc-700",
 };
 
-function startOfDay(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function startOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth(), 1);
-}
-
-function endOfMonth(date: Date) {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-}
-
 function formatDate(date: Date) {
   return new Intl.DateTimeFormat("id-ID", {
     day: "2-digit",
@@ -76,31 +73,17 @@ function formatDate(date: Date) {
 }
 
 async function getMemberDashboardData(userId: string) {
-  const today = startOfDay(new Date());
-  const monthStart = startOfMonth(today);
-  const monthEnd = endOfMonth(today);
+  const month = normalizeReportMonth();
+  const { start, endExclusive } = getMonthRange(month);
 
-  const [attendanceThisMonth, lateThisMonth, wfhThisMonth, recentAttendance] =
-    await Promise.all([
-      prisma.attendanceRecord.count({
+  const [groups, recentAttendance] = await Promise.all([
+      prisma.attendanceRecord.groupBy({
+        by: ["status"],
         where: {
           userId,
-          attendanceDate: { gte: monthStart, lte: monthEnd },
+          attendanceDate: { gte: start, lt: endExclusive },
         },
-      }),
-      prisma.attendanceRecord.count({
-        where: {
-          userId,
-          attendanceDate: { gte: monthStart, lte: monthEnd },
-          status: "LATE",
-        },
-      }),
-      prisma.attendanceRecord.count({
-        where: {
-          userId,
-          attendanceDate: { gte: monthStart, lte: monthEnd },
-          status: "WFH",
-        },
+        _count: { _all: true },
       }),
       prisma.attendanceRecord.findMany({
         take: 8,
@@ -122,14 +105,9 @@ async function getMemberDashboardData(userId: string) {
     ]);
 
   return {
-    attendanceThisMonth,
-    lateThisMonth,
-    wfhThisMonth,
+    summary: summarizeAttendanceStatuses(groups),
     recentAttendance,
-    monthLabel: new Intl.DateTimeFormat("id-ID", {
-      month: "long",
-      year: "numeric",
-    }).format(today),
+    monthLabel: formatMonthLabel(month),
   };
 }
 
@@ -140,19 +118,43 @@ export default async function MemberDashboardPage() {
   const metrics = [
     {
       label: `Presensi ${data.monthLabel}`,
-      value: data.attendanceThisMonth,
+      value: data.summary.total,
       icon: CheckCircle2,
-      color: "text-emerald-700",
+      color: "text-blue-700",
+    },
+    {
+      label: `Izin ${data.monthLabel}`,
+      value: data.summary.permission,
+      icon: ShieldMinus,
+      color: "text-amber-700",
+    },
+    {
+      label: `Sakit ${data.monthLabel}`,
+      value: data.summary.sick,
+      icon: HeartPulse,
+      color: "text-violet-700",
     },
     {
       label: `Terlambat ${data.monthLabel}`,
-      value: data.lateThisMonth,
+      value: data.summary.late,
       icon: Clock3,
       color: "text-orange-700",
     },
     {
+      label: `Tepat Waktu ${data.monthLabel}`,
+      value: data.summary.onTime,
+      icon: CheckCircle2,
+      color: "text-emerald-700",
+    },
+    {
+      label: `Alpha ${data.monthLabel}`,
+      value: data.summary.alpha,
+      icon: AlertTriangle,
+      color: "text-red-700",
+    },
+    {
       label: `WFH ${data.monthLabel}`,
-      value: data.wfhThisMonth,
+      value: data.summary.wfh,
       icon: Home,
       color: "text-blue-700",
     },
@@ -166,7 +168,7 @@ export default async function MemberDashboardPage() {
       title="Dashboard Member"
       description={`Halo ${currentUser.name}. Dashboard ini fokus ke presensi pribadi, jadwal, QR card, dan request izin.`}
     >
-        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
           {metrics.map((metric) => {
             const Icon = metric.icon;
 

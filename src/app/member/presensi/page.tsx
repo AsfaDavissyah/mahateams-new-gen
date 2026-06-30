@@ -2,9 +2,11 @@ import {
   Download,
   CalendarClock,
   Clock3,
+  History,
   QrCode,
   ShieldCheck,
 } from "lucide-react";
+import Link from "next/link";
 import QRCode from "qrcode";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -16,10 +18,10 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { requireRole } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
-import { createMemberQrCredentialAction } from "./actions";
+import { createPersonalQrCredentialAction } from "./actions";
 import { QrScannerForm } from "./qr-scanner-form";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +63,8 @@ const errorMessage: Record<string, string> = {
   qr: "QR tidak valid untuk akun ini.",
   studio: "Default Studio belum tersedia di akun ini.",
   mode: "Presensi hari ini bukan mode WFO.",
+  alpha:
+    "Batas presensi pukul 12.00 telah lewat. Status hari ini tercatat Alpha.",
 };
 
 const JAKARTA_TIME_ZONE = "Asia/Jakarta";
@@ -157,13 +161,13 @@ async function getPresensiData(userId: string) {
   };
 }
 
-export default async function MemberPresensiPage({
+export default async function PersonalPresensiPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; success?: string }>;
 }) {
   const [currentUser, params] = await Promise.all([
-    requireRole("MEMBER"),
+    requireAnyRole(["ADMIN", "MEMBER"]),
     searchParams,
   ]);
   const data = await getPresensiData(currentUser.id);
@@ -229,19 +233,31 @@ export default async function MemberPresensiPage({
                     Aktif sejak {formatDate(data.qrCredential?.issuedAt ?? new Date())}.
                   </p>
                 </div>
-                <a
-                  href="/member/presensi/qr-card"
-                  className={cn(
-                    buttonVariants({ variant: "outline" }),
-                    "w-full"
-                  )}
-                >
-                  <Download aria-hidden="true" />
-                  Download QR Card
-                </a>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <a
+                    href="/member/presensi/qr-card?format=png"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "w-full"
+                    )}
+                  >
+                    <Download aria-hidden="true" />
+                    Download PNG
+                  </a>
+                  <a
+                    href="/member/presensi/qr-card?format=jpeg"
+                    className={cn(
+                      buttonVariants({ variant: "outline" }),
+                      "w-full"
+                    )}
+                  >
+                    <Download aria-hidden="true" />
+                    Download JPEG
+                  </a>
+                </div>
               </>
             ) : (
-              <form action={createMemberQrCredentialAction}>
+              <form action={createPersonalQrCredentialAction}>
                 <Button type="submit" className="w-full">
                   <ShieldCheck aria-hidden="true" />
                   Aktifkan QR Card
@@ -291,6 +307,15 @@ export default async function MemberPresensiPage({
                   )}
                 </div>
               </div>
+            </CardContent>
+            <CardContent className="pt-0">
+              <Link
+                href="/member/presensi/riwayat"
+                className={buttonVariants({ variant: "outline" })}
+              >
+                <History aria-hidden="true" />
+                Lihat Riwayat Presensi
+              </Link>
             </CardContent>
           </Card>
 

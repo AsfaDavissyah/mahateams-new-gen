@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
-import { requireRole } from "@/lib/auth";
+import sharp from "sharp";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +14,8 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
-export async function GET() {
-  const currentUser = await requireRole("MEMBER");
+export async function GET(request: Request) {
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
   const credential = await prisma.qrCredential.findFirst({
     where: {
       userId: currentUser.id,
@@ -69,10 +70,21 @@ export async function GET() {
   <text x="350" y="410" fill="#71717a" font-family="Arial, sans-serif" font-size="13">Aktif sejak ${escapeXml(issuedAt)}</text>
 </svg>`;
 
-  return new Response(svg, {
+  const requestedFormat = new URL(request.url).searchParams.get("format");
+  const format = requestedFormat === "jpeg" ? "jpeg" : "png";
+  const imagePipeline = sharp(Buffer.from(svg)).flatten({
+    background: "#ffffff",
+  });
+  const image =
+    format === "jpeg"
+      ? await imagePipeline.jpeg({ quality: 92 }).toBuffer()
+      : await imagePipeline.png({ compressionLevel: 9 }).toBuffer();
+
+  return new Response(new Uint8Array(image), {
     headers: {
-      "Content-Type": "image/svg+xml; charset=utf-8",
-      "Content-Disposition": `attachment; filename="mahateams-qr-card.svg"`,
+      "Content-Type": format === "jpeg" ? "image/jpeg" : "image/png",
+      "Content-Disposition": `attachment; filename="mahateams-qr-card.${format === "jpeg" ? "jpg" : "png"}"`,
+      "Cache-Control": "private, no-store",
     },
   });
 }

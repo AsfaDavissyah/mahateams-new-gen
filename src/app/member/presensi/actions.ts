@@ -3,58 +3,43 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { hashPassword, requireRole, verifyPassword } from "@/lib/auth";
+import {
+  type AppRole,
+  getDashboardPath,
+  hashPassword,
+  requireAnyRole,
+  verifyPassword,
+} from "@/lib/auth";
+import {
+  dateOnlyFromKey,
+  getDayOfWeek,
+  getJakartaDateKey,
+  getJakartaMinutes,
+  timeToMinutes,
+} from "@/lib/attendance-time";
 import { prisma } from "@/lib/prisma";
-
-const JAKARTA_TIME_ZONE = "Asia/Jakarta";
-
-function getJakartaDateKey(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: JAKARTA_TIME_ZONE,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(date);
-
-  const year = parts.find((part) => part.type === "year")?.value;
-  const month = parts.find((part) => part.type === "month")?.value;
-  const day = parts.find((part) => part.type === "day")?.value;
-
-  return `${year}-${month}-${day}`;
-}
-
-function getJakartaMinutes(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: JAKARTA_TIME_ZONE,
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).formatToParts(date);
-
-  const hour = Number(parts.find((part) => part.type === "hour")?.value ?? 0);
-  const minute = Number(
-    parts.find((part) => part.type === "minute")?.value ?? 0
-  );
-
-  return hour * 60 + minute;
-}
-
-function dateOnlyFromKey(dateKey: string) {
-  return new Date(`${dateKey}T00:00:00.000Z`);
-}
-
-function timeToMinutes(time: string | null | undefined, fallback: string) {
-  const [hour, minute] = (time || fallback).split(":").map(Number);
-
-  return hour * 60 + minute;
-}
 
 function createQrUid() {
   return `MHT-${randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
-export async function createMemberQrCredentialAction() {
-  const currentUser = await requireRole("MEMBER");
+function isUniqueConstraintError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    error.code === "P2002"
+  );
+}
+
+function revalidatePersonalAttendance(role: AppRole) {
+  revalidatePath(getDashboardPath(role));
+  revalidatePath("/member/presensi");
+  revalidatePath("/member/presensi/riwayat");
+}
+
+export async function createPersonalQrCredentialAction() {
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
 
   const existingCredential = await prisma.qrCredential.findFirst({
     where: {
@@ -86,7 +71,7 @@ export async function createMemberQrCredentialAction() {
 }
 
 export async function submitWfoAttendanceAction(formData: FormData) {
-  const currentUser = await requireRole("MEMBER");
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
   const qrUid = String(formData.get("qrUid") ?? "").trim();
 
   if (!qrUid) {
@@ -121,8 +106,10 @@ export async function submitWfoAttendanceAction(formData: FormData) {
   const now = new Date();
   const todayKey = getJakartaDateKey(now);
   const attendanceDate = dateOnlyFromKey(todayKey);
+  const dayOfWeek = getDayOfWeek(todayKey);
 
-  const [policy, existingRecord] = await Promise.all([
+  const [policy, personalSchedule, weeklyRule, holiday, existingRecord] =
+    await Promise.all([
     prisma.attendancePolicy.findFirst({
       where: {
         studioId: currentUser.defaultStudioId,
@@ -134,7 +121,37 @@ export async function submitWfoAttendanceAction(formData: FormData) {
       select: {
         checkInTime: true,
         graceMinutes: true,
+        alphaCutoffTime: true,
       },
+    }),
+    prisma.personalWorkSchedule.findUnique({
+      where: {
+        userId_workDate: {
+          userId: currentUser.id,
+          workDate: attendanceDate,
+        },
+      },
+      select: {
+        workMode: true,
+      },
+    }),
+    prisma.weeklyWorkRule.findUnique({
+      where: {
+        studioId_dayOfWeek: {
+          studioId: currentUser.defaultStudioId,
+          dayOfWeek,
+        },
+      },
+      select: { isWorkday: true },
+    }),
+    prisma.calendarEvent.findFirst({
+      where: {
+        OR: [{ studioId: null }, { studioId: currentUser.defaultStudioId }],
+        type: { in: ["NATIONAL_HOLIDAY", "COMPANY_LEAVE"] },
+        startDate: { lte: attendanceDate },
+        endDate: { gte: attendanceDate },
+      },
+      select: { id: true },
     }),
     prisma.attendanceRecord.findUnique({
       where: {
@@ -153,8 +170,20 @@ export async function submitWfoAttendanceAction(formData: FormData) {
     }),
   ]);
 
+  if (
+    personalSchedule?.workMode === "WFH" ||
+    holiday ||
+    (weeklyRule?.isWorkday === false && personalSchedule?.workMode !== "WFO")
+  ) {
+    redirect("/member/presensi?error=mode");
+  }
+
   if (existingRecord?.workMode && existingRecord.workMode !== "WFO") {
     redirect("/member/presensi?error=mode");
+  }
+
+  if (existingRecord?.status === "ALPHA") {
+    redirect("/member/presensi?error=alpha");
   }
 
   if (existingRecord?.checkInAt && existingRecord.checkOutAt) {
@@ -162,9 +191,10 @@ export async function submitWfoAttendanceAction(formData: FormData) {
   }
 
   if (existingRecord?.checkInAt && !existingRecord.checkOutAt) {
-    await prisma.attendanceRecord.update({
+    const result = await prisma.attendanceRecord.updateMany({
       where: {
         id: existingRecord.id,
+        checkOutAt: null,
       },
       data: {
         checkOutAt: now,
@@ -172,22 +202,58 @@ export async function submitWfoAttendanceAction(formData: FormData) {
       },
     });
 
-    revalidatePath("/member");
-    revalidatePath("/member/presensi");
-    redirect("/member/presensi?success=checkout");
+    revalidatePersonalAttendance(currentUser.role);
+    redirect(
+      result.count === 1
+        ? "/member/presensi?success=checkout"
+        : "/member/presensi?success=done"
+    );
   }
 
   const scheduledMinutes = timeToMinutes(policy?.checkInTime, "08:00");
   const graceMinutes = policy?.graceMinutes ?? 10;
   const currentMinutes = getJakartaMinutes(now);
+  const alphaCutoffMinutes = timeToMinutes(
+    policy?.alphaCutoffTime,
+    "12:00"
+  );
+
+  if (currentMinutes >= alphaCutoffMinutes) {
+    if (!existingRecord) {
+      await prisma.attendanceRecord.createMany({
+        data: {
+          userId: currentUser.id,
+          attendanceDate,
+          ownerStudioId: currentUser.defaultStudioId,
+          workMode: "WFO",
+          status: "ALPHA",
+          locationValidationStatus: "NOT_REQUIRED",
+        },
+        skipDuplicates: true,
+      });
+    }
+
+    revalidatePersonalAttendance(currentUser.role);
+    redirect("/member/presensi?error=alpha");
+  }
+
+  if (
+    existingRecord &&
+    !existingRecord.checkInAt &&
+    !["PRESENT", "ON_TIME", "LATE"].includes(existingRecord.status)
+  ) {
+    redirect("/member/presensi?error=mode");
+  }
+
   const rawLateMinutes = Math.max(0, currentMinutes - scheduledMinutes);
   const status = rawLateMinutes > graceMinutes ? "LATE" : "ON_TIME";
   const lateMinutes = status === "LATE" ? rawLateMinutes : 0;
 
   if (existingRecord && !existingRecord.checkInAt) {
-    await prisma.attendanceRecord.update({
+    await prisma.attendanceRecord.updateMany({
       where: {
         id: existingRecord.id,
+        checkInAt: null,
       },
       data: {
         workMode: "WFO",
@@ -200,23 +266,30 @@ export async function submitWfoAttendanceAction(formData: FormData) {
       },
     });
   } else {
-    await prisma.attendanceRecord.create({
-      data: {
-        userId: currentUser.id,
-        attendanceDate,
-        ownerStudioId: currentUser.defaultStudioId,
-        locationStudioId: currentUser.defaultStudioId,
-        workMode: "WFO",
-        status,
-        checkInAt: now,
-        locationValidationStatus: "NOT_REQUIRED",
-        lateMinutes,
-        createdById: currentUser.id,
-      },
-    });
+    try {
+      await prisma.attendanceRecord.create({
+        data: {
+          userId: currentUser.id,
+          attendanceDate,
+          ownerStudioId: currentUser.defaultStudioId,
+          locationStudioId: currentUser.defaultStudioId,
+          workMode: "WFO",
+          status,
+          checkInAt: now,
+          locationValidationStatus: "NOT_REQUIRED",
+          lateMinutes,
+          createdById: currentUser.id,
+        },
+      });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        redirect("/member/presensi?success=checkin");
+      }
+
+      throw error;
+    }
   }
 
-  revalidatePath("/member");
-  revalidatePath("/member/presensi");
+  revalidatePersonalAttendance(currentUser.role);
   redirect("/member/presensi?success=checkin");
 }
