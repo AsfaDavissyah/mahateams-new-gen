@@ -132,13 +132,13 @@ export function QrScannerForm({
 
   return (
     <div className="grid gap-3">
-      <div className="overflow-hidden rounded-md border border-zinc-200 bg-zinc-950">
+      <div className="relative min-h-64 overflow-hidden rounded-md border border-zinc-200 bg-zinc-950">
         <div
           id={scannerId}
           className="min-h-64 text-sm text-zinc-100 [&_button]:rounded-md [&_button]:border [&_button]:border-zinc-300 [&_button]:bg-white [&_button]:px-3 [&_button]:py-2 [&_button]:text-zinc-900 [&_img]:mx-auto [&_video]:w-full"
         />
         {!isScanning ? (
-          <div className="flex min-h-64 items-center justify-center text-sm text-zinc-300">
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-zinc-300">
             Kamera belum aktif
           </div>
         ) : null}
