@@ -98,6 +98,10 @@ function parseAccountStatus(value: string): EditableAccountStatus {
     : "ACTIVE";
 }
 
+function dateOnly(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
 async function requireSuperAdminActor() {
   return requireRole("SUPER_ADMIN");
 }
@@ -114,6 +118,8 @@ async function createManagedUserAction(formData: FormData) {
     readFormString(formData, "memberStatus")
   );
   const defaultStudioId = readFormString(formData, "defaultStudioId") || null;
+  const placementStudioId =
+    readFormString(formData, "placementStudioId") || null;
 
   if (!name || !email || password.length < 6) {
     throw new Error("Nama, email, dan password minimal 6 karakter wajib diisi.");
@@ -142,13 +148,26 @@ async function createManagedUserAction(formData: FormData) {
       select: { id: true },
     });
 
+    if (placementStudioId) {
+      await tx.placement.create({
+        data: {
+          userId: user.id,
+          studioId: placementStudioId,
+          startDate: dateOnly(),
+          status: "ACTIVE",
+          reason: "Placement awal dari manajemen akun",
+          createdById: actor.id,
+        },
+      });
+    }
+
     await tx.auditLog.create({
       data: {
         actorId: actor.id,
         entity: "User",
         entityId: user.id,
         action: "USER_CREATED_BY_SUPER_ADMIN",
-        metadata: { role, memberStatus },
+        metadata: { role, memberStatus, defaultStudioId, placementStudioId },
       },
     });
   });
@@ -171,6 +190,8 @@ async function updateManagedUserAction(formData: FormData) {
     readFormString(formData, "accountStatus")
   );
   const defaultStudioId = readFormString(formData, "defaultStudioId") || null;
+  const placementStudioId =
+    readFormString(formData, "placementStudioId") || null;
 
   if (!name) {
     throw new Error("Nama user wajib diisi.");
@@ -185,8 +206,8 @@ async function updateManagedUserAction(formData: FormData) {
     throw new Error("User ini tidak bisa diubah dari tabel sementara.");
   }
 
-  await prisma.$transaction([
-    prisma.user.update({
+  await prisma.$transaction(async (tx) => {
+    await tx.user.update({
       where: { id: userId },
       data: {
         name,
@@ -195,17 +216,77 @@ async function updateManagedUserAction(formData: FormData) {
         accountStatus,
         defaultStudioId,
       },
-    }),
-    prisma.auditLog.create({
+    });
+
+    const activePlacement = await tx.placement.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        studioId: true,
+      },
+    });
+
+    if (!placementStudioId && activePlacement) {
+      await tx.placement.update({
+        where: {
+          id: activePlacement.id,
+        },
+        data: {
+          status: "COMPLETED",
+          endDate: dateOnly(),
+        },
+      });
+    }
+
+    if (
+      placementStudioId &&
+      (!activePlacement || activePlacement.studioId !== placementStudioId)
+    ) {
+      await tx.placement.updateMany({
+        where: {
+          userId,
+          status: "ACTIVE",
+        },
+        data: {
+          status: "COMPLETED",
+          endDate: dateOnly(),
+        },
+      });
+
+      await tx.placement.create({
+        data: {
+          userId,
+          studioId: placementStudioId,
+          startDate: dateOnly(),
+          status: "ACTIVE",
+          reason: "Diatur dari manajemen akun",
+          createdById: actor.id,
+        },
+      });
+    }
+
+    await tx.auditLog.create({
       data: {
         actorId: actor.id,
         entity: "User",
         entityId: userId,
         action: "USER_UPDATED_BY_SUPER_ADMIN",
-        metadata: { role, memberStatus, accountStatus },
+        metadata: {
+          role,
+          memberStatus,
+          accountStatus,
+          defaultStudioId,
+          placementStudioId,
+        },
       },
-    }),
-  ]);
+    });
+  });
 
   revalidatePath("/super-admin");
   revalidatePath("/roles");
@@ -391,6 +472,25 @@ async function getSuperAdminDashboardData() {
             name: true,
           },
         },
+        placements: {
+          where: {
+            status: "ACTIVE",
+          },
+          orderBy: {
+            createdAt: "desc",
+          },
+          take: 1,
+          select: {
+            id: true,
+            studioId: true,
+            startDate: true,
+            studio: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
       },
     }),
   ]);
@@ -558,9 +658,8 @@ export default async function SuperAdminDashboardPage() {
                 Tambah User
               </CardTitle>
               <CardDescription>
-                Registrasi publik tetap hanya Member. Form ini khusus Super
-                Admin untuk membuat akun awal dan memilih akses Admin jika
-                diperlukan.
+                Super Admin dapat membuat akun, memberi role, status member,
+                default studio, dan placement studio awal.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -662,6 +761,27 @@ export default async function SuperAdminDashboardPage() {
                     ))}
                   </select>
                 </div>
+                <div className="flex flex-col gap-2 sm:col-span-2">
+                  <label
+                    htmlFor="managed-placement-studio"
+                    className="text-sm font-medium"
+                  >
+                    Placement Studio
+                  </label>
+                  <select
+                    id="managed-placement-studio"
+                    name="placementStudioId"
+                    className="h-8 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                    defaultValue=""
+                  >
+                    <option value="">Tidak ada placement aktif</option>
+                    {data.studios.map((studio) => (
+                      <option key={studio.id} value={studio.id}>
+                        {studio.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="sm:col-span-2">
                   <Button type="submit">
                     <UserPlus aria-hidden="true" />
@@ -674,10 +794,10 @@ export default async function SuperAdminDashboardPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>User dan Akses</CardTitle>
+              <CardTitle>Manajemen Akun</CardTitle>
               <CardDescription>
-                Tabel sementara untuk CRUD user. Super Admin dikunci; Admin
-                dipilih dari user yang sudah ada.
+                Super Admin mengatur role, status Team/Intern, default studio,
+                placement studio, dan status aktif/nonaktif akun.
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -688,7 +808,8 @@ export default async function SuperAdminDashboardPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Studio</TableHead>
+                    <TableHead>Default Studio</TableHead>
+                    <TableHead>Placement</TableHead>
                     <TableHead>Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -716,7 +837,9 @@ export default async function SuperAdminDashboardPage() {
                           <div className="min-w-48">
                             <div className="text-sm">{user.email}</div>
                             <div className="text-xs text-zinc-500">
-                              {user.defaultStudio?.name ?? "Belum ada studio"}
+                              {user.placements[0]?.studio.name
+                                ? `Placement: ${user.placements[0].studio.name}`
+                                : "Tidak ada placement aktif"}
                             </div>
                           </div>
                         </TableCell>
@@ -780,6 +903,28 @@ export default async function SuperAdminDashboardPage() {
                               defaultValue={user.defaultStudioId ?? ""}
                             >
                               <option value="">Belum ada studio</option>
+                              {data.studios.map((studio) => (
+                                <option key={studio.id} value={studio.id}>
+                                  {studio.name}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isSuperAdmin ? (
+                            <span className="text-sm text-zinc-600">
+                              {user.placements[0]?.studio.name ??
+                                "Tidak ada placement"}
+                            </span>
+                          ) : (
+                            <select
+                              form={formId}
+                              name="placementStudioId"
+                              className="h-8 min-w-44 rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                              defaultValue={user.placements[0]?.studioId ?? ""}
+                            >
+                              <option value="">Tidak ada placement</option>
                               {data.studios.map((studio) => (
                                 <option key={studio.id} value={studio.id}>
                                   {studio.name}
