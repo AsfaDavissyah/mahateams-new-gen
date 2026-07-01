@@ -8,8 +8,11 @@ import {
   QrCode,
   ShieldCheck,
   ShieldMinus,
+  History,
+  Camera,
 } from "lucide-react";
 import QRCode from "qrcode";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +26,7 @@ import {
   normalizeReportMonth,
   summarizeAttendanceStatuses,
 } from "@/lib/attendance-report";
+import { getJakartaDateKey, dateOnlyFromKey } from "@/lib/attendance-time";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cn } from "@/lib/utils";
@@ -81,6 +85,9 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
   const monthStart = dateOnly(new Date(month.year, month.monthIndex, 1));
   const monthEnd = dateOnly(new Date(month.year, month.monthIndex + 1, 0));
 
+  const todayKey = getJakartaDateKey();
+  const todayDate = dateOnlyFromKey(todayKey);
+
   const [
     studio,
     activeMembers,
@@ -89,6 +96,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     recentAttendance,
     personalSchedules,
     qrCredential,
+    todayRecord,
   ] = await Promise.all([
     defaultStudioId
       ? prisma.studio.findUnique({
@@ -166,6 +174,20 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
         issuedAt: true,
       },
     }),
+    prisma.attendanceRecord.findUnique({
+      where: {
+        userId_attendanceDate: {
+          userId,
+          attendanceDate: todayDate,
+        },
+      },
+      select: {
+        checkInAt: true,
+        checkOutAt: true,
+        status: true,
+        workMode: true,
+      },
+    }),
   ]);
 
   return {
@@ -176,6 +198,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     recentAttendance,
     personalSchedules,
     qrCredential,
+    todayRecord,
     monthLabel: formatMonthLabel(reportMonth),
     selectedMonth: month,
   };
@@ -253,6 +276,22 @@ export default async function AdminDashboardPage({
     },
   ];
 
+  function formatTime(date: Date | null) {
+    if (!date) return "-";
+    return new Intl.DateTimeFormat("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "Asia/Jakarta",
+    }).format(new Date(date));
+  }
+
+  function formatFullDate(date: Date) {
+    return new Intl.DateTimeFormat("id-ID", {
+      dateStyle: "full",
+      timeZone: "Asia/Jakarta",
+    }).format(date);
+  }
+
   return (
     <DashboardShell
       user={currentUser}
@@ -282,6 +321,70 @@ export default async function AdminDashboardPage({
           );
         })}
       </section>
+
+      <Card className="my-6">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2">
+            <Clock3 className="size-5 text-blue-700" />
+            Presensi Hari Ini
+          </CardTitle>
+          <CardDescription>
+            {formatFullDate(new Date())}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-xs text-zinc-500 font-medium">Check-in</p>
+            <p className="mt-1 text-lg font-semibold text-zinc-900">
+              {formatTime(data.todayRecord?.checkInAt ?? null)}
+            </p>
+          </div>
+          <div className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-xs text-zinc-500 font-medium">Check-out</p>
+            <p className="mt-1 text-lg font-semibold text-zinc-900">
+              {formatTime(data.todayRecord?.checkOutAt ?? null)}
+            </p>
+          </div>
+          <div className="rounded-md border border-zinc-200 bg-white p-3 shadow-sm">
+            <p className="text-xs text-zinc-500 font-medium">Status</p>
+            <div className="mt-1">
+              {data.todayRecord ? (
+                <Badge
+                  className={cn("text-xs font-semibold px-2 py-0.5 border shadow-none", statusColor[data.todayRecord.status])}
+                >
+                  {statusLabel[data.todayRecord.status] ?? data.todayRecord.status}
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-zinc-500 bg-zinc-50 border-zinc-200 text-xs px-2 py-0.5">
+                  Belum Presensi
+                </Badge>
+              )}
+            </div>
+          </div>
+        </CardContent>
+        <CardContent className="pt-0 flex flex-wrap gap-2">
+          <Link
+            href="/member/presensi/riwayat"
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }), "flex items-center gap-1.5")}
+          >
+            <History className="size-4" />
+            Lihat Riwayat Presensi
+          </Link>
+          
+          {(!data.todayRecord || !data.todayRecord.checkOutAt) && (
+            <Link
+              href="/login"
+              className={cn(
+                buttonVariants({ variant: "default", size: "sm" }),
+                "flex items-center gap-1.5 bg-zinc-950 hover:bg-zinc-900 text-white"
+              )}
+            >
+              <Camera className="size-4" />
+              {data.todayRecord?.checkInAt ? "Scan Check-out WFO" : "Scan Check-in WFO"}
+            </Link>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
         <Card>
