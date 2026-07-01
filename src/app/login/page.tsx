@@ -15,7 +15,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 import { getJakartaDateKey, dateOnlyFromKey } from "@/lib/attendance-time";
-import { loginAction } from "./actions";
+import { loginAction, unlockRequestsAction } from "./actions";
 import { QrLoginScanner } from "./qr-login-scanner";
 
 export const dynamic = "force-dynamic";
@@ -147,16 +147,23 @@ export default async function LoginPage({
           ) : null}
 
           {currentUser ? (
-            <QrLoginScanner
-              autoStart={true}
-              currentUser={{
-                name: currentUser.name,
-                role: currentUser.role,
-                studioName: currentUser.defaultStudio?.name || "Mahative/Kipa",
-                statusText,
-                statusColor,
-              }}
-            />
+            <div className="grid gap-2">
+              <QrLoginScanner
+                autoStart={true}
+                currentUser={{
+                  name: currentUser.name,
+                  role: currentUser.role,
+                  studioName: currentUser.defaultStudio?.name || "Mahative/Kipa",
+                  statusText,
+                  statusColor,
+                }}
+              />
+              <form action={unlockRequestsAction} className="mt-2">
+                <Button type="submit" variant="secondary" className="w-full">
+                  🤒 / ✈️ Saya Sedang Sakit / Cuti
+                </Button>
+              </form>
+            </div>
           ) : (
             <Tabs defaultValue="credentials" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4">

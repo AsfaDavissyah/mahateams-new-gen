@@ -305,32 +305,7 @@ export async function loginAndAttendWithQrAction(qrUid: string) {
   }
 }
 
-export async function verifyQrForRequestAction(qrUid: string) {
-  const cleanQrUid = qrUid.trim();
-
-  const credential = await prisma.qrCredential.findUnique({
-    where: { qrUid: cleanQrUid },
-    include: {
-      user: {
-        select: {
-          id: true,
-          role: true,
-          accountStatus: true,
-        },
-      },
-    },
-  });
-
-  if (!credential || credential.status !== "ACTIVE" || credential.user.accountStatus !== "ACTIVE") {
-    return { success: false, error: "Kartu QR tidak valid atau dinonaktifkan." };
-  }
-
-  const currentUser = await getCurrentUser();
-  if (!currentUser || currentUser.id !== credential.user.id) {
-    return { success: false, error: "Kartu QR tidak sesuai dengan akun yang sedang login." };
-  }
-
-  // Set the unlock cookie for 15 minutes
+export async function unlockRequestsAction() {
   const cookieStore = await cookies();
   cookieStore.set("mahateams_unlocked_requests", "1", {
     maxAge: 15 * 60, // 15 minutes
@@ -338,10 +313,5 @@ export async function verifyQrForRequestAction(qrUid: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   });
-
-  return {
-    success: true,
-    message: "Verifikasi berhasil. Mengalihkan ke halaman pengajuan...",
-    redirectUrl: "/member/requests",
-  };
+  redirect("/member/requests");
 }

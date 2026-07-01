@@ -2,9 +2,9 @@
 
 import type { Html5Qrcode } from "html5-qrcode";
 import { useEffect, useId, useRef, useState } from "react";
-import { Camera, ArrowLeft } from "lucide-react";
+import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { loginAndAttendWithQrAction, verifyQrForRequestAction } from "./actions";
+import { loginAndAttendWithQrAction } from "./actions";
 
 type CurrentUserProp = {
   name: string;
@@ -25,21 +25,13 @@ export function QrLoginScanner({
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [requestMode, setRequestMode] = useState(false);
 
   const defaultMsg = currentUser
     ? "Arahkan kartu QR Card Anda ke kamera webcam untuk presensi harian WFO."
     : "Arahkan kartu QR Card Anda ke kamera webcam untuk login & presensi otomatis.";
-  const requestMsg = "Mode Verifikasi Izin: Pindai QR Card Anda untuk memverifikasi identitas sebelum mengajukan Sakit/Cuti.";
 
   const [message, setMessage] = useState(defaultMsg);
   const [statusType, setStatusType] = useState<"info" | "success" | "error" | null>(null);
-
-  // Sync message when mode changes
-  useEffect(() => {
-    setMessage(requestMode ? requestMsg : defaultMsg);
-    setStatusType(requestMode ? "info" : null);
-  }, [requestMode, defaultMsg]);
 
   async function stopScanner() {
     const scanner = scannerRef.current;
@@ -69,7 +61,7 @@ export function QrLoginScanner({
       return;
     }
 
-    setMessage(requestMode ? "Membuka kamera verifikasi..." : "Membuka kamera...");
+    setMessage("Membuka kamera...");
     setStatusType("info");
 
     try {
@@ -91,21 +83,19 @@ export function QrLoginScanner({
           if (!qrUid) return;
 
           setLoading(true);
-          setMessage(requestMode ? "Memproses verifikasi QR..." : "QR terdeteksi. Memproses masuk...");
+          setMessage("QR terdeteksi. Memproses masuk...");
           setStatusType("info");
           await stopScanner();
 
           try {
-            const res = (requestMode
-              ? await verifyQrForRequestAction(qrUid)
-              : await loginAndAttendWithQrAction(qrUid)) as {
-                success: boolean;
-                error?: string;
-                warning?: string;
-                info?: string;
-                message?: string;
-                redirectUrl?: string;
-              };
+            const res = (await loginAndAttendWithQrAction(qrUid)) as {
+              success: boolean;
+              error?: string;
+              warning?: string;
+              info?: string;
+              message?: string;
+              redirectUrl?: string;
+            };
 
             if (res.success) {
               if (res.warning) {
@@ -143,7 +133,7 @@ export function QrLoginScanner({
       );
 
       setIsScanning(true);
-      setMessage(requestMode ? "Arahkan kartu QR ke kamera untuk verifikasi izin." : "Arahkan kartu QR ke kamera.");
+      setMessage("Arahkan kartu QR ke kamera.");
       setStatusType("info");
     } catch (err: any) {
       await stopScanner();
@@ -165,7 +155,7 @@ export function QrLoginScanner({
     return () => {
       void stopScanner();
     };
-  }, [autoStart, requestMode]);
+  }, [autoStart]);
 
   return (
     <div className="grid gap-3">
@@ -218,47 +208,13 @@ export function QrLoginScanner({
         </div>
       ) : null}
 
-      {/* Button for Sick / Leave requests */}
-      {currentUser ? (
-        <div className="mt-2">
-          {!requestMode ? (
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={async () => {
-                await stopScanner();
-                setRequestMode(true);
-              }}
-              disabled={loading}
-            >
-              🤒 / ✈️ Saya Sedang Sakit / Cuti
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full flex items-center justify-center gap-1.5"
-              onClick={async () => {
-                await stopScanner();
-                setRequestMode(false);
-              }}
-              disabled={loading}
-            >
-              <ArrowLeft className="size-4" />
-              Kembali ke Presensi WFO
-            </Button>
-          )}
-        </div>
-      ) : null}
-
       <div
         className={`rounded-md p-3 text-sm border ${
           statusType === "success"
             ? "bg-emerald-50 border-emerald-200 text-emerald-800"
             : statusType === "error"
               ? "bg-red-50 border-red-200 text-red-800"
-              : statusType === "info" || requestMode
+              : statusType === "info"
                 ? "bg-amber-50 border-amber-200 text-amber-800"
                 : "bg-zinc-50 border-zinc-200 text-zinc-600"
         }`}
