@@ -87,12 +87,18 @@ export default async function AdminRequestsPage({
   const params = await searchParams;
 
   // Filter requests based on user role (Admin sees their studio, Super Admin sees all)
+  // Admins cannot see requests from other Admins or Super Admins
   const scopedWhere: Prisma.RequestWhereInput =
     currentUser.role === "SUPER_ADMIN"
-      ? { type: { in: ["PERMISSION", "SICK", "LEAVE"] } }
+      ? { type: { in: ["PERMISSION", "SICK", "LEAVE", "WFH"] } }
       : {
-          type: { in: ["PERMISSION", "SICK", "LEAVE"] },
-          user: { defaultStudioId: currentUser.defaultStudioId },
+          type: { in: ["PERMISSION", "SICK", "LEAVE", "WFH"] },
+          user: {
+            defaultStudioId: currentUser.defaultStudioId,
+            role: {
+              notIn: ["ADMIN", "SUPER_ADMIN"],
+            },
+          },
         };
 
   const requests = await prisma.request.findMany({

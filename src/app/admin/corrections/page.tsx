@@ -24,6 +24,7 @@ import {
 import { DashboardShell } from "@/components/dashboard-shell";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import { reviewCorrectionAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -97,12 +98,18 @@ export default async function AdminCorrectionsPage({
   const params = await searchParams;
 
   // Filter requests based on user role (Admin sees their studio, Super Admin sees all)
-  const scopedWhere =
+  // Admins cannot see corrections from other Admins or Super Admins
+  const scopedWhere: Prisma.AttendanceCorrectionWhereInput =
     currentUser.role === "SUPER_ADMIN"
       ? {}
       : {
           attendanceRecord: {
             ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__",
+            user: {
+              role: {
+                notIn: ["ADMIN", "SUPER_ADMIN"],
+              },
+            },
           },
         };
 
