@@ -3,16 +3,21 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Clock3,
+  Download,
   HeartPulse,
   Home,
+  QrCode,
+  ShieldCheck,
   ShieldMinus,
 } from "lucide-react";
+import QRCode from "qrcode";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { createPersonalQrCredentialAction } from "@/app/member/presensi/actions";
 import {
   formatMonthLabel,
   getMonthRange,
@@ -84,6 +89,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     pendingRequests,
     recentAttendance,
     personalSchedules,
+    qrCredential,
   ] = await Promise.all([
     defaultStudioId
       ? prisma.studio.findUnique({
@@ -148,6 +154,19 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
         note: true,
       },
     }),
+    prisma.qrCredential.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+      },
+      orderBy: {
+        issuedAt: "desc",
+      },
+      select: {
+        qrUid: true,
+        issuedAt: true,
+      },
+    }),
   ]);
 
   return {
@@ -157,6 +176,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     pendingRequests,
     recentAttendance,
     personalSchedules,
+    qrCredential,
     monthLabel: formatMonthLabel(reportMonth),
     selectedMonth: month,
   };
@@ -173,6 +193,15 @@ export default async function AdminDashboardPage({
   ]);
 
   const data = await getAdminDashboardData(currentUser.id, currentUser.defaultStudioId, params.month);
+  const qrSvg = data.qrCredential
+    ? await QRCode.toString(data.qrCredential.qrUid, {
+        type: "svg",
+        margin: 1,
+        width: 180,
+        errorCorrectionLevel: "M",
+      })
+    : null;
+
   const { leadingBlankDays, days } = getCalendarDays(
     data.selectedMonth.year,
     data.selectedMonth.monthIndex
@@ -315,84 +344,145 @@ export default async function AdminDashboardPage({
           </CardContent>
         </Card>
 
-        <Card id="kalender-kerja">
-          <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>Kalender Kerja Saya</CardTitle>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="size-5 text-zinc-700" />
+                QR Card Saya
+              </CardTitle>
               <CardDescription>
-                Mode kerja Anda bulan {formatCalendarMonth(data.selectedMonth.year, data.selectedMonth.monthIndex)}.
+                Kartu QR Card digital untuk melakukan presensi WFO di kantor.
               </CardDescription>
-            </div>
-            <form className="flex items-center gap-2">
-              <Input
-                id="month"
-                name="month"
-                type="month"
-                defaultValue={data.selectedMonth.monthKey}
-                className="h-8 w-36 text-sm"
-              />
-              <Button type="submit" size="sm">
-                Filter
-              </Button>
-            </form>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 overflow-hidden rounded-md border border-zinc-200 bg-white">
-              {dayLabels.map((label) => (
-                <div
-                  key={label}
-                  className="border-b border-zinc-200 bg-zinc-50 py-2 text-center text-xs font-medium text-zinc-600"
-                >
-                  {label}
-                </div>
-              ))}
-              {Array.from({ length: leadingBlankDays }, (_, index) => (
-                <div
-                  key={`blank-${index}`}
-                  className="min-h-12 border-b border-r border-zinc-100 bg-zinc-50"
-                />
-              ))}
-              {days.map((day) => {
-                const schedule = scheduleByDate.get(day.dateKey);
-                const isWfh = schedule?.workMode === "WFH";
-                const isToday = day.dateKey === todayKey;
-
-                return (
-                  <div
-                    key={day.dateKey}
-                    className={cn(
-                      "min-h-12 border-b border-r border-zinc-100 p-1 flex flex-col justify-between",
-                      isToday && "bg-zinc-50"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={cn(
-                          "text-xs font-semibold",
-                          isToday
-                            ? "flex size-5 items-center justify-center rounded-full bg-zinc-950 text-[10px] text-white"
-                            : "text-zinc-700"
-                        )}
-                      >
-                        {day.dayNumber}
-                      </span>
-                      <span
-                        className={cn(
-                          "rounded px-1 py-0.5 text-[8px] font-medium",
-                          isWfh
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-zinc-100 text-zinc-600"
-                        )}
-                      >
-                        {isWfh ? "WFH" : "WFO"}
-                      </span>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {data.qrCredential ? (
+                <>
+                  <div className="rounded-lg border border-zinc-200 bg-white p-4">
+                    <div
+                      className="mx-auto flex size-44 items-center justify-center [&_svg]:size-40"
+                      dangerouslySetInnerHTML={{ __html: qrSvg ?? "" }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-zinc-500">QR UID</p>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1 font-mono text-xs truncate">
+                      {data.qrCredential.qrUid}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                  <div className="grid gap-2">
+                    <a
+                      href="/member/presensi/qr-card?format=png"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "w-full flex items-center justify-center gap-1.5"
+                      )}
+                    >
+                      <Download className="size-4" />
+                      Unduh PNG
+                    </a>
+                    <a
+                      href="/member/presensi/qr-card?format=jpeg"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "w-full flex items-center justify-center gap-1.5"
+                      )}
+                    >
+                      <Download className="size-4" />
+                      Unduh JPEG
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <form action={createPersonalQrCredentialAction}>
+                  <Button type="submit" className="w-full">
+                    <ShieldCheck className="mr-1.5 size-4" />
+                    Aktifkan QR Card
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card id="kalender-kerja">
+            <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Kalender Kerja Saya</CardTitle>
+                <CardDescription>
+                  Mode kerja Anda bulan {formatCalendarMonth(data.selectedMonth.year, data.selectedMonth.monthIndex)}.
+                </CardDescription>
+              </div>
+              <form className="flex items-center gap-2">
+                <Input
+                  id="month"
+                  name="month"
+                  type="month"
+                  defaultValue={data.selectedMonth.monthKey}
+                  className="h-8 w-36 text-sm"
+                />
+                <Button type="submit" size="sm">
+                  Filter
+                </Button>
+              </form>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-7 overflow-hidden rounded-md border border-zinc-200 bg-white">
+                {dayLabels.map((label) => (
+                  <div
+                    key={label}
+                    className="border-b border-zinc-200 bg-zinc-50 py-2 text-center text-xs font-medium text-zinc-600"
+                  >
+                    {label}
+                  </div>
+                ))}
+                {Array.from({ length: leadingBlankDays }, (_, index) => (
+                  <div
+                    key={`blank-${index}`}
+                    className="min-h-12 border-b border-r border-zinc-100 bg-zinc-50"
+                  />
+                ))}
+                {days.map((day) => {
+                  const schedule = scheduleByDate.get(day.dateKey);
+                  const isWfh = schedule?.workMode === "WFH";
+                  const isToday = day.dateKey === todayKey;
+
+                  return (
+                    <div
+                      key={day.dateKey}
+                      className={cn(
+                        "min-h-12 border-b border-r border-zinc-100 p-1 flex flex-col justify-between",
+                        isToday && "bg-zinc-50"
+                      )}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={cn(
+                            "text-xs font-semibold",
+                            isToday
+                              ? "flex size-5 items-center justify-center rounded-full bg-zinc-950 text-[10px] text-white"
+                              : "text-zinc-700"
+                          )}
+                        >
+                          {day.dayNumber}
+                        </span>
+                        <span
+                          className={cn(
+                            "rounded px-1 py-0.5 text-[8px] font-medium",
+                            isWfh
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-zinc-100 text-zinc-600"
+                          )}
+                        >
+                          {isWfh ? "WFH" : "WFO"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardShell>
   );
