@@ -78,7 +78,7 @@ export default async function LoginPage({
                 </Link>
               </div>
 
-              <QrLoginScanner />
+              <QrLoginScanner autoStart={true} />
 
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <Link

@@ -6,7 +6,7 @@ import { Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { loginAndAttendWithQrAction } from "./actions";
 
-export function QrLoginScanner() {
+export function QrLoginScanner({ autoStart = false }: { autoStart?: boolean }) {
   const scannerId = `login-qr-scanner-${useId().replace(/:/g, "")}`;
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -118,10 +118,19 @@ export function QrLoginScanner() {
   }
 
   useEffect(() => {
+    if (autoStart) {
+      const timer = setTimeout(() => {
+        void startScanner();
+      }, 300);
+      return () => {
+        clearTimeout(timer);
+        void stopScanner();
+      };
+    }
     return () => {
       void stopScanner();
     };
-  }, []);
+  }, [autoStart]);
 
   return (
     <div className="grid gap-3">
@@ -142,18 +151,20 @@ export function QrLoginScanner() {
         ) : null}
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => void startScanner()}
-          disabled={isScanning || loading}
-          className="w-full"
-        >
-          <Camera aria-hidden="true" className="mr-1.5 size-4" />
-          Mulai Pindai QR
-        </Button>
-      </div>
+      {!autoStart ? (
+        <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void startScanner()}
+            disabled={isScanning || loading}
+            className="w-full"
+          >
+            <Camera aria-hidden="true" className="mr-1.5 size-4" />
+            Mulai Pindai QR
+          </Button>
+        </div>
+      ) : null}
 
       <div
         className={`rounded-md p-3 text-sm border ${
