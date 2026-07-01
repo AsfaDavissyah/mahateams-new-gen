@@ -3,18 +3,22 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
   HeartPulse,
   Home,
   QrCode,
+  ShieldCheck,
   ShieldMinus,
 } from "lucide-react";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { createPersonalQrCredentialAction } from "@/app/member/presensi/actions";
 import {
   formatMonthLabel,
   getMonthRange,
@@ -77,7 +81,7 @@ async function getMemberDashboardData(userId: string, selectedMonthKey?: string)
   const monthStart = dateOnly(new Date(month.year, month.monthIndex, 1));
   const monthEnd = dateOnly(new Date(month.year, month.monthIndex + 1, 0));
 
-  const [groups, recentAttendance, personalSchedules] = await Promise.all([
+  const [groups, recentAttendance, personalSchedules, qrCredential] = await Promise.all([
     prisma.attendanceRecord.groupBy({
       by: ["status"],
       where: {
@@ -117,12 +121,26 @@ async function getMemberDashboardData(userId: string, selectedMonthKey?: string)
         note: true,
       },
     }),
+    prisma.qrCredential.findFirst({
+      where: {
+        userId,
+        status: "ACTIVE",
+      },
+      orderBy: {
+        issuedAt: "desc",
+      },
+      select: {
+        qrUid: true,
+        issuedAt: true,
+      },
+    }),
   ]);
 
   return {
     summary: summarizeAttendanceStatuses(groups),
     recentAttendance,
     personalSchedules,
+    qrCredential,
     monthLabel: formatMonthLabel(reportMonth),
     selectedMonth: month,
   };
@@ -139,6 +157,15 @@ export default async function MemberDashboardPage({
   ]);
 
   const data = await getMemberDashboardData(currentUser.id, params.month);
+  const qrSvg = data.qrCredential
+    ? await QRCode.toString(data.qrCredential.qrUid, {
+        type: "svg",
+        margin: 1,
+        width: 180,
+        errorCorrectionLevel: "M",
+      })
+    : null;
+
   const { leadingBlankDays, days } = getCalendarDays(
     data.selectedMonth.year,
     data.selectedMonth.monthIndex
@@ -176,12 +203,6 @@ export default async function MemberDashboardPage({
       value: data.summary.late,
       icon: Clock3,
       color: "text-orange-700",
-    },
-    {
-      label: `Tepat Waktu ${data.monthLabel}`,
-      value: data.summary.onTime,
-      icon: CheckCircle2,
-      color: "text-emerald-700",
     },
     {
       label: `Alpha ${data.monthLabel}`,
@@ -231,20 +252,60 @@ export default async function MemberDashboardPage({
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Aksi Member</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="size-5 text-zinc-700" />
+                QR Card Saya
+              </CardTitle>
               <CardDescription>
-                Tombol cepat untuk melakukan presensi.
+                Kartu QR Card digital untuk melakukan presensi WFO di kantor.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2">
-              <Link href="/member/presensi" className={buttonVariants()}>
-                <QrCode aria-hidden="true" />
-                Mulai Presensi
-              </Link>
-              <Link href="#kalender-kerja" className={buttonVariants({ variant: "outline" })}>
-                <CalendarDays aria-hidden="true" />
-                Kalender Saya
-              </Link>
+            <CardContent className="space-y-4">
+              {data.qrCredential ? (
+                <>
+                  <div className="rounded-lg border border-zinc-200 bg-white p-4">
+                    <div
+                      className="mx-auto flex size-44 items-center justify-center [&_svg]:size-40"
+                      dangerouslySetInnerHTML={{ __html: qrSvg ?? "" }}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium text-zinc-500">QR UID</p>
+                    <div className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-1 font-mono text-xs truncate">
+                      {data.qrCredential.qrUid}
+                    </div>
+                  </div>
+                  <div className="grid gap-2">
+                    <a
+                      href="/member/presensi/qr-card?format=png"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "w-full flex items-center justify-center gap-1.5"
+                      )}
+                    >
+                      <Download className="size-4" />
+                      Unduh PNG
+                    </a>
+                    <a
+                      href="/member/presensi/qr-card?format=jpeg"
+                      className={cn(
+                        buttonVariants({ variant: "outline", size: "sm" }),
+                        "w-full flex items-center justify-center gap-1.5"
+                      )}
+                    >
+                      <Download className="size-4" />
+                      Unduh JPEG
+                    </a>
+                  </div>
+                </>
+              ) : (
+                <form action={createPersonalQrCredentialAction}>
+                  <Button type="submit" className="w-full">
+                    <ShieldCheck className="mr-1.5 size-4" />
+                    Aktifkan QR Card
+                  </Button>
+                </form>
+              )}
             </CardContent>
           </Card>
         </div>

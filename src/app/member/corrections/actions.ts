@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function createCorrectionAction(formData: FormData) {
-  const currentUser = await requireRole("MEMBER");
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
 
   const recordId = String(formData.get("recordId") ?? "");
   const newStatus = String(formData.get("newStatus") ?? "");

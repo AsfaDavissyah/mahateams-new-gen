@@ -75,6 +75,7 @@ const errorMessages: Record<string, string> = {
   "not-found": "Pengajuan tidak ditemukan.",
   "already-reviewed": "Pengajuan sudah ditinjau sebelumnya.",
   "unauthorized-studio": "Anda tidak memiliki akses ke studio asal pengguna ini.",
+  "unauthorized-admin-review": "Persetujuan untuk akun Admin wajib dilakukan oleh Super Admin.",
 };
 
 export default async function AdminRequestsPage({

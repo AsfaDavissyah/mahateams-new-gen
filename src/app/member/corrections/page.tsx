@@ -22,7 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { requireRole } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createCorrectionAction } from "./actions";
 
@@ -91,7 +91,7 @@ export default async function MemberCorrectionsPage({
 }: {
   searchParams: Promise<{ recordId?: string; success?: string; error?: string }>;
 }) {
-  const currentUser = await requireRole("MEMBER");
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
   const params = await searchParams;
 
   const recordIdParam = params.recordId ?? "";

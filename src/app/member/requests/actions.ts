@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getJakartaDateKey, getJakartaMinutes } from "@/lib/attendance-time";
 
 export async function createRequestAction(formData: FormData) {
-  const currentUser = await requireRole("MEMBER");
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
 
   const type = String(formData.get("type") ?? "");
   const startDateStr = String(formData.get("startDate") ?? "");
@@ -58,6 +58,11 @@ export async function createRequestAction(formData: FormData) {
     if (currentMinutes >= 420) {
       redirect("/member/requests?error=sick-notice");
     }
+  }
+
+  // 5. Validasi WFH: Status Intern tidak boleh mengajukan WFH
+  if (type === "WFH" && currentUser.memberStatus === "INTERN") {
+    redirect("/member/requests?error=intern-wfh");
   }
 
   // Handle optional file attachment (Base64 for serverless compatibility)

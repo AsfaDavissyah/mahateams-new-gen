@@ -102,11 +102,20 @@ function getMenuGroups(role: DashboardUser["role"]) {
       {
         label: "Presensi Saya",
         items: [
-          { label: "Scan QR", href: "/member/presensi", icon: QrCode },
           {
             label: "Riwayat Saya",
             href: "/member/presensi/riwayat",
             icon: ClipboardCheck,
+          },
+          {
+            label: "Ajukan Izin Saya",
+            href: "/member/requests",
+            icon: ClipboardList,
+          },
+          {
+            label: "Koreksi Presensi Saya",
+            href: "/member/corrections",
+            icon: Archive,
           },
         ],
       },
@@ -134,7 +143,6 @@ function getMenuGroups(role: DashboardUser["role"]) {
     {
       label: "Presensi",
       items: [
-        { label: "Scan QR", href: "/member/presensi", icon: QrCode },
         { label: "Jadwal Saya", icon: CalendarDays, badge: "Next" },
         {
           label: "Riwayat Saya",

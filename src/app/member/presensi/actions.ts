@@ -51,8 +51,10 @@ export async function createPersonalQrCredentialAction() {
     },
   });
 
+  const dashboardPath = currentUser.role === "ADMIN" ? "/admin" : "/member";
+
   if (existingCredential) {
-    redirect("/member/presensi");
+    redirect(dashboardPath);
   }
 
   const qrUid = createQrUid();
@@ -66,8 +68,8 @@ export async function createPersonalQrCredentialAction() {
     },
   });
 
-  revalidatePath("/member/presensi");
-  redirect("/member/presensi?success=qr-created");
+  revalidatePath(dashboardPath);
+  redirect(`${dashboardPath}?success=qr-created`);
 }
 
 export async function submitWfoAttendanceAction(formData: FormData) {

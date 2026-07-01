@@ -24,6 +24,11 @@ export async function reviewCorrectionAction(formData: FormData) {
           id: true,
           ownerStudioId: true,
           userId: true,
+          user: {
+            select: {
+              role: true,
+            },
+          },
         },
       },
     },
@@ -43,6 +48,15 @@ export async function reviewCorrectionAction(formData: FormData) {
     correction.attendanceRecord.ownerStudioId !== reviewer.defaultStudioId
   ) {
     redirect("/admin/corrections?error=unauthorized-studio");
+  }
+
+  // Admin cannot review corrections from other Admins or Super Admins
+  if (
+    reviewer.role === "ADMIN" &&
+    (correction.attendanceRecord.user.role === "ADMIN" ||
+      correction.attendanceRecord.user.role === "SUPER_ADMIN")
+  ) {
+    redirect("/admin/corrections?error=unauthorized-admin-review");
   }
 
   const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";

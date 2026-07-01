@@ -22,6 +22,7 @@ export async function reviewRequestAction(formData: FormData) {
       user: {
         select: {
           id: true,
+          role: true,
           defaultStudioId: true,
         },
       },
@@ -42,6 +43,11 @@ export async function reviewRequestAction(formData: FormData) {
     request.user.defaultStudioId !== reviewer.defaultStudioId
   ) {
     redirect("/admin/requests?error=unauthorized-studio");
+  }
+
+  // Admin cannot review requests from other Admins or Super Admins
+  if (reviewer.role === "ADMIN" && (request.user.role === "ADMIN" || request.user.role === "SUPER_ADMIN")) {
+    redirect("/admin/requests?error=unauthorized-admin-review");
   }
 
   const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";

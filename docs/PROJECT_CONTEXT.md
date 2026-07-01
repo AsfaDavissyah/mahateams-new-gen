@@ -37,26 +37,29 @@ Sudah ada (Fitur Terimplementasi):
 - Prisma schema di `prisma/schema.prisma` dan database Neon PostgreSQL online.
 - Sesi autentikasi aman dengan signed cookie dan middleware proteksi global (`middleware.ts`).
 - Registrasi Member Publik (`/register`) dan halaman Login (`/login`).
-- Halaman Presensi WFO (`/member/presensi`) menggunakan kartu QR (download PNG/JPEG) dan webcam scan.
-- Halaman Presensi WFH (`/member/presensi` dinamis) dengan input rencana kerja (check-in) dan laporan harian (check-out) jika terjadwal WFH.
+- Halaman Presensi WFO menggunakan kartu QR (download PNG/JPEG) langsung di beranda utama `/member`.
+- Halaman Presensi WFH dinamis dengan input rencana kerja (check-in) dan laporan harian (check-out) jika terjadwal WFH.
 - Dashboard khusus Super Admin (`/super-admin`), Admin (`/admin`), dan Member (`/member`).
 - Integrasi Kalender Kerja Personal di dashboard Member & Admin.
 - Modul Pengajuan Izin/Sakit/Cuti (`/member/requests`) dan approval Admin (`/admin/requests`).
 - Modul Koreksi Presensi (`/member/corrections`) dan approval Admin (`/admin/corrections`).
 - Halaman Laporan Presensi Tim (`/laporan-presensi`) untuk Admin & Super Admin.
 - Halaman User & Role (`/roles`) untuk manajemen role, default studio, dan placement user.
+- Opsi **Remember Me** pada login (cookie sesi aktif 30 hari vs 24 jam).
+- **Scan QR Code & Login Presensi** cepat langsung dari halaman depan (`/login`) dengan mode kamera aktif secara default bila sesi user terdeteksi aktif.
+- Notifikasi jadwal (WFH/Cuti/Sakit/Libur) pada pemindai QR halaman depan `/login` dan menu cepat "Saya Sedang Sakit / Cuti".
+- Validasi strict pengajuan: Cuti minimal H-1, Sakit hari H maksimal sebelum pukul 07:00 pagi (menghapus tipe "Izin tidak masuk" biasa).
+- Blokir check-in baru jika karyawan memiliki catatan kehadiran hari sebelumnya yang belum melakukan check-out (memaksa koreksi).
+- Pengajuan WFH mandiri oleh Member/Admin dan persetujuan oleh Super Admin (mengupdate `PersonalWorkSchedule`).
+- Proteksi status `INTERN` agar tidak dapat mengajukan WFH.
+- Pengajuan & koreksi presensi pribadi khusus Admin, dengan aturan approval wajib ditinjau oleh `SUPER_ADMIN`.
+- Pembaruan dasbor: Ganti label "Presensi Tim Terbaru" menjadi "Today", hilangkan metrik "Tepat Waktu".
 
 Belum ada (Roadmap Fitur Baru):
 
 - Form Tambah User menggunakan Pop-up Modal di `/roles`.
 - CRUD manajemen akun per member menggunakan pop-up formulir edit detail di `/roles`.
-- Opsi Remember Me pada login (cookie sesi aktif 30 hari vs 24 jam).
-- Scan QR Code untuk Login & Presensi cepat langsung dari halaman depan (`/login`).
-- Notifikasi jadwal (WFH/Cuti/Sakit/Libur) pada pemindai QR halaman depan.
-- Validasi strict pengajuan: Cuti minimal H-1, Sakit hari H maksimal sebelum pukul 07:00 pagi (tidak ada lagi tipe "Izin tidak masuk" biasa).
-- Blokir check-in baru jika karyawan belum melakukan check-out pada hari sebelumnya.
-- Pengajuan WFH oleh member dan persetujuan otomatis oleh Super Admin (mengupdate `PersonalWorkSchedule`).
-- Pembaruan dasbor: Ganti label "Presensi Tim Terbaru" menjadi "Today", hilangkan metrik "Tepat Waktu", dan ganti matriks role di `/roles` menjadi "Total Anggota".
+- Ganti matriks role di `/roles` menjadi "Total Anggota".
 - Validasi geofencing koordinat GPS studio di server-side.
 - Halaman edit Studio & Lokasi Geofence.
 - Halaman edit Cuti & Kalender Libur Studio (`CalendarEvent`).

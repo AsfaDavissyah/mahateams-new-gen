@@ -24,7 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { requireRole } from "@/lib/auth";
+import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createRequestAction } from "./actions";
 
@@ -81,6 +81,7 @@ const errorMessages: Record<string, string> = {
   "leave-notice": "Pengajuan Cuti Tahunan hanya dapat diajukan minimal H-1.",
   "sick-notice": "Pengajuan Sakit hari ini harus dilakukan maksimal 1 jam sebelum jam masuk (sebelum 07:00 pagi).",
   "past-date": "Tanggal mulai pengajuan tidak boleh berada di masa lampau.",
+  "intern-wfh": "Intern tidak diperbolehkan mengajukan WFH. Hanya Anggota Team dan Admin yang dapat mengajukan WFH.",
 };
 
 export default async function MemberRequestsPage({
@@ -88,7 +89,7 @@ export default async function MemberRequestsPage({
 }: {
   searchParams: Promise<{ success?: string; error?: string }>;
 }) {
-  const currentUser = await requireRole("MEMBER");
+  const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
   const params = await searchParams;
 
   const requests = await prisma.request.findMany({

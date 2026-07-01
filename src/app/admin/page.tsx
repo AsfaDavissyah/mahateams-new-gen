@@ -212,12 +212,6 @@ export default async function AdminDashboardPage({
       color: "text-orange-700",
     },
     {
-      label: `Tepat Waktu ${data.monthLabel}`,
-      value: data.summary.onTime,
-      icon: CheckCircle2,
-      color: "text-emerald-700",
-    },
-    {
       label: `Alpha ${data.monthLabel}`,
       value: data.summary.alpha,
       icon: AlertTriangle,
@@ -264,7 +258,7 @@ export default async function AdminDashboardPage({
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Presensi Tim Terbaru</CardTitle>
+            <CardTitle>Today</CardTitle>
             <CardDescription>
               Catatan terbaru dari PostgreSQL untuk seluruh user aktif dalam
               scope studio Admin.

@@ -287,12 +287,6 @@ export default async function SuperAdminDashboardPage() {
       color: "text-orange-700",
     },
     {
-      label: `Tepat Waktu ${data.monthLabel}`,
-      value: data.attendanceSummary.onTime,
-      icon: CheckCircle2,
-      color: "text-emerald-700",
-    },
-    {
       label: `Alpha ${data.monthLabel}`,
       value: data.attendanceSummary.alpha,
       icon: AlertTriangle,
