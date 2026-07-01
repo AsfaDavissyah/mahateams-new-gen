@@ -35,6 +35,10 @@ export default async function LoginPage({
     searchParams,
   ]);
 
+  if (currentUser && currentUser.role === "SUPER_ADMIN") {
+    redirect("/super-admin");
+  }
+
   const isRegistered = params.registered === "1";
   const errorMessage = params.error ? errorMessages[params.error] : null;
 
