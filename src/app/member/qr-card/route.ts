@@ -16,6 +16,41 @@ function escapeXml(value: string) {
     .replace(/'/g, "&apos;");
 }
 
+function formatNameLines(fullName: string): string[] {
+  const clean = fullName.trim();
+  if (clean.length <= 18) {
+    return [clean];
+  }
+
+  const words = clean.split(/\s+/);
+  if (words.length <= 1) {
+    return [clean];
+  }
+
+  let line1 = "";
+  let line2 = "";
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (i === 0) {
+      line1 = word;
+    } else {
+      const candidate = line1 + " " + word;
+      if (candidate.length <= 18 || (i < Math.ceil(words.length / 2) && candidate.length <= 22)) {
+        line1 = candidate;
+      } else {
+        line2 += (line2 ? " " : "") + word;
+      }
+    }
+  }
+
+  if (!line2) {
+    return [line1];
+  }
+
+  return [line1, line2];
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const format = searchParams.get("format") ?? "html";
@@ -58,7 +93,7 @@ export async function GET(request: Request) {
     dateStyle: "medium",
     timeZone: "Asia/Jakarta",
   }).format(credential.issuedAt);
-  const name = escapeXml(currentUser.name);
+  const nameLines = formatNameLines(currentUser.name);
   const email = escapeXml(currentUser.email);
   const studio = escapeXml(currentUser.defaultStudio?.name ?? "No studio assigned");
   const qrUid = escapeXml(credential.qrUid);
@@ -77,6 +112,23 @@ export async function GET(request: Request) {
     </style>
   </defs>`;
 
+  const nameSvgMarkup = nameLines.length > 1
+    ? `<text x="350" y="165" fill="#71717a" font-size="13" font-weight="700">NAME</text>
+  <text x="350" y="193" fill="#18181b" font-size="22" font-weight="700">${escapeXml(nameLines[0])}</text>
+  <text x="350" y="219" fill="#18181b" font-size="22" font-weight="700">${escapeXml(nameLines[1])}</text>
+  <text x="350" y="247" fill="#71717a" font-size="13" font-weight="700">EMAIL</text>
+  <text x="350" y="271" fill="#27272a" font-size="16">${email}</text>
+  <text x="350" y="301" fill="#71717a" font-size="13" font-weight="700">QR UID</text>
+  <text x="350" y="325" fill="#09090b" font-size="19" font-weight="700">${qrUid}</text>
+  <text x="350" y="360" fill="#71717a" font-size="13">Active since ${escapeXml(issuedAt)}</text>`
+    : `<text x="350" y="174" fill="#71717a" font-size="13" font-weight="700">NAME</text>
+  <text x="350" y="202" fill="#18181b" font-size="26" font-weight="700">${escapeXml(nameLines[0])}</text>
+  <text x="350" y="235" fill="#71717a" font-size="13" font-weight="700">EMAIL</text>
+  <text x="350" y="262" fill="#27272a" font-size="17">${email}</text>
+  <text x="350" y="295" fill="#71717a" font-size="13" font-weight="700">QR UID</text>
+  <text x="350" y="322" fill="#09090b" font-size="20" font-weight="700">${qrUid}</text>
+  <text x="350" y="360" fill="#71717a" font-size="13">Active since ${escapeXml(issuedAt)}</text>`;
+
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="720" height="460" viewBox="0 0 720 460">
   ${fontStyleDef}
@@ -87,13 +139,7 @@ export async function GET(request: Request) {
   <g transform="translate(54 150)">
     ${qrSvg.replace("<svg", '<svg x="0" y="0"')}
   </g>
-  <text x="350" y="174" fill="#71717a" font-size="13" font-weight="700">NAME</text>
-  <text x="350" y="202" fill="#18181b" font-size="28" font-weight="700">${name}</text>
-  <text x="350" y="235" fill="#71717a" font-size="13" font-weight="700">EMAIL</text>
-  <text x="350" y="262" fill="#27272a" font-size="17">${email}</text>
-  <text x="350" y="295" fill="#71717a" font-size="13" font-weight="700">QR UID</text>
-  <text x="350" y="322" fill="#09090b" font-size="20" font-weight="700">${qrUid}</text>
-  <text x="350" y="360" fill="#71717a" font-size="13">Active since ${escapeXml(issuedAt)}</text>
+  ${nameSvgMarkup}
 </svg>`;
 
   if (format === "html") {
