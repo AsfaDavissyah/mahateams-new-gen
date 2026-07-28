@@ -59,12 +59,8 @@ Sudah ada (Fitur Terimplementasi):
 - Super Admin dapat memfilter anggota berdasarkan Default Studio (Mahative/Kipa) dan jenis anggota (Team/Intern); Admin tidak memiliki filter lintas studio.
 - Perubahan status akun hanya dapat disetujui Super Admin dan dicatat di audit log.
 - Matriks Izin dihapus dari dashboard dan laporan; data historis `PERMISSION` tetap dipertahankan.
-
-Belum ada (Roadmap Fitur Baru):
-
-- Validasi geofencing koordinat GPS studio di server-side.
-- Halaman edit Studio & Lokasi Geofence.
-- Halaman edit Cuti & Kalender Libur Studio (`CalendarEvent`).
+- Batas waktu pengajuan **Koreksi Presensi** diperpanjang menjadi hingga **14 hari ke belakang** (dari sebelumnya 7 hari) pada Server Component dan Server Action validation.
+- **Sistem Notifikasi Email Studio (Pengajuan & Koreksi)**: Menambahkan atribut opsional `notificationEmail` pada model `Studio`, form pengelolaan email studio di `/super-admin/studios`, serta pengiriman email notifikasi 1-arah secara asinkron (non-blocking) ke email studio (dengan fallback ke email seluruh Admin studio & Super Admin) saat ada pengajuan Izin/Sakit/Cuti/WFH atau Koreksi Presensi baru.
 
 ## Setup di Laptop Baru
 

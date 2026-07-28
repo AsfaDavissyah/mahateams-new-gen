@@ -145,6 +145,27 @@ export async function createRequestAction(formData: FormData) {
     },
   });
 
+  // Trigger non-blocking email notification to studio
+  const activePlacement = await prisma.placement.findFirst({
+    where: { userId: currentUser.id, status: "ACTIVE" },
+    select: { studioId: true },
+  });
+  const targetStudioId = activePlacement?.studioId || currentUser.defaultStudioId;
+
+  if (targetStudioId) {
+    const { sendStudioRequestNotification } = await import("@/lib/studio-notification-email");
+    void sendStudioRequestNotification({
+      userName: currentUser.name,
+      userEmail: currentUser.email,
+      studioId: targetStudioId,
+      type,
+      startDate,
+      endDate,
+      reason,
+      attachmentUrl,
+    });
+  }
+
   revalidatePath("/member/requests");
   redirect("/member/requests?success=created");
 }

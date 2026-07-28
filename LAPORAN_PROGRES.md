@@ -60,3 +60,5 @@ Dokumen ini berisi rangkuman pekerjaan dan progress implementasi fitur-fitur **P
 10. **Dashboard Kehadiran Hari Ini (Real-Time)**: Mengubah tabel log di dashboard Admin dan Super Admin agar berfokus memantau jam Check-in/out staf pada hari ini saja.
 11. **Dashboard Dual-View Admin (`/admin`)**: Memisahkan porsi presensi personal Admin (Aktivitas Saya) dari tugas pengawasan operasional studio (Manajemen Studio) via tab switcher.
 12. **Dashboard Super Admin Live Monitor (`/super-admin`)**: Panel live monitoring untuk memantau status operasional lintas studio (Kipa vs Mahative) secara real-time.
+13. **Perpanjangan Batas Koreksi Presensi (14 Hari)**: Memperluas jangkauan tanggal pengajuan koreksi presensi historis dari 7 hari menjadi 14 hari ke belakang di Server Component query dropdown dan validasi Server Action.
+14. **Sistem Notifikasi Email Studio (Pengajuan & Koreksi)**: Pengiriman notifikasi email 1-arah secara otomatis dan non-blocking ke email studio (`notificationEmail` pada `Studio` atau fallback ke seluruh Admin studio) setiap kali ada pengajuan Izin/Sakit/Cuti/WFH atau Koreksi Presensi baru.

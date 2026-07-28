@@ -100,6 +100,7 @@ model Studio {
   longitude            Float?
   radiusMeters         Int                @default(100)
   weekStartDay         Int                @default(1)
+  notificationEmail    String?
   isActive             Boolean            @default(true)
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt

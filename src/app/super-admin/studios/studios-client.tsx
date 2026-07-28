@@ -68,6 +68,7 @@ type Studio = {
   longitude: number | null;
   radiusMeters: number;
   weekStartDay: number;
+  notificationEmail: string | null;
   isActive: boolean;
   createdAt: Date;
 };
@@ -201,6 +202,7 @@ export function StudiosClient({ initialStudios }: Props) {
   const [addName, setAddName] = useState("");
   const [addSlug, setAddSlug] = useState("");
   const [addAddress, setAddAddress] = useState("");
+  const [addNotificationEmail, setAddNotificationEmail] = useState("");
   const [addLat, setAddLat] = useState("");
   const [addLng, setAddLng] = useState("");
   const [addRadius, setAddRadius] = useState("100");
@@ -213,6 +215,7 @@ export function StudiosClient({ initialStudios }: Props) {
   const [editName, setEditName] = useState("");
   const [editSlug, setEditSlug] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editNotificationEmail, setEditNotificationEmail] = useState("");
   const [editLat, setEditLat] = useState("");
   const [editLng, setEditLng] = useState("");
   const [editRadius, setEditRadius] = useState("100");
@@ -345,6 +348,7 @@ export function StudiosClient({ initialStudios }: Props) {
           name: addName,
           slug: addSlug,
           address: addAddress || null,
+          notificationEmail: addNotificationEmail || null,
           latitude: addLat ? parseFloat(addLat) : null,
           longitude: addLng ? parseFloat(addLng) : null,
           radiusMeters: parseInt(addRadius) || 100,
@@ -358,6 +362,7 @@ export function StudiosClient({ initialStudios }: Props) {
           setAddName("");
           setAddSlug("");
           setAddAddress("");
+          setAddNotificationEmail("");
           setAddLat("");
           setAddLng("");
           setAddRadius("100");
@@ -374,6 +379,7 @@ export function StudiosClient({ initialStudios }: Props) {
     setEditName(s.name);
     setEditSlug(s.slug);
     setEditAddress(s.address || "");
+    setEditNotificationEmail(s.notificationEmail || "");
     setEditLat(s.latitude !== null ? s.latitude.toString() : "");
     setEditLng(s.longitude !== null ? s.longitude.toString() : "");
     setEditRadius(s.radiusMeters.toString());
@@ -393,6 +399,7 @@ export function StudiosClient({ initialStudios }: Props) {
           name: editName,
           slug: editSlug,
           address: editAddress || null,
+          notificationEmail: editNotificationEmail || null,
           latitude: editLat ? parseFloat(editLat) : null,
           longitude: editLng ? parseFloat(editLng) : null,
           radiusMeters: parseInt(editRadius) || 100,
@@ -629,6 +636,17 @@ export function StudiosClient({ initialStudios }: Props) {
                 onChange={(e) => setAddAddress(e.target.value)}
               />
             </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="add-notification-email">Notification Email (Optional)</Label>
+              <Input
+                id="add-notification-email"
+                type="email"
+                placeholder="e.g. hr.kipa@mahateams.com"
+                value={addNotificationEmail}
+                onChange={(e) => setAddNotificationEmail(e.target.value)}
+              />
+              <p className="text-[10px] text-zinc-500">Target email for request notifications. If empty, falls back to studio admins.</p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
                 <Label htmlFor="add-lat">Latitude</Label>
@@ -764,6 +782,17 @@ export function StudiosClient({ initialStudios }: Props) {
                 value={editAddress}
                 onChange={(e) => setEditAddress(e.target.value)}
               />
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-notification-email">Notification Email (Optional)</Label>
+              <Input
+                id="edit-notification-email"
+                type="email"
+                placeholder="e.g. hr.kipa@mahateams.com"
+                value={editNotificationEmail}
+                onChange={(e) => setEditNotificationEmail(e.target.value)}
+              />
+              <p className="text-[10px] text-zinc-500">Target email for request notifications. If empty, falls back to studio admins.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">

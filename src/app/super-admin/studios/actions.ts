@@ -12,6 +12,7 @@ type StudioInput = {
   longitude?: number | null;
   radiusMeters?: number;
   weekStartDay?: number;
+  notificationEmail?: string | null;
 };
 
 export async function createStudioAction(input: StudioInput) {
@@ -40,6 +41,7 @@ export async function createStudioAction(input: StudioInput) {
         longitude: input.longitude ?? null,
         radiusMeters: input.radiusMeters ?? 100,
         weekStartDay: input.weekStartDay ?? 1,
+        notificationEmail: input.notificationEmail?.trim() || null,
         isActive: true,
       },
     });
@@ -57,6 +59,7 @@ export async function createStudioAction(input: StudioInput) {
           latitude: studio.latitude,
           longitude: studio.longitude,
           radiusMeters: studio.radiusMeters,
+          notificationEmail: studio.notificationEmail,
         },
       },
     });
@@ -99,6 +102,7 @@ export async function updateStudioAction(id: string, input: StudioInput) {
         longitude: input.longitude ?? null,
         radiusMeters: input.radiusMeters ?? 100,
         weekStartDay: input.weekStartDay ?? 1,
+        notificationEmail: input.notificationEmail?.trim() || null,
       },
     });
 
