@@ -154,16 +154,19 @@ export async function createRequestAction(formData: FormData) {
 
   if (targetStudioId) {
     const { sendStudioRequestNotification } = await import("@/lib/studio-notification-email");
-    void sendStudioRequestNotification({
-      userName: currentUser.name,
-      userEmail: currentUser.email,
-      studioId: targetStudioId,
-      type,
-      startDate,
-      endDate,
-      reason,
-      attachmentUrl,
-    });
+    const { waitUntil } = await import("@vercel/functions");
+    waitUntil(
+      sendStudioRequestNotification({
+        userName: currentUser.name,
+        userEmail: currentUser.email,
+        studioId: targetStudioId,
+        type,
+        startDate,
+        endDate,
+        reason,
+        attachmentUrl,
+      })
+    );
   }
 
   revalidatePath("/member/requests");

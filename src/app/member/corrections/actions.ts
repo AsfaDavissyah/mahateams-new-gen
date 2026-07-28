@@ -134,18 +134,21 @@ export async function createCorrectionAction(formData: FormData) {
   const targetStudioId = record.ownerStudioId || record.locationStudioId || currentUser.defaultStudioId;
   if (targetStudioId) {
     const { sendStudioCorrectionNotification } = await import("@/lib/studio-notification-email");
-    void sendStudioCorrectionNotification({
-      userName: currentUser.name,
-      userEmail: currentUser.email,
-      studioId: targetStudioId,
-      previousStatus: record.status || "UNKNOWN",
-      newStatus,
-      attendanceDate: record.attendanceDate,
-      proposedCheckInTime,
-      proposedCheckOutTime,
-      reason,
-      attachmentUrl,
-    });
+    const { waitUntil } = await import("@vercel/functions");
+    waitUntil(
+      sendStudioCorrectionNotification({
+        userName: currentUser.name,
+        userEmail: currentUser.email,
+        studioId: targetStudioId,
+        previousStatus: record.status || "UNKNOWN",
+        newStatus,
+        attendanceDate: record.attendanceDate,
+        proposedCheckInTime,
+        proposedCheckOutTime,
+        reason,
+        attachmentUrl,
+      })
+    );
   }
 
   revalidatePath("/member/corrections");
