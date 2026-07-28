@@ -48,7 +48,7 @@ Sudah ada (Fitur Terimplementasi):
 - Opsi **Remember Me** pada login (cookie sesi aktif 30 hari vs 24 jam).
 - **Scan QR Code & Login Presensi** cepat langsung dari halaman depan (`/login`) dengan mode kamera aktif secara default bila sesi user terdeteksi aktif.
 - Notifikasi jadwal (WFH/Cuti/Sakit/Libur) pada pemindai QR halaman depan `/login` dan menu cepat "Saya Sedang Sakit / Cuti".
-- Validasi strict pengajuan: Cuti minimal H-1, Sakit hari H maksimal sebelum pukul 07:00 pagi (menghapus tipe "Izin tidak masuk" biasa).
+- Validasi strict pengajuan: Cuti (`LEAVE`) & Izin Pribadi minimal H-1, Sakit (`SICK`) diajukan pada hari-H (H-0) dengan lampiran surat dokter bersifat opsional (pengajuan tanpa surat dokter menambah utang jam kerja -1 hari balance saat disetujui).
 - Blokir check-in baru jika karyawan memiliki catatan kehadiran hari sebelumnya yang belum melakukan check-out (memaksa koreksi).
 - Pengajuan WFH mandiri oleh Member/Admin dan persetujuan oleh Super Admin (mengupdate `PersonalWorkSchedule`).
 - Proteksi status `INTERN` agar tidak dapat mengajukan WFH.

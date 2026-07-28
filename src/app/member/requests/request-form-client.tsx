@@ -108,7 +108,7 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
                 <div className="rules-rich-editor space-y-3 text-xs leading-relaxed text-zinc-650 dark:text-zinc-450">
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">1. Sick Leave (SICK)</h4>
-                    <p className="mt-0.5">Must be submitted on the day of the absence no later than <b>07:00 AM</b> (1 hour before work hours) or retroactively up to yesterday (H+1). If you fall ill mid-work, refer to the early leave rules below.</p>
+                    <p className="mt-0.5">Must be submitted on the day of the absence (Today / H-0). Submitting a doctor's certificate is optional; however, requests approved without a doctor's certificate will incur a time debt (-1 day balance).</p>
                   </div>
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">2. Annual Leave (LEAVE) & Others</h4>
@@ -124,7 +124,7 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
                   </div>
                   <div className="rounded-lg bg-zinc-50 dark:bg-zinc-950/50 p-2.5 border border-zinc-100 dark:border-zinc-800/80">
                     <h4 className="font-bold text-blue-700 dark:text-blue-400">Sick Mid-Work (Early Leave)</h4>
-                    <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">If you check in and subsequently fall ill during the workday, you may go home without needing to compensate for the remaining hours (considered a full work day). If you remain unwell the next day, you must submit a formal sick request with a doctor's certificate via this form.</p>
+                    <p className="mt-0.5 text-zinc-600 dark:text-zinc-400">If you check in and subsequently fall ill during the workday, you may go home without needing to compensate for the remaining hours (considered a full work day). If you remain unwell the next day, you must submit a formal sick request via this form.</p>
                   </div>
                 </div>
               )}
