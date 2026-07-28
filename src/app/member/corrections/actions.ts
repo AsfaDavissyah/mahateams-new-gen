@@ -95,7 +95,7 @@ export async function createCorrectionAction(formData: FormData) {
   const diffTime = todayMidnight.getTime() - recordDate.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0 || diffDays > 7) {
+  if (diffDays < 0 || diffDays > 14) {
     redirect("/member/corrections?error=out-of-range");
   }
 
