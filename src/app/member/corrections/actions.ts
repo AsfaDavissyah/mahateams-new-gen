@@ -88,7 +88,7 @@ export async function createCorrectionAction(formData: FormData) {
     redirect("/member/corrections?error=unauthorized");
   }
 
-  // Validate time limit (0 to 7 days ago)
+  // Validate time limit (0 to 14 days ago)
   const todayKey = getJakartaDateKey(new Date());
   const todayMidnight = new Date(`${todayKey}T00:00:00.000Z`);
   const recordDate = new Date(record.attendanceDate);

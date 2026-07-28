@@ -92,7 +92,7 @@ const errorMessages: Record<string, string> = {
   "not-found": "Attendance record not found.",
   unauthorized: "You are not authorized to correct this record.",
   "already-pending": "This attendance record already has a pending correction request.",
-  "out-of-range": "Correction requests can only be submitted for dates between today and 7 days ago.",
+  "out-of-range": "Correction requests can only be submitted for dates between today and 14 days ago.",
   "already-processed": "The request cannot be cancelled because it has already been reviewed by an Admin.",
   "attachment-required": "An official support document is required for dispensation.",
   "intern-leave": "Interns are not allowed to request annual leave.",
@@ -112,7 +112,7 @@ export default async function MemberCorrectionsPage({
 
   const todayKey = getJakartaDateKey(new Date());
   const todayMidnight = new Date(`${todayKey}T00:00:00.000Z`);
-  const minDate = new Date(todayMidnight.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const minDate = new Date(todayMidnight.getTime() - 14 * 24 * 60 * 60 * 1000);
   const maxDate = todayMidnight;
 
   let recentRecords: Array<{
