@@ -84,7 +84,7 @@ export async function sendStudioRequestNotification(params: RequestNotificationP
     const endStr = formatDate(params.endDate);
     const dateRangeStr = startStr === endStr ? startStr : `${startStr} to ${endStr}`;
 
-    const subject = `[MahaTeams Notification] New ${typeLabel} Request - ${params.userName}`;
+    const subject = `[Kolega Notification] New ${typeLabel} Request - ${params.userName}`;
     const text = `
 Hello Studio Admin,
 
@@ -96,7 +96,7 @@ A new ${typeLabel} request has been submitted and requires your review:
 - Reason         : ${params.reason}
 - Attachment     : ${params.attachmentUrl ? "Attached Document" : "None"}
 
-Please sign in to MahaTeams to review and approve or reject this request.
+Please sign in to Kolega to review and approve or reject this request.
 Dashboard: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin/requests
     `.trim();
 
@@ -149,7 +149,7 @@ export async function sendStudioCorrectionNotification(params: CorrectionNotific
     if (recipients.length === 0) return;
 
     const dateStr = formatDate(params.attendanceDate);
-    const subject = `[MahaTeams Notification] New Attendance Correction Request - ${params.userName}`;
+    const subject = `[Kolega Notification] New Attendance Correction Request - ${params.userName}`;
     const text = `
 Hello Studio Admin,
 
@@ -163,7 +163,7 @@ A new Attendance Correction request has been submitted and requires your review:
 - Proposed Check-out: ${params.proposedCheckOutTime || "-"}
 - Reason           : ${params.reason}
 
-Please sign in to MahaTeams to review and approve or reject this request.
+Please sign in to Kolega to review and approve or reject this request.
 Dashboard: ${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/admin/corrections
     `.trim();
 

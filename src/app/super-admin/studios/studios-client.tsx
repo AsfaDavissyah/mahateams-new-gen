@@ -641,7 +641,7 @@ export function StudiosClient({ initialStudios }: Props) {
               <Input
                 id="add-notification-email"
                 type="email"
-                placeholder="e.g. hr.kipa@mahateams.com"
+                placeholder="e.g. hr.kipa@kolega.local"
                 value={addNotificationEmail}
                 onChange={(e) => setAddNotificationEmail(e.target.value)}
               />
@@ -788,7 +788,7 @@ export function StudiosClient({ initialStudios }: Props) {
               <Input
                 id="edit-notification-email"
                 type="email"
-                placeholder="e.g. hr.kipa@mahateams.com"
+                placeholder="e.g. hr.kipa@kolega.local"
                 value={editNotificationEmail}
                 onChange={(e) => setEditNotificationEmail(e.target.value)}
               />
