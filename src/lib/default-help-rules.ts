@@ -17,7 +17,7 @@ export const DEFAULT_RULES_WFO = `<div>
 
 export const DEFAULT_RULES_LEAVE_SICK = `<div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">1. Sick Leave (SICK)</h4>
-  <p class="mt-0.5">Must be submitted on the day of the absence no later than <b>07:00 AM</b> (1 hour before work hours). If you fall ill mid-work, refer to the early leave rules below.</p>
+  <p class="mt-0.5">Must be submitted on the day of the absence no later than <b>07:00 AM</b> (1 hour before work hours) or retroactively up to yesterday (H+1). If you fall ill mid-work, refer to the early leave rules below.</p>
 </div>
 <div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">2. Annual Leave (LEAVE) & Others</h4>
@@ -27,6 +27,10 @@ export const DEFAULT_RULES_LEAVE_SICK = `<div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">3. Work From Home (WFH)</h4>
   <p class="mt-0.5">Only applicable to Team members (Interns are not allowed to WFH) and requires Super Admin approval.</p>
 </div>
+<div>
+  <h4 class="font-bold text-zinc-900 dark:text-zinc-200">4. Official Dispensation (DISPENSATION)</h4>
+  <p class="mt-0.5">Used for official company assignments, external client visits, or official duties outside the studio. Can be submitted on the same day (H-0) or in advance, and does not deduct annual leave balance.</p>
+</div>
 <div class="rounded-lg bg-zinc-50 dark:bg-zinc-900/50 p-2.5 border border-zinc-100 dark:border-zinc-800/80">
   <h4 class="font-bold text-blue-700 dark:text-blue-400">Sick Mid-Work (Early Leave)</h4>
   <p class="mt-0.5 text-zinc-600 dark:text-zinc-400">If you check in and subsequently fall ill during the workday, you may go home without needing to compensate for the remaining hours (considered a full work day). If you remain unwell the next day, you must submit a formal sick request with a doctor's certificate via this form.</p>
@@ -34,11 +38,11 @@ export const DEFAULT_RULES_LEAVE_SICK = `<div>
 
 export const DEFAULT_RULES_CORRECTION = `<div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">1. Correction Date Range</h4>
-  <p class="mt-0.5">Attendance corrections are only allowed for dates ranging from <b>2 to 7 days ago</b>. Today (H-0), yesterday (H-1), and dates outside the 7-day range cannot be selected.</p>
+  <p class="mt-0.5">Attendance corrections are allowed for dates ranging from <b>Today (H-0) up to 14 days ago</b>. Dates outside the 14-day range cannot be selected.</p>
 </div>
 <div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">2. Estimated Check-in/out Time</h4>
-  <p class="mt-0.5">If correcting your status to physical presence (On Time or Late), you must provide the proposed check-in time so the system can calculate late minutes and time debt accurately.</p>
+  <p class="mt-0.5">If correcting your status to physical presence (On Time or Late), you must provide the proposed check-in time (and check-out time for past days) so the system can calculate late minutes accurately.</p>
 </div>`;
 
 export const DEFAULT_RULES_WFH_PLAN = `<p>Every time you Check-in for WFH (Work From Home) in the morning, you must fill in a written work plan containing the tasks you plan to complete today.</p>

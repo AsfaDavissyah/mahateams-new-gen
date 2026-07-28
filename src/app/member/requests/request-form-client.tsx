@@ -108,7 +108,7 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
                 <div className="rules-rich-editor space-y-3 text-xs leading-relaxed text-zinc-650 dark:text-zinc-450">
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">1. Sick Leave (SICK)</h4>
-                    <p className="mt-0.5">Must be submitted on the day of the absence no later than <b>07:00 AM</b> (1 hour before work hours). If you fall ill mid-work, refer to the early leave rules below.</p>
+                    <p className="mt-0.5">Must be submitted on the day of the absence no later than <b>07:00 AM</b> (1 hour before work hours) or retroactively up to yesterday (H+1). If you fall ill mid-work, refer to the early leave rules below.</p>
                   </div>
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">2. Annual Leave (LEAVE) & Others</h4>
@@ -117,6 +117,10 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">3. Work From Home (WFH)</h4>
                     <p className="mt-0.5">Only applicable to Team members (Interns are not allowed to WFH) and requires Super Admin approval.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-zinc-900 dark:text-zinc-200">4. Official Dispensation (DISPENSATION)</h4>
+                    <p className="mt-0.5">Used for official company assignments, external client visits, or official duties outside the studio. Can be submitted on the same day (H-0) or in advance, and does not deduct annual leave balance.</p>
                   </div>
                   <div className="rounded-lg bg-zinc-50 dark:bg-zinc-950/50 p-2.5 border border-zinc-100 dark:border-zinc-800/80">
                     <h4 className="font-bold text-blue-700 dark:text-blue-400">Sick Mid-Work (Early Leave)</h4>
