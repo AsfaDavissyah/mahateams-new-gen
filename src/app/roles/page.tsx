@@ -84,7 +84,6 @@ async function getRoleData(actor: Awaited<ReturnType<typeof requireAnyRole>>) {
         },
         attendanceRecords: {
           orderBy: [{ attendanceDate: "desc" }, { createdAt: "desc" }],
-          take: 120,
           select: {
             id: true,
             attendanceDate: true,

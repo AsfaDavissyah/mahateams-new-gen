@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getMood } from "@/lib/moods";
@@ -170,20 +171,6 @@ export function AttendanceDetailDialog({
     const month = String(now.getMonth() + 1).padStart(2, "0");
     return `${year}-${month}`;
   });
-
-  const detailMonthOptions = useMemo(() => {
-    const options = [];
-    const now = new Date();
-    for (let i = 0; i < 12; i++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const value = `${y}-${m}`;
-      const label = new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(d);
-      options.push({ value, label });
-    }
-    return options;
-  }, []);
 
   if (record && record.id !== prevRecordId) {
     setPrevRecordId(record.id);
@@ -612,17 +599,12 @@ export function AttendanceDetailDialog({
                 </div>
 
                 {detailScope === "MONTH" && (
-                  <select
+                  <Input
+                    type="month"
                     value={detailMonth}
                     onChange={(e) => setDetailMonth(e.target.value)}
-                    className="h-7 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 py-0 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer font-medium"
-                  >
-                    {detailMonthOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+                    className="h-7 w-36 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-xs text-zinc-900 dark:text-zinc-100 font-medium cursor-pointer"
+                  />
                 )}
               </div>
             </div>
