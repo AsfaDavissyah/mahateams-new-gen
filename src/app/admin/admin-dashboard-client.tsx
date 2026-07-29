@@ -492,119 +492,112 @@ export function AdminDashboardClient({
             </Card>
           )}
 
-          {/* Studio Approvals Summary Section (Refined Indigo Focus - 20% Reduced Contrast) */}
+          {/* Studio Approvals Summary Section (Refined Softer Outer Border + High Readability) */}
           <Card className={cn(
-            "rounded-xl transition-all duration-200 overflow-hidden shadow-sm",
+            "rounded-xl transition-all duration-200 overflow-hidden backdrop-blur-xl",
             ((data.pendingRequestList?.length || 0) > 0 || (data.pendingCorrectionList?.length || 0) > 0)
-              ? "border border-indigo-500/40 dark:border-indigo-400/40 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-indigo-950/30"
-              : "border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 shadow-none"
+              ? "border border-indigo-500/40 dark:border-indigo-400/40 bg-white/95 dark:bg-zinc-900/95 shadow-sm"
+              : "border border-zinc-300 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-900/90 shadow-xs"
           )}>
-            <CardHeader className="pb-3 border-b border-indigo-500/15 dark:border-indigo-500/15">
+            <CardHeader className="pb-3 border-b border-indigo-500/20 dark:border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 dark:from-indigo-950/40 dark:via-purple-950/20 dark:to-indigo-950/40">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="text-base text-zinc-900 dark:text-zinc-50 flex items-center gap-2 font-bold tracking-tight">
                   <ClipboardCheck className="size-5 text-indigo-600 dark:text-indigo-400" />
                   Studio Approvals Summary Today
                 </CardTitle>
                 {((data.pendingRequestList?.length || 0) > 0 || (data.pendingCorrectionList?.length || 0) > 0) && (
-                  <Badge className="bg-indigo-600 text-white dark:bg-indigo-500 font-bold text-[10px] uppercase tracking-wider shadow-xs">
+                  <Badge className="bg-indigo-600 text-white dark:bg-indigo-500 font-extrabold text-[10px] uppercase tracking-wider shadow-xs">
                     Action Required Today
                   </Badge>
                 )}
               </div>
-              <CardDescription className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
-                Check pending member leave/sick requests and attendance corrections for your studio.
+              <CardDescription className="text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+                Daily summary of pending member leave/sick requests and attendance corrections.
               </CardDescription>
             </CardHeader>
             <CardContent className="pt-4">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {/* 1. Member Requests Card */}
-                <div className={cn(
-                  "rounded-xl p-4 flex flex-col justify-between gap-3 transition-all",
-                  (data.pendingRequestList?.length || 0) > 0
-                    ? "border border-amber-500/40 dark:border-amber-400/40 bg-white/80 dark:bg-zinc-950/80 shadow-xs"
-                    : "border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30"
-                )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="size-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold">
-                        <FileText className="size-4 text-amber-600 dark:text-amber-400" />
+              {((data.pendingRequestList?.length || 0) > 0 || (data.pendingCorrectionList?.length || 0) > 0) ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {/* 1. Member Requests Card */}
+                  <div className={cn(
+                    "rounded-xl border p-4 flex flex-col justify-between gap-3 transition-all",
+                    (data.pendingRequestList?.length || 0) > 0
+                      ? "border-amber-500/60 dark:border-amber-400/60 bg-white dark:bg-zinc-950 shadow-sm"
+                      : "border-zinc-300 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-950/90 shadow-xs"
+                  )}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-9 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0">
+                          <FileText className="size-4.5 text-amber-600 dark:text-amber-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Member Requests & Sick Leave</h4>
+                          <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Leave, Sick & Dispensation requests</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Member Requests & Sick Leave</h4>
-                        <p className="text-[11px] text-zinc-500">Pending review for studio approval</p>
-                      </div>
-                    </div>
-                    <Badge className={cn("text-xs font-bold px-2.5 py-0.5 shadow-xs", (data.pendingRequestList?.length || 0) > 0 ? "bg-amber-500 text-zinc-950 hover:bg-amber-400" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-0")}>
-                      {(data.pendingRequestList?.length || 0) > 0 ? `${data.pendingRequestList?.length} Pending` : "0 Pending"}
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center justify-between border-t border-zinc-200/60 dark:border-zinc-800/60 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("studio")}
-                      className="text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 font-medium flex items-center gap-1 cursor-pointer"
-                    >
-                      <Users className="size-3.5 text-indigo-600 dark:text-indigo-400" />
-                      View in Studio Tab
-                    </button>
-
-                    <Link
-                      href="/admin/requests"
-                      className={cn(
-                        buttonVariants({ variant: (data.pendingRequestList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
-                        "h-7 text-xs font-semibold cursor-pointer " + ((data.pendingRequestList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "")
-                      )}
-                    >
-                      Go to Requests Page &rarr;
-                    </Link>
-                  </div>
-                </div>
-
-                {/* 2. Attendance Corrections Card */}
-                <div className={cn(
-                  "rounded-xl p-4 flex flex-col justify-between gap-3 transition-all",
-                  (data.pendingCorrectionList?.length || 0) > 0
-                    ? "border border-indigo-500/40 dark:border-indigo-400/40 bg-white/80 dark:bg-zinc-950/80 shadow-xs"
-                    : "border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30"
-                )}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="size-8 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold">
-                        <ClipboardCheck className="size-4 text-indigo-600 dark:text-indigo-400" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Attendance Corrections</h4>
-                        <p className="text-[11px] text-zinc-500">Pending review for studio approval</p>
+                      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                        <Badge className={cn("text-xs font-extrabold px-2.5 py-0.5 shadow-xs shrink-0", (data.pendingRequestList?.length || 0) > 0 ? "bg-amber-500 text-zinc-950" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-0")}>
+                          {(data.pendingRequestList?.length || 0) > 0 ? `${data.pendingRequestList?.length} Pending` : "0 Pending"}
+                        </Badge>
+                        <Link
+                          href="/admin/requests"
+                          className={cn(
+                            buttonVariants({ variant: (data.pendingRequestList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
+                            "h-7 text-xs font-bold px-3 cursor-pointer w-auto text-center " + ((data.pendingRequestList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200")
+                          )}
+                        >
+                          Requests Page &rarr;
+                        </Link>
                       </div>
                     </div>
-                    <Badge className={cn("text-xs font-bold px-2.5 py-0.5 shadow-xs", (data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-0")}>
-                      {(data.pendingCorrectionList?.length || 0) > 0 ? `${data.pendingCorrectionList?.length} Pending` : "0 Pending"}
-                    </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between border-t border-zinc-200/60 dark:border-zinc-800/60 pt-3">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab("studio")}
-                      className="text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 font-medium flex items-center gap-1 cursor-pointer"
-                    >
-                      <Users className="size-3.5 text-indigo-600 dark:text-indigo-400" />
-                      View in Studio Tab
-                    </button>
-
-                    <Link
-                      href="/admin/corrections"
-                      className={cn(
-                        buttonVariants({ variant: (data.pendingCorrectionList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
-                        "h-7 text-xs font-semibold cursor-pointer " + ((data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "")
-                      )}
-                    >
-                      Go to Corrections Page &rarr;
-                    </Link>
+                  {/* 2. Attendance Corrections Card */}
+                  <div className={cn(
+                    "rounded-xl border p-4 flex flex-col justify-between gap-3 transition-all",
+                    (data.pendingCorrectionList?.length || 0) > 0
+                      ? "border-indigo-500/60 dark:border-indigo-400/60 bg-white dark:bg-zinc-950 shadow-sm"
+                      : "border-zinc-300 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-950/90 shadow-xs"
+                  )}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="size-9 rounded-lg bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold shrink-0">
+                          <ClipboardCheck className="size-4.5 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Attendance Corrections</h4>
+                          <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Attendance correction submissions</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
+                        <Badge className={cn("text-xs font-extrabold px-2.5 py-0.5 shadow-xs shrink-0", (data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 text-white" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-0")}>
+                          {(data.pendingCorrectionList?.length || 0) > 0 ? `${data.pendingCorrectionList?.length} Pending` : "0 Pending"}
+                        </Badge>
+                        <Link
+                          href="/admin/corrections"
+                          className={cn(
+                            buttonVariants({ variant: (data.pendingCorrectionList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
+                            "h-7 text-xs font-bold px-3 cursor-pointer w-auto text-center " + ((data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200")
+                          )}
+                        >
+                          Corrections Page &rarr;
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* All Caught Up State */
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <div className="size-11 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2.5">
+                    <CheckCircle2 className="size-6" />
+                  </div>
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">All Caught Up!</h4>
+                  <p className="text-xs font-medium text-zinc-600 dark:text-zinc-300 mt-0.5">
+                    No pending member requests or attendance corrections remaining today.
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
 

@@ -134,10 +134,12 @@ export function NavUser({ user }: { user: SidebarUser }) {
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem onClick={() => setMoodOpen(true)}>
-                  <Smile className="size-4 text-blue-600 dark:text-blue-400" />
-                  <span>Set Daily Mood</span>
-                </DropdownMenuItem>
+                {user.role !== "SUPER_ADMIN" && (
+                  <DropdownMenuItem onClick={() => setMoodOpen(true)}>
+                    <Smile className="size-4 text-blue-600 dark:text-blue-400" />
+                    <span>Set Daily Mood</span>
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => { window.location.href = "/settings"; }}>
                   <Settings className="size-4" />
                   <span>Settings</span>

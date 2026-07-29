@@ -34,6 +34,7 @@ import { createUserAction, updateUserAction } from "./actions";
 import { getMood } from "@/lib/moods";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Textarea } from "@/components/ui/textarea";
+import { AttendanceDetailDialog, type DetailRecord } from "@/app/laporan-presensi/attendance-detail-dialog";
 
 type UserWithRelations = {
   id: string;
@@ -334,6 +335,58 @@ export function RolesClient({
 
   const totalTeam = useMemo(() => filteredUsers.filter(u => u.memberStatus === "TEAM").length, [filteredUsers]);
   const totalIntern = useMemo(() => filteredUsers.filter(u => u.memberStatus === "INTERN").length, [filteredUsers]);
+
+  const detailRecordForDialog = useMemo<DetailRecord | null>(() => {
+    if (!viewUser) return null;
+
+    const latestAttendance = detailRecords[0];
+
+    return {
+      id: latestAttendance?.id || `user-${viewUser.id}`,
+      attendanceDate: latestAttendance?.attendanceDate || new Date().toISOString().split("T")[0],
+      workMode: latestAttendance?.workMode || "WFO",
+      status: latestAttendance?.status || "PRESENT",
+      checkInAt: latestAttendance?.checkInAt || null,
+      checkOutAt: latestAttendance?.checkOutAt || null,
+      lateMinutes: latestAttendance?.lateMinutes || 0,
+      user: {
+        id: viewUser.id,
+        name: viewUser.name,
+        email: viewUser.email,
+        role: viewUser.role,
+        memberStatus: viewUser.memberStatus,
+        defaultStudio: viewUser.defaultStudio,
+        workDayBalance: viewUser.workDayBalance,
+        annualLeaveBalance: viewUser.annualLeaveBalance,
+        notes: viewUser.notes,
+        internProfile: viewUser.internProfile
+          ? {
+              program: viewUser.internProfile.program,
+              institution: viewUser.internProfile.institution,
+              startDate: viewUser.internProfile.startDate,
+              endDate: viewUser.internProfile.endDate,
+              mentorName: mentors.find((m) => m.id === viewUser.internProfile?.mentorId)?.name,
+            }
+          : null,
+      },
+      ownerStudio: {
+        name: viewUser.defaultStudio?.name || "Main Studio",
+      },
+      locationStudio: latestAttendance?.locationStudio || null,
+      wfhPlan: latestAttendance?.wfhPlan || null,
+      wfhReport: latestAttendance?.wfhReport || null,
+      statsRecap: detailStats,
+      recentHistory: detailRecords.map((r) => ({
+        id: r.id,
+        attendanceDate: r.attendanceDate,
+        workMode: r.workMode,
+        status: r.status,
+        checkInAt: r.checkInAt,
+        checkOutAt: r.checkOutAt,
+        lateMinutes: r.lateMinutes,
+      })),
+    };
+  }, [viewUser, detailRecords, detailStats, mentors]);
 
   return (
     <div className="grid gap-6">
@@ -1068,419 +1121,32 @@ export function RolesClient({
           )}
         </DialogContent>
       </Dialog>
-      {/* Member Details Dialog */}
-      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 sm:max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>Member Details</DialogTitle>
-            <DialogDescription className="text-zinc-500 dark:text-zinc-400">
-              Profile and attendance history.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {viewUser && (
-            <div className="grid gap-5 py-2 text-sm">
-              {/* 👤 User Profile Header Card */}
-              <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/80 dark:bg-zinc-900/60 p-5 shadow-sm dark:shadow-lg">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex items-center gap-4">
-                    {/* Mood Avatar */}
-                    <div className={`flex size-16 shrink-0 items-center justify-center rounded-2xl border-2 shadow-inner text-3xl ${getMood(viewUser.currentMood).bgColor} ${getMood(viewUser.currentMood).borderColor}`}>
-                      {getMood(viewUser.currentMood).emoji}
-                    </div>
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2.5">
-                        <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-50">{viewUser.name}</h3>
-                        <Badge variant="outline" className="border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-[11px] text-zinc-500 dark:text-zinc-400 font-normal">
-                          Mood: {getMood(viewUser.currentMood).label}
-                        </Badge>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-600 dark:text-zinc-400">
-                        <span className="inline-flex items-center gap-1"><Mail className="size-3.5 text-zinc-400 dark:text-zinc-500" /> {viewUser.email}</span>
-                        <span className="inline-flex items-center gap-1"><Cake className="size-3.5 text-zinc-400 dark:text-zinc-500" /> {formatDate(viewUser.birthDate)}</span>
-                        <span className="inline-flex items-center gap-1"><Building2 className="size-3.5 text-zinc-400 dark:text-zinc-500" /> {viewUser.defaultStudio?.name || "No Studio"}</span>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 pt-1">
-                        <Badge className="border-blue-500/30 bg-blue-500/15 text-blue-700 dark:text-blue-300">{ROLE_LABEL[viewUser.role]}</Badge>
-                        <Badge className="border-sky-500/30 bg-sky-500/15 text-sky-700 dark:text-sky-300">{viewUser.memberStatus}</Badge>
-                        <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">{accountStatusLabel[viewUser.accountStatus]}</Badge>
-                        <Badge variant="outline" className={workDayBalanceClass(viewUser.workDayBalance)}>
-                          {workDayBalanceText(viewUser.workDayBalance)}
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* 📊 Horizontal Stacked Bar Chart & Monthly Accumulation */}
-              <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/60 p-4 space-y-4 shadow-sm dark:shadow-xl">
-                {/* Header & Month Filter */}
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-zinc-200 dark:border-zinc-800/80 pb-3">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-                        <BarChart3 className="size-4 text-blue-500 dark:text-blue-400" />
-                        Member Attendance Distribution
-                      </h4>
-                      <Badge variant="outline" className="border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 text-[11px] px-2 py-0.5">
-                        {detailScope === "MONTH" ? (
-                          detailMonth ? `${new Intl.DateTimeFormat("en-US", { month: "long", year: "numeric" }).format(new Date(Number(detailMonth.split("-")[0]), Number(detailMonth.split("-")[1]) - 1, 1))}` : "Monthly"
-                        ) : "All Time"}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Month / Scope Filter (Fixed layout width to prevent UI shift) */}
-                  <div className="flex flex-wrap items-center gap-2 shrink-0">
-                    <div className="flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-950 p-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setDetailScope("MONTH")}
-                        className={`h-7 px-3 text-xs font-semibold rounded-md transition-all duration-150 cursor-pointer ${
-                          detailScope === "MONTH"
-                            ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm border border-zinc-200/50 dark:border-zinc-800"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                        }`}
-                      >
-                        Monthly
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDetailScope("ALL")}
-                        className={`h-7 px-3 text-xs font-semibold rounded-md transition-all duration-150 cursor-pointer ${
-                          detailScope === "ALL"
-                            ? "bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-50 shadow-sm border border-zinc-200/50 dark:border-zinc-800"
-                            : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                        }`}
-                      >
-                        All
-                      </button>
-                    </div>
-                    <div className="w-36 h-8 flex items-center shrink-0">
-                      {detailScope === "MONTH" ? (
-                        <Input
-                          type="month"
-                          value={detailMonth}
-                          onChange={(e) => setDetailMonth(e.target.value)}
-                          className="h-8 w-36 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-xs text-zinc-900 dark:text-zinc-100 font-medium"
-                        />
-                      ) : (
-                        <div className="h-8 w-36 rounded-md border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-100/50 dark:bg-zinc-950/40 flex items-center justify-center text-[11px] text-zinc-400 dark:text-zinc-500 font-medium">
-                          All Time
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Top KPI Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-950/50 p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Total Attendance</p>
-                      <p className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mt-0.5">
-                        {detailStats.total} <span className="text-xs font-normal text-zinc-400 dark:text-zinc-500">days</span>
-                      </p>
-                    </div>
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400">
-                      <Calendar className="size-4" />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-950/50 p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Workday Balance</p>
-                      <p className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mt-0.5">
-                        {workDayBalanceText(viewUser.workDayBalance)}
-                      </p>
-                    </div>
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400">
-                      <CheckCircle2 className="size-4" />
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-950/50 p-3 flex items-center justify-between">
-                    <div>
-                      <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400">Annual Leave Balance</p>
-                      <p className="text-2xl font-bold text-sky-600 dark:text-sky-400 mt-0.5">
-                        {viewUser.memberStatus === "TEAM" ? `${viewUser.annualLeaveBalance} Days` : "-"}
-                      </p>
-                    </div>
-                    <div className="flex size-9 items-center justify-center rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400">
-                      <Briefcase className="size-4" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Horizontal Stacked Bar Chart */}
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400">
-                    <span className="font-semibold text-zinc-700 dark:text-zinc-300">Attendance Status Ratio</span>
-                    <span>{detailStats.total} Total Records</span>
-                  </div>
-
-                  <div className="h-7 w-full rounded-full bg-zinc-100 dark:bg-zinc-950 p-1 border border-zinc-200 dark:border-zinc-800/90 flex overflow-hidden shadow-inner gap-0.5">
-                    {detailStats.total === 0 ? (
-                      <div className="w-full h-full rounded-full bg-zinc-200/50 dark:bg-zinc-800/40 flex items-center justify-center text-[11px] text-zinc-400 dark:text-zinc-500 font-medium italic">
-                        No attendance data accumulated for this period
-                      </div>
-                    ) : (
-                      <>
-                        {detailStats.onTime > 0 && (
-                          <HoverCard>
-                            <HoverCardTrigger
-                              render={
-                                <div
-                                  style={{ width: `${(detailStats.onTime / detailStats.total) * 100}%` }}
-                                  className="h-full bg-emerald-500 hover:bg-emerald-400 transition-all duration-200 rounded-l-full first:rounded-l-full last:rounded-r-full relative cursor-pointer"
-                                />
-                              }
-                            />
-                            <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                              <span className="font-semibold text-emerald-600 dark:text-emerald-400">On Time:</span> {detailStats.onTime} days ({((detailStats.onTime / detailStats.total) * 100).toFixed(1)}%)
-                            </HoverCardContent>
-                          </HoverCard>
-                        )}
-                        {detailStats.late > 0 && (
-                          <HoverCard>
-                            <HoverCardTrigger
-                              render={
-                                <div
-                                  style={{ width: `${(detailStats.late / detailStats.total) * 100}%` }}
-                                  className="h-full bg-orange-500 hover:bg-orange-400 transition-all duration-200 first:rounded-l-full last:rounded-r-full relative cursor-pointer"
-                                />
-                              }
-                            />
-                            <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                              <span className="font-semibold text-orange-600 dark:text-orange-400">Late:</span> {detailStats.late} days ({((detailStats.late / detailStats.total) * 100).toFixed(1)}%)
-                            </HoverCardContent>
-                          </HoverCard>
-                        )}
-                        {detailStats.sick > 0 && (
-                          <HoverCard>
-                            <HoverCardTrigger
-                              render={
-                                <div
-                                  style={{ width: `${(detailStats.sick / detailStats.total) * 100}%` }}
-                                  className="h-full bg-purple-500 hover:bg-purple-400 transition-all duration-200 first:rounded-l-full last:rounded-r-full relative cursor-pointer"
-                                />
-                              }
-                            />
-                            <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                              <span className="font-semibold text-purple-600 dark:text-purple-400">Sick:</span> {detailStats.sick} days ({((detailStats.sick / detailStats.total) * 100).toFixed(1)}%)
-                            </HoverCardContent>
-                          </HoverCard>
-                        )}
-                        {detailStats.permission > 0 && (
-                          <HoverCard>
-                            <HoverCardTrigger
-                              render={
-                                <div
-                                  style={{ width: `${(detailStats.permission / detailStats.total) * 100}%` }}
-                                  className="h-full bg-amber-400 hover:bg-amber-300 transition-all duration-200 first:rounded-l-full last:rounded-r-full relative cursor-pointer"
-                                />
-                              }
-                            />
-                            <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                              <span className="font-semibold text-amber-600 dark:text-amber-400">Permission:</span> {detailStats.permission} days ({((detailStats.permission / detailStats.total) * 100).toFixed(1)}%)
-                            </HoverCardContent>
-                          </HoverCard>
-                        )}
-                        {detailStats.alpha > 0 && (
-                          <HoverCard>
-                            <HoverCardTrigger
-                              render={
-                                <div
-                                  style={{ width: `${(detailStats.alpha / detailStats.total) * 100}%` }}
-                                  className="h-full bg-red-500 hover:bg-red-400 transition-all duration-200 first:rounded-l-full last:rounded-r-full relative cursor-pointer"
-                                />
-                              }
-                            />
-                            <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                              <span className="font-semibold text-red-600 dark:text-red-400">Alpha:</span> {detailStats.alpha} days ({((detailStats.alpha / detailStats.total) * 100).toFixed(1)}%)
-                            </HoverCardContent>
-                          </HoverCard>
-                        )}
-                        {detailStats.wfh > 0 && (
-                          <HoverCard>
-                            <HoverCardTrigger
-                              render={
-                                <div
-                                  style={{ width: `${(detailStats.wfh / detailStats.total) * 100}%` }}
-                                  className="h-full bg-sky-500 hover:bg-sky-400 transition-all duration-200 rounded-r-full first:rounded-l-full last:rounded-r-full relative cursor-pointer"
-                                />
-                              }
-                            />
-                            <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                              <span className="font-semibold text-sky-600 dark:text-sky-400">WFH:</span> {detailStats.wfh} days ({((detailStats.wfh / detailStats.total) * 100).toFixed(1)}%)
-                            </HoverCardContent>
-                          </HoverCard>
-                        )}
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                {/* Legend Grid Items */}
-                <div className="pt-1">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
-                    {[
-                      { label: "Total", count: detailStats.total, colorBg: "bg-blue-500", textColor: "text-blue-600 dark:text-blue-400" },
-                      { label: "On Time", count: detailStats.onTime, colorBg: "bg-emerald-500", textColor: "text-emerald-600 dark:text-emerald-400" },
-                      { label: "Late", count: detailStats.late, colorBg: "bg-orange-500", textColor: "text-orange-600 dark:text-orange-400" },
-                      { label: "Sick", count: detailStats.sick, colorBg: "bg-purple-500", textColor: "text-purple-600 dark:text-purple-400" },
-                      { label: "Permission", count: detailStats.permission, colorBg: "bg-amber-400", textColor: "text-amber-600 dark:text-amber-400" },
-                      { label: "Alpha", count: detailStats.alpha, colorBg: "bg-red-500", textColor: "text-red-600 dark:text-red-400" },
-                      { label: "WFH", count: detailStats.wfh, colorBg: "bg-sky-500", textColor: "text-sky-600 dark:text-sky-400" },
-                    ].map((item) => {
-                      const pct = detailStats.total > 0 && item.label !== "Total" ? ((item.count / detailStats.total) * 100).toFixed(0) : null;
-                      return (
-                        <HoverCard key={item.label}>
-                          <HoverCardTrigger
-                            render={
-                              <div
-                                className="flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-950/60 p-2 transition-all hover:bg-zinc-100 dark:hover:bg-zinc-950 cursor-pointer hover:scale-[1.03]"
-                              >
-                                <span className={`size-2.5 rounded-full ${item.colorBg} shrink-0 shadow-sm`} />
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 truncate">{item.label}</p>
-                                  <div className="flex items-baseline gap-1 mt-0.5">
-                                    <span className={`text-xs font-bold ${item.textColor}`}>{item.count}</span>
-                                    {pct !== null && (
-                                      <span className="text-[9px] text-zinc-400 dark:text-zinc-500 font-medium">({pct}%)</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            }
-                          />
-                          <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                            <span className="font-semibold">{item.label}:</span> {item.count} {item.count === 1 ? "day" : "days"} {pct !== null ? `(${pct}% of total)` : ""}
-                          </HoverCardContent>
-                        </HoverCard>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {viewUser.memberStatus === "INTERN" && viewUser.internProfile && (
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50 p-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Intern Profile</h4>
-                  <div className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
-                    <span>Program: <b className="text-zinc-900 dark:text-zinc-100">{viewUser.internProfile.program}</b></span>
-                    <span>Institution: <b className="text-zinc-900 dark:text-zinc-100">{viewUser.internProfile.institution}</b></span>
-                    <span>Period: <b className="text-zinc-900 dark:text-zinc-100">{formatDate(viewUser.internProfile.startDate)} - {formatDate(viewUser.internProfile.endDate)}</b></span>
-                    <span>Mentor: <b className="text-zinc-900 dark:text-zinc-100">{mentors.find((m) => m.id === viewUser.internProfile?.mentorId)?.name || "No mentor assigned"}</b></span>
-                  </div>
-                </div>
-              )}
-
-              {viewUser.notes && (
-                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/50 p-4">
-                  <h4 className="text-xs font-bold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Admin Notes</h4>
-                  <p className="mt-2 text-xs text-zinc-700 dark:text-zinc-300 whitespace-pre-line leading-relaxed">
-                    {viewUser.notes}
-                  </p>
-                </div>
-              )}
-
-              {/* Attendance History Table Section */}
-              <div className="space-y-3 border-t border-zinc-200 dark:border-zinc-800 pt-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">Attendance History</p>
-                    <p className="text-xs text-zinc-400 dark:text-zinc-500">Latest attendance records for the selected filter.</p>
-                  </div>
-                </div>
-
-                <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-zinc-200 dark:border-zinc-800 hover:bg-transparent">
-                        <TableHead className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Date</TableHead>
-                        <TableHead className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Times</TableHead>
-                        <TableHead className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Status</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {detailRecords.length === 0 ? (
-                        <TableRow className="border-zinc-200 dark:border-zinc-800">
-                          <TableCell colSpan={3} className="h-20 text-center text-zinc-400 dark:text-zinc-500 text-xs">No attendance records found.</TableCell>
-                        </TableRow>
-                      ) : (
-                        detailRecords
-                          .slice((historyPage - 1) * historyPageSize, historyPage * historyPageSize)
-                          .map((record) => (
-                            <TableRow key={record.id} className="border-zinc-200 dark:border-zinc-800 hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
-                              <TableCell className="text-xs font-medium text-zinc-900 dark:text-zinc-100">
-                                {formatDate(record.attendanceDate)}
-                              </TableCell>
-                              <TableCell className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                                {formatTime(record.checkInAt)} - {formatTime(record.checkOutAt)}
-                              </TableCell>
-                              <TableCell>
-                                <Badge className="border-indigo-500/30 bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">
-                                  {record.status.replace("_", " ")}
-                                </Badge>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {detailRecords.length > historyPageSize && (
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-xs text-zinc-500 dark:text-zinc-400">
-                      Showing {(historyPage - 1) * historyPageSize + 1} to {Math.min(historyPage * historyPageSize, detailRecords.length)} of {detailRecords.length} records
-                    </p>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={historyPage <= 1}
-                        onClick={() => setHistoryPage((p) => Math.max(1, p - 1))}
-                        className="h-7 px-2.5 text-xs"
-                      >
-                        <ChevronLeft className="size-3.5 mr-1" /> Prev
-                      </Button>
-                      <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 px-1">
-                        {historyPage} / {Math.ceil(detailRecords.length / historyPageSize)}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={historyPage >= Math.ceil(detailRecords.length / historyPageSize)}
-                        onClick={() => setHistoryPage((p) => p + 1)}
-                        className="h-7 px-2.5 text-xs"
-                      >
-                        Next <ChevronRight className="size-3.5 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-          
-          <div className="mt-4 flex items-center justify-end border-t border-zinc-200 dark:border-zinc-800/80 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setViewOpen(false)}
-              className="h-9 px-5 border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-50 rounded-xl transition-colors"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AttendanceDetailDialog
+        record={detailRecordForDialog}
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+        statusColor={{
+          PRESENT: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30",
+          LATE: "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30",
+          ABSENT: "bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30",
+          WFH: "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30",
+          SICK: "bg-purple-500/15 text-purple-700 dark:text-purple-300 border-purple-500/30",
+          PERMISSION: "bg-amber-400/15 text-amber-700 dark:text-amber-300 border-amber-400/30",
+          LEAVE: "bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30",
+          ALPHA: "bg-red-600/15 text-red-700 dark:text-red-300 border-red-600/30",
+        }}
+        statusLabel={{
+          PRESENT: "On Time",
+          LATE: "Late",
+          ABSENT: "Absent",
+          WFH: "WFH Approved",
+          SICK: "Sick",
+          PERMISSION: "Permission",
+          LEAVE: "Leave",
+          ALPHA: "Alpha",
+        }}
+      />
     </div>
   );
 }
-

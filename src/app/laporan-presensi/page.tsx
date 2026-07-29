@@ -130,7 +130,18 @@ export default async function AttendanceReportPage({
             role: true,
             memberStatus: true,
             currentMood: true,
+            workDayBalance: true,
+            annualLeaveBalance: true,
+            notes: true,
             defaultStudio: { select: { name: true } },
+            internProfile: {
+              select: {
+                program: true,
+                institution: true,
+                startDate: true,
+                endDate: true,
+              },
+            },
           },
         },
         createdBy: { select: { name: true } },

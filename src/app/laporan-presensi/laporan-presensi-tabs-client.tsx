@@ -50,6 +50,40 @@ export function LaporanPresensiTabsClient({
   const [selectedRecordForDetail, setSelectedRecordForDetail] = useState<DetailRecord | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
+  const enrichedDetailRecord = useMemo(() => {
+    if (!selectedRecordForDetail) return null;
+    const userRecords = records.filter((r) => r.user.id === selectedRecordForDetail.user.id);
+    const totalPresent = userRecords.filter((r) => r.checkInAt !== null).length;
+    const onTimeCount = userRecords.filter((r) => r.checkInAt !== null && r.lateMinutes === 0).length;
+    const lateCount = userRecords.filter((r) => r.lateMinutes > 0).length;
+    const wfoCount = userRecords.filter((r) => r.workMode === "WFO").length;
+    const wfhCount = userRecords.filter((r) => r.workMode === "WFH").length;
+    const sickLeaveCount = userRecords.filter((r) => r.status === "SICK" || r.status === "LEAVE" || r.status === "DISPENSATION").length;
+
+    const recentHistory = userRecords.slice(0, 5).map((r) => ({
+      id: r.id,
+      attendanceDate: r.attendanceDate,
+      workMode: r.workMode,
+      status: r.status,
+      checkInAt: r.checkInAt,
+      checkOutAt: r.checkOutAt,
+      lateMinutes: r.lateMinutes,
+    }));
+
+    return {
+      ...selectedRecordForDetail,
+      statsRecap: {
+        totalPresent,
+        onTimeCount,
+        lateCount,
+        wfoCount,
+        wfhCount,
+        sickLeaveCount,
+      },
+      recentHistory,
+    };
+  }, [selectedRecordForDetail, records]);
+
   const openDetailModal = (record: DetailRecord) => {
     setSelectedRecordForDetail(record);
     setIsDetailOpen(true);
@@ -365,7 +399,7 @@ export function LaporanPresensiTabsClient({
       </Tabs>
 
       <AttendanceDetailDialog
-        record={selectedRecordForDetail}
+        record={enrichedDetailRecord}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         statusColor={statusColor}

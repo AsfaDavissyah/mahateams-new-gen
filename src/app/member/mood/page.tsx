@@ -10,6 +10,10 @@ export const dynamic = "force-dynamic";
 export default async function MemberMoodPage() {
   const currentUser = await requireUser();
 
+  if (currentUser.role === "SUPER_ADMIN") {
+    redirect("/super-admin");
+  }
+
   const todayKey = getJakartaDateKey(new Date());
   const todayDate = dateOnlyFromKey(todayKey);
 

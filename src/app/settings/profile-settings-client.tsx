@@ -224,69 +224,71 @@ export function ProfileSettingsClient({ initialUser }: Props) {
         </form>
       </CardContent>
     </Card>
-    <Card className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
-          <User className="size-5 text-emerald-700" />
-          Daily Mood
-        </CardTitle>
-        <CardDescription>
-          Update your mood and a short note without changing your profile data.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleMoodSubmit} className="space-y-5 max-w-xl">
-          <div className="grid gap-2 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50/30 dark:bg-zinc-900/10">
-            <Label className="text-zinc-800 dark:text-zinc-200 font-semibold">Your Mood Today</Label>
-            <input type="hidden" name="currentMood" value={selectedMood} />
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-              {MOODS.map((m) => {
-                const isSelected = selectedMood === m.key;
-                return (
-                  <button
-                    key={m.key}
-                    type="button"
-                    onClick={() => setSelectedMood(m.key)}
-                    className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
-                      isSelected
-                        ? `${m.bgColor} ${m.borderColor} ring-2 ring-blue-500 scale-[1.03] shadow-sm`
-                        : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
-                    }`}
-                  >
-                    <span className="text-2xl mb-1">{m.emoji}</span>
-                    <span className="text-[10px] font-bold text-zinc-950 dark:text-zinc-50">{m.label}</span>
-                  </button>
-                );
-              })}
+    {initialUser.role !== "SUPER_ADMIN" && (
+      <Card className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
+            <User className="size-5 text-emerald-700" />
+            Daily Mood
+          </CardTitle>
+          <CardDescription>
+            Update your mood and a short note without changing your profile data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleMoodSubmit} className="space-y-5 max-w-xl">
+            <div className="grid gap-2 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 bg-zinc-50/30 dark:bg-zinc-900/10">
+              <Label className="text-zinc-800 dark:text-zinc-200 font-semibold">Your Mood Today</Label>
+              <input type="hidden" name="currentMood" value={selectedMood} />
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                {MOODS.map((m) => {
+                  const isSelected = selectedMood === m.key;
+                  return (
+                    <button
+                      key={m.key}
+                      type="button"
+                      onClick={() => setSelectedMood(m.key)}
+                      className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
+                        isSelected
+                          ? `${m.bgColor} ${m.borderColor} ring-2 ring-blue-500 scale-[1.03] shadow-sm`
+                          : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:bg-zinc-50 dark:hover:bg-zinc-900/60"
+                      }`}
+                    >
+                      <span className="text-2xl mb-1">{m.emoji}</span>
+                      <span className="text-[10px] font-bold text-zinc-950 dark:text-zinc-50">{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-1.5">
-            <Label htmlFor="profile-mood-note" className="text-zinc-700 dark:text-zinc-300">Mood Note</Label>
-            <Input
-              id="profile-mood-note"
-              name="moodNote"
-              placeholder="Write a brief description of what you are doing or feeling..."
-              defaultValue={initialUser.moodNote ?? ""}
-            />
-          </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="profile-mood-note" className="text-zinc-700 dark:text-zinc-300">Mood Note</Label>
+              <Input
+                id="profile-mood-note"
+                name="moodNote"
+                placeholder="Write a brief description of what you are doing or feeling..."
+                defaultValue={initialUser.moodNote ?? ""}
+              />
+            </div>
 
-          <Button type="submit" disabled={moodLoading} className="w-full sm:w-auto">
-            {moodLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Mood
-              </>
-            )}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+            <Button type="submit" disabled={moodLoading} className="w-full sm:w-auto">
+              {moodLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Mood
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    )}
 
     <BackgroundSettingsCard />
     </div>
