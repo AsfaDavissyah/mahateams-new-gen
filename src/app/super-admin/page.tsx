@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -392,6 +393,35 @@ export default async function SuperAdminDashboardPage({
       )}
 
       <DailySignalsBanner signals={data.dailySignals} currentUserId={currentUser.id} />
+
+      {/* High-Contrast Super Admin Action Alert Banner */}
+      {data.pendingRequests > 0 && (
+        <div className="rounded-xl border border-amber-500/50 dark:border-amber-400/50 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 p-4 shadow-lg backdrop-blur-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-zinc-950 dark:text-zinc-50 my-6">
+          <div className="flex items-start gap-3">
+            <div className="size-10 rounded-lg bg-amber-500 text-zinc-950 flex items-center justify-center shrink-0 font-bold shadow-md">
+              <ClipboardList className="size-6 text-zinc-950" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 tracking-tight">
+                  Super Admin Action Required: Pending Requests Awaiting Approval
+                </h3>
+                <Badge className="bg-amber-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider hover:bg-amber-400">
+                  {data.pendingRequests} Pending Request(s)
+                </Badge>
+              </div>
+              <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 font-medium">
+                There are {data.pendingRequests} global leave, sick, or WFH request(s) waiting for Super Admin review and approval.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 self-end md:self-center">
+            <Button size="sm" render={<Link href="/admin/requests" />} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-sm">
+              Review Pending Requests ({data.pendingRequests})
+            </Button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-6">
         {/* Metrics Grid */}

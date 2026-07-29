@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { toast } from "sonner";
 import { updateMoodAction, updateProfileAction } from "./actions";
 import { MOODS } from "@/lib/moods";
+import { BackgroundSettingsCard } from "./background-settings-card";
 
 type UserProfile = {
   name: string;
@@ -286,6 +287,8 @@ export function ProfileSettingsClient({ initialUser }: Props) {
         </form>
       </CardContent>
     </Card>
+
+    <BackgroundSettingsCard />
     </div>
   );
 }

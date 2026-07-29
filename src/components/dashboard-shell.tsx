@@ -4,9 +4,10 @@ import { ROLE_LABEL } from "@/lib/roles";
 import { prisma } from "@/lib/prisma";
 import { NotificationBellClient } from "@/app/notifications/notification-bell-client";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BackgroundCustomizerDropdown } from "@/components/background-customizer-dropdown";
+import { DashboardInset } from "@/components/dashboard-inset";
+import { DashboardShellWrapper } from "@/components/dashboard-shell-wrapper";
 import {
-  SidebarInset,
-  SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
@@ -106,11 +107,11 @@ export async function DashboardShell({
   const hasSubpages = breadcrumbs.length > 0;
 
   return (
-    <SidebarProvider defaultOpen={user.role === "SUPER_ADMIN"} className="bg-zinc-100 dark:bg-background">
+    <DashboardShellWrapper defaultOpen={user.role === "SUPER_ADMIN"}>
       <AppSidebar user={user} />
-      <SidebarInset className="flex flex-col bg-white dark:bg-background border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-none m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 text-zinc-950 dark:text-zinc-50">
+      <DashboardInset>
         {/* Navbar */}
-        <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-background px-4 sticky top-0 z-10 transition-colors">
+        <header className="flex h-16 shrink-0 items-center justify-between border-b border-zinc-300 dark:border-zinc-700/80 bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md px-4 sticky top-0 z-10 transition-colors">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4 self-center bg-zinc-200 dark:bg-zinc-800" />
@@ -144,8 +145,9 @@ export async function DashboardShell({
             </Breadcrumb>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <ThemeToggle />
+            <BackgroundCustomizerDropdown />
             <NotificationBellClient
               key={`${unreadCount}:${unreadNotifications.map((item) => `${item.id}:${item.readAt ?? "unread"}`).join("|")}`}
               initialNotifications={unreadNotifications}
@@ -159,7 +161,7 @@ export async function DashboardShell({
           <div className="mx-auto w-full max-w-[1440px]">
             {/* Page Header */}
             <div className="mb-6">
-              <Badge variant="outline" className="mb-2 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800">
+              <Badge variant="outline" className="mb-2 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800">
                 {badge}
               </Badge>
               <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
@@ -172,7 +174,7 @@ export async function DashboardShell({
             {children}
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </DashboardInset>
+    </DashboardShellWrapper>
   );
 }

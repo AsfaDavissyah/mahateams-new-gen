@@ -26,7 +26,8 @@ import {
   Loader2,
   ChevronLeft,
   ChevronRight,
-  FileText
+  FileText,
+  CheckCircle2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createPersonalQrCredentialAction } from "@/app/member/presensi/actions";
@@ -415,27 +416,29 @@ export function AdminDashboardClient({
       {/* Tab Switcher */}
       <div className="flex border-b border-zinc-200 dark:border-zinc-800">
         <button
+          type="button"
           onClick={() => setActiveTab("personal")}
           className={cn(
-            "px-4 py-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-colors flex items-center gap-1.5",
+            "px-4 py-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-colors flex items-center gap-2 cursor-pointer bg-transparent",
             activeTab === "personal"
-              ? "border-zinc-950 text-zinc-950 dark:border-zinc-100 dark:text-zinc-100"
-              : "border-transparent text-zinc-500 hover:text-zinc-800"
+              ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100 font-bold"
+              : "border-transparent text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:border-zinc-700"
           )}
         >
-          <User className="size-4" />
+          <User className={cn("size-4", activeTab === "personal" ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-500")} />
           My Activity
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab("studio")}
           className={cn(
-            "px-4 py-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-colors flex items-center gap-1.5",
+            "px-4 py-2.5 text-sm font-semibold border-b-2 -mb-[2px] transition-colors flex items-center gap-2 cursor-pointer bg-transparent",
             activeTab === "studio"
-              ? "border-zinc-950 text-zinc-950 dark:border-zinc-100 dark:text-zinc-100"
-              : "border-transparent text-zinc-500 hover:text-zinc-800"
+              ? "border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100 font-bold"
+              : "border-transparent text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 dark:text-zinc-400 dark:hover:text-zinc-200 dark:hover:border-zinc-700"
           )}
         >
-          <Users className="size-4" />
+          <Users className={cn("size-4", activeTab === "studio" ? "text-zinc-900 dark:text-zinc-100" : "text-zinc-400 dark:text-zinc-500")} />
           Studio Management
         </button>
       </div>
@@ -488,6 +491,122 @@ export function AdminDashboardClient({
               </CardContent>
             </Card>
           )}
+
+          {/* Studio Approvals Summary Section (Refined Indigo Focus - 20% Reduced Contrast) */}
+          <Card className={cn(
+            "rounded-xl transition-all duration-200 overflow-hidden shadow-sm",
+            ((data.pendingRequestList?.length || 0) > 0 || (data.pendingCorrectionList?.length || 0) > 0)
+              ? "border border-indigo-500/40 dark:border-indigo-400/40 bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-indigo-500/10 dark:from-indigo-950/30 dark:via-purple-950/20 dark:to-indigo-950/30"
+              : "border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/70 shadow-none"
+          )}>
+            <CardHeader className="pb-3 border-b border-indigo-500/15 dark:border-indigo-500/15">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="text-base text-zinc-900 dark:text-zinc-50 flex items-center gap-2 font-bold tracking-tight">
+                  <ClipboardCheck className="size-5 text-indigo-600 dark:text-indigo-400" />
+                  Studio Approvals Summary Today
+                </CardTitle>
+                {((data.pendingRequestList?.length || 0) > 0 || (data.pendingCorrectionList?.length || 0) > 0) && (
+                  <Badge className="bg-indigo-600 text-white dark:bg-indigo-500 font-bold text-[10px] uppercase tracking-wider shadow-xs">
+                    Action Required Today
+                  </Badge>
+                )}
+              </div>
+              <CardDescription className="text-xs text-zinc-600 dark:text-zinc-400 font-medium">
+                Check pending member leave/sick requests and attendance corrections for your studio.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pt-4">
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* 1. Member Requests Card */}
+                <div className={cn(
+                  "rounded-xl p-4 flex flex-col justify-between gap-3 transition-all",
+                  (data.pendingRequestList?.length || 0) > 0
+                    ? "border border-amber-500/40 dark:border-amber-400/40 bg-white/80 dark:bg-zinc-950/80 shadow-xs"
+                    : "border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="size-8 rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold">
+                        <FileText className="size-4 text-amber-600 dark:text-amber-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Member Requests & Sick Leave</h4>
+                        <p className="text-[11px] text-zinc-500">Pending review for studio approval</p>
+                      </div>
+                    </div>
+                    <Badge className={cn("text-xs font-bold px-2.5 py-0.5 shadow-xs", (data.pendingRequestList?.length || 0) > 0 ? "bg-amber-500 text-zinc-950 hover:bg-amber-400" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-0")}>
+                      {(data.pendingRequestList?.length || 0) > 0 ? `${data.pendingRequestList?.length} Pending` : "0 Pending"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-zinc-200/60 dark:border-zinc-800/60 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("studio")}
+                      className="text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 font-medium flex items-center gap-1 cursor-pointer"
+                    >
+                      <Users className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+                      View in Studio Tab
+                    </button>
+
+                    <Link
+                      href="/admin/requests"
+                      className={cn(
+                        buttonVariants({ variant: (data.pendingRequestList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
+                        "h-7 text-xs font-semibold cursor-pointer " + ((data.pendingRequestList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "")
+                      )}
+                    >
+                      Go to Requests Page &rarr;
+                    </Link>
+                  </div>
+                </div>
+
+                {/* 2. Attendance Corrections Card */}
+                <div className={cn(
+                  "rounded-xl p-4 flex flex-col justify-between gap-3 transition-all",
+                  (data.pendingCorrectionList?.length || 0) > 0
+                    ? "border border-indigo-500/40 dark:border-indigo-400/40 bg-white/80 dark:bg-zinc-950/80 shadow-xs"
+                    : "border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30"
+                )}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="size-8 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold">
+                        <ClipboardCheck className="size-4 text-indigo-600 dark:text-indigo-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Attendance Corrections</h4>
+                        <p className="text-[11px] text-zinc-500">Pending review for studio approval</p>
+                      </div>
+                    </div>
+                    <Badge className={cn("text-xs font-bold px-2.5 py-0.5 shadow-xs", (data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 text-white hover:bg-indigo-700" : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-0")}>
+                      {(data.pendingCorrectionList?.length || 0) > 0 ? `${data.pendingCorrectionList?.length} Pending` : "0 Pending"}
+                    </Badge>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-zinc-200/60 dark:border-zinc-800/60 pt-3">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("studio")}
+                      className="text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 font-medium flex items-center gap-1 cursor-pointer"
+                    >
+                      <Users className="size-3.5 text-indigo-600 dark:text-indigo-400" />
+                      View in Studio Tab
+                    </button>
+
+                    <Link
+                      href="/admin/corrections"
+                      className={cn(
+                        buttonVariants({ variant: (data.pendingCorrectionList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
+                        "h-7 text-xs font-semibold cursor-pointer " + ((data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "")
+                      )}
+                    >
+                      Go to Corrections Page &rarr;
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Metrics */}
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
@@ -845,6 +964,51 @@ export function AdminDashboardClient({
       {/* ───── TAB 2: STUDIO OPERATIONAL VIEW (MANAJEMEN STUDIO) ───── */}
       {activeTab === "studio" && (
         <div className="space-y-6 animate-in fade-in-50 duration-200">
+          {/* High-Contrast Pending Action Alert Banner */}
+          {((data.pendingRequestList && data.pendingRequestList.length > 0) ||
+            (data.pendingCorrectionList && data.pendingCorrectionList.length > 0)) && (
+            <div className="rounded-xl border border-amber-500/50 dark:border-amber-400/50 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 p-4 shadow-lg backdrop-blur-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-zinc-950 dark:text-zinc-50">
+              <div className="flex items-start gap-3">
+                <div className="size-10 rounded-lg bg-amber-500 text-zinc-950 flex items-center justify-center shrink-0 font-bold shadow-md">
+                  <ShieldCheck className="size-6 text-zinc-950" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 tracking-tight">
+                      Attention Required: Approvals Pending Review
+                    </h3>
+                    <Badge className="bg-amber-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider hover:bg-amber-400">
+                      {((data.pendingRequestList?.length || 0) + (data.pendingCorrectionList?.length || 0))} Pending Item(s)
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 font-medium">
+                    {data.pendingRequestList && data.pendingRequestList.length > 0
+                      ? `${data.pendingRequestList.length} leave/sick request(s)`
+                      : ""}
+                    {data.pendingRequestList && data.pendingRequestList.length > 0 && data.pendingCorrectionList && data.pendingCorrectionList.length > 0
+                      ? " and "
+                      : ""}
+                    {data.pendingCorrectionList && data.pendingCorrectionList.length > 0
+                      ? `${data.pendingCorrectionList.length} attendance correction(s)`
+                      : ""} await your review for studio approval.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 self-end md:self-center">
+                {data.pendingRequestList && data.pendingRequestList.length > 0 && (
+                  <Button size="sm" render={<Link href="/admin/requests" />} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-sm">
+                    Review Requests ({data.pendingRequestList.length})
+                  </Button>
+                )}
+                {data.pendingCorrectionList && data.pendingCorrectionList.length > 0 && (
+                  <Button size="sm" variant="outline" render={<Link href="/admin/corrections" />} className="border-amber-500/50 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 text-xs font-semibold">
+                    Review Corrections ({data.pendingCorrectionList.length})
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Studio Metrics */}
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {studioMetrics.map((metric) => {
