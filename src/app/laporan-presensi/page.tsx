@@ -140,6 +140,7 @@ export default async function AttendanceReportPage({
                 institution: true,
                 startDate: true,
                 endDate: true,
+                mentor: { select: { name: true } },
               },
             },
             attendanceRecords: {

@@ -52,34 +52,33 @@ export function LaporanPresensiTabsClient({
 
   const enrichedDetailRecord = useMemo(() => {
     if (!selectedRecordForDetail) return null;
-    const userRecords = records.filter((r) => r.user.id === selectedRecordForDetail.user.id);
-    const totalPresent = userRecords.filter((r) => r.checkInAt !== null).length;
-    const onTimeCount = userRecords.filter((r) => r.checkInAt !== null && r.lateMinutes === 0).length;
-    const lateCount = userRecords.filter((r) => r.lateMinutes > 0).length;
-    const wfoCount = userRecords.filter((r) => r.workMode === "WFO").length;
-    const wfhCount = userRecords.filter((r) => r.workMode === "WFH").length;
-    const sickLeaveCount = userRecords.filter((r) => r.status === "SICK" || r.status === "LEAVE" || r.status === "DISPENSATION").length;
+    const userAttendanceHistory = (selectedRecordForDetail.user as any).attendanceRecords?.length
+      ? (selectedRecordForDetail.user as any).attendanceRecords
+      : records.filter((r) => r.user.id === selectedRecordForDetail.user.id);
 
-    const recentHistory = userRecords.slice(0, 5).map((r) => ({
+    const recentHistory = userAttendanceHistory.map((r: any) => ({
       id: r.id,
-      attendanceDate: r.attendanceDate,
+      attendanceDate: typeof r.attendanceDate === "string" ? r.attendanceDate : new Date(r.attendanceDate).toISOString().split("T")[0],
       workMode: r.workMode,
       status: r.status,
       checkInAt: r.checkInAt,
       checkOutAt: r.checkOutAt,
-      lateMinutes: r.lateMinutes,
+      lateMinutes: r.lateMinutes ?? 0,
     }));
+
+    const user = {
+      ...selectedRecordForDetail.user,
+      internProfile: selectedRecordForDetail.user.internProfile
+        ? {
+            ...selectedRecordForDetail.user.internProfile,
+            mentorName: (selectedRecordForDetail.user.internProfile as any).mentor?.name,
+          }
+        : null,
+    };
 
     return {
       ...selectedRecordForDetail,
-      statsRecap: {
-        totalPresent,
-        onTimeCount,
-        lateCount,
-        wfoCount,
-        wfhCount,
-        sickLeaveCount,
-      },
+      user,
       recentHistory,
     };
   }, [selectedRecordForDetail, records]);
