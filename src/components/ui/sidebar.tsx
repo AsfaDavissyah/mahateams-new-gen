@@ -239,7 +239,7 @@ function Sidebar({
         <div
           data-sidebar="sidebar"
           data-slot="sidebar-inner"
-          className="flex size-full flex-col bg-white/60 dark:bg-zinc-950/60 backdrop-blur-md border border-zinc-300 dark:border-zinc-700/80 rounded-xl overflow-hidden shadow-xs transition-colors"
+          className="flex size-full flex-col bg-transparent border-0 shadow-none transition-colors"
         >
           {children}
         </div>
