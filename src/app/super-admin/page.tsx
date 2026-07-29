@@ -319,38 +319,45 @@ export default async function SuperAdminDashboardPage({
   const isBirthday = birthDate &&
     birthDate.getUTCDate() === currentDate.getDate() &&
     birthDate.getUTCMonth() === currentDate.getMonth();
+  const currentMonthKey = normalizeReportMonth((await searchParams).month);
   const metrics = [
     {
+      metricKey: "TOTAL",
       label: `Total Attendance ${data.monthLabel}`,
       value: data.attendanceSummary.total,
       icon: ClipboardCheck,
       color: "text-blue-700 dark:text-blue-400",
     },
     {
+      metricKey: "SICK",
       label: `Sick ${data.monthLabel}`,
       value: data.attendanceSummary.sick,
       icon: HeartPulse,
       color: "text-violet-700 dark:text-violet-400",
     },
     {
+      metricKey: "LATE",
       label: `Late ${data.monthLabel}`,
       value: data.attendanceSummary.late,
       icon: Clock3,
       color: "text-orange-700 dark:text-orange-400",
     },
     {
+      metricKey: "ALPHA",
       label: `Alpha ${data.monthLabel}`,
       value: data.attendanceSummary.alpha,
       icon: AlertTriangle,
       color: "text-red-700 dark:text-red-400",
     },
     {
+      metricKey: "WFH",
       label: `WFH ${data.monthLabel}`,
       value: data.attendanceSummary.wfh,
       icon: Home,
       color: "text-sky-700 dark:text-sky-400",
     },
     {
+      metricKey: "MINUS_WORKDAYS",
       label: "Minus Workdays",
       value: data.workDayBalanceSummary.debt,
       icon: ShieldAlert,
@@ -428,28 +435,31 @@ export default async function SuperAdminDashboardPage({
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 animate-in fade-in-50 duration-200">
           {metrics.map((metric) => {
             const Icon = metric.icon;
+            const targetUrl = `/laporan-presensi/detail?metric=${metric.metricKey}&month=${currentMonthKey}&studio=all`;
 
             return (
               <HoverCard key={metric.label}>
                 <HoverCardTrigger
                   render={
-                    <Card className="shadow-none h-full flex flex-col justify-between cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
-                      <CardHeader className="pb-2">
-                        <CardDescription className="flex items-center gap-2">
-                          <Icon className={cn("size-4", metric.color)} />
-                          {metric.label}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className={cn("text-3xl font-semibold", metric.color)}>
-                          {metric.value.toLocaleString("en-US")}
-                        </p>
-                      </CardContent>
-                    </Card>
+                    <Link href={targetUrl} className="block h-full">
+                      <Card className="shadow-none h-full flex flex-col justify-between cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800">
+                        <CardHeader className="pb-2">
+                          <CardDescription className="flex items-center gap-2">
+                            <Icon className={cn("size-4", metric.color)} />
+                            {metric.label}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <p className={cn("text-3xl font-semibold", metric.color)}>
+                            {metric.value.toLocaleString("en-US")}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </Link>
                   }
                 />
                 <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                  <span className="font-semibold">{metric.label}:</span> <span className={cn("font-bold", metric.color)}>{metric.value}</span>
+                  <span className="font-semibold">Klik untuk detail {metric.label}</span>
                 </HoverCardContent>
               </HoverCard>
             );

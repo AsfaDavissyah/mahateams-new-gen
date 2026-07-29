@@ -334,30 +334,35 @@ export function AdminDashboardClient({
 
   const studioMetrics = [
     {
+      metricKey: "TOTAL",
       label: `Team Attendance ${monthName}`,
       value: data.summary.total,
       icon: ClipboardCheck,
       color: "text-blue-700 dark:text-blue-400",
     },
     {
+      metricKey: "SICK",
       label: `Team Sick Days ${monthName}`,
       value: data.summary.sick,
       icon: HeartPulse,
       color: "text-violet-700 dark:text-violet-400",
     },
     {
+      metricKey: "LATE",
       label: `Team Late Days ${monthName}`,
       value: data.summary.late,
       icon: Clock3,
       color: "text-orange-700 dark:text-orange-400",
     },
     {
+      metricKey: "ALPHA",
       label: `Team Alpha Days ${monthName}`,
       value: data.summary.alpha,
       icon: AlertTriangle,
       color: "text-red-700 dark:text-red-400",
     },
     {
+      metricKey: "WFH",
       label: `Team WFH ${monthName}`,
       value: data.summary.wfh,
       icon: Home,
@@ -1006,27 +1011,32 @@ export function AdminDashboardClient({
           <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {studioMetrics.map((metric) => {
               const Icon = metric.icon;
+              const monthKey = `${data.selectedMonth.year}-${String(data.selectedMonth.monthIndex + 1).padStart(2, "0")}`;
+              const targetUrl = `/laporan-presensi/detail?metric=${metric.metricKey}&month=${monthKey}&studio=${currentUser.defaultStudioId || "all"}`;
+
               return (
                 <HoverCard key={metric.label}>
                   <HoverCardTrigger
                     render={
-                      <Card className="shadow-none h-full flex flex-col justify-between cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm">
-                        <CardHeader className="pb-2">
-                          <CardDescription className="flex items-center gap-2">
-                            <Icon className={cn("size-4", metric.color)} />
-                            {metric.label}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <p className={cn("text-3xl font-semibold", metric.color)}>
-                            {metric.value.toLocaleString("id-ID")}
-                          </p>
-                        </CardContent>
-                      </Card>
+                      <Link href={targetUrl} className="block h-full">
+                        <Card className="shadow-none h-full flex flex-col justify-between cursor-pointer transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-blue-300 dark:hover:border-blue-800">
+                          <CardHeader className="pb-2">
+                            <CardDescription className="flex items-center gap-2">
+                              <Icon className={cn("size-4", metric.color)} />
+                              {metric.label}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <p className={cn("text-3xl font-semibold", metric.color)}>
+                              {metric.value.toLocaleString("id-ID")}
+                            </p>
+                          </CardContent>
+                        </Card>
+                      </Link>
                     }
                   />
                   <HoverCardContent side="top" align="center" className="w-auto px-3 py-1.5 text-xs">
-                    <span className="font-semibold">{metric.label}:</span> <span className={cn("font-bold", metric.color)}>{metric.value}</span>
+                    <span className="font-semibold">Klik untuk detail {metric.label}</span>
                   </HoverCardContent>
                 </HoverCard>
               );

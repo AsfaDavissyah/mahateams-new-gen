@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -174,36 +175,42 @@ export default async function AttendanceReportPage({
   const summary = summarizeAttendanceStatuses(groups);
   const metrics = [
     {
+      metricKey: "TOTAL",
       label: "Total Attendance",
       value: summary.total,
       icon: ClipboardCheck,
       color: "text-blue-700",
     },
     {
+      metricKey: "SICK",
       label: "Sick",
       value: summary.sick,
       icon: HeartPulse,
       color: "text-violet-700",
     },
     {
+      metricKey: "LATE",
       label: "Late",
       value: summary.late,
       icon: Clock3,
       color: "text-orange-700",
     },
     {
+      metricKey: "ON_TIME",
       label: "On Time",
       value: summary.onTime,
       icon: CheckCircle2,
       color: "text-emerald-700",
     },
     {
+      metricKey: "ALPHA",
       label: "Alpha",
       value: summary.alpha,
       icon: AlertTriangle,
       color: "text-red-700",
     },
     {
+      metricKey: "WFH",
       label: "WFH",
       value: summary.wfh,
       icon: Home,
@@ -239,6 +246,8 @@ export default async function AttendanceReportPage({
     wfhPlan: r.wfhPlan,
     wfhReport: r.wfhReport,
   }));
+
+  const studioScope = isSuperAdmin ? "all" : (currentUser.defaultStudioId ?? "all");
 
   return (
     <DashboardShell
@@ -327,21 +336,24 @@ export default async function AttendanceReportPage({
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {metrics.map((metric) => {
           const Icon = metric.icon;
+          const targetUrl = `/laporan-presensi/detail?metric=${metric.metricKey}&month=${month}&studio=${studioScope}`;
 
           return (
-            <Card key={metric.label}>
-              <CardHeader className="pb-2">
-                <CardDescription className="flex items-center gap-2">
-                  <Icon className={`size-4 ${metric.color}`} />
-                  {metric.label}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className={`text-3xl font-semibold ${metric.color}`}>
-                  {metric.value.toLocaleString("id-ID")}
-                </p>
-              </CardContent>
-            </Card>
+            <Link key={metric.label} href={targetUrl} className="block group">
+              <Card className="transition-all duration-150 group-hover:border-blue-300 dark:group-hover:border-blue-800 group-hover:shadow-sm">
+                <CardHeader className="pb-2">
+                  <CardDescription className="flex items-center gap-2">
+                    <Icon className={`size-4 ${metric.color}`} />
+                    {metric.label}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className={`text-3xl font-semibold ${metric.color}`}>
+                    {metric.value.toLocaleString("id-ID")}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </section>
