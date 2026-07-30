@@ -12,7 +12,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type AttendanceSummary = {
   total: number;
@@ -87,15 +86,17 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
   }, [dailyTrend, timeRange]);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="grid gap-6 md:grid-cols-2 items-stretch">
       {/* 1. Composition Horizontal Bars Card */}
-      <Card className="shadow-none flex flex-col justify-between">
-        <CardHeader className="pb-2">
+      <Card className="shadow-none flex flex-col justify-between h-full border border-zinc-200 dark:border-zinc-800">
+        <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800/80">
           <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-zinc-900 dark:text-zinc-50">
             <ClipboardList className="size-4 text-violet-700 dark:text-violet-400" />
             Attendance Status Breakdown
           </CardTitle>
-          <CardDescription>Status percentage out of {totalSummary} total records</CardDescription>
+          <CardDescription className="text-xs">
+            Status percentage out of {totalSummary} total records
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 py-4 flex-1 flex flex-col justify-center">
           {totalSummary === 0 ? (
@@ -124,53 +125,81 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
       </Card>
 
       {/* 2. Interactive Area Chart Card */}
-      <Card className="shadow-none flex flex-col justify-between">
-        <CardHeader className="flex items-center gap-2 space-y-0 border-b border-zinc-100 dark:border-zinc-800 py-3 sm:flex-row">
-          <div className="grid flex-1 gap-1 text-center sm:text-left">
+      <Card className="shadow-none flex flex-col justify-between h-full border border-zinc-200 dark:border-zinc-800">
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 dark:border-zinc-800/80 pb-3">
+          <div>
             <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-zinc-900 dark:text-zinc-50">
               <TrendingUp className="size-4 text-emerald-700 dark:text-emerald-400" />
               Attendance Trend
             </CardTitle>
-            <CardDescription className="text-xs">
+            <CardDescription className="text-xs mt-0.5">
               Showing On Time vs Late breakdown over time
             </CardDescription>
           </div>
-          <Select value={timeRange} onValueChange={(value) => { if (value) setTimeRange(value as "7d" | "30d" | "90d"); }}>
-            <SelectTrigger className="w-[120px] h-8 text-xs font-medium rounded-lg" aria-label="Select time range">
-              <SelectValue placeholder="Last 7 days" />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl text-xs">
-              <SelectItem value="7d" className="rounded-lg text-xs">Last 7 days</SelectItem>
-              <SelectItem value="30d" className="rounded-lg text-xs">Last 30 days</SelectItem>
-              <SelectItem value="90d" className="rounded-lg text-xs">Last 90 days</SelectItem>
-            </SelectContent>
-          </Select>
+
+          {/* Interactive Time Range Filter Segment Buttons */}
+          <div className="flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-900 p-0.5 shadow-xs shrink-0 self-start sm:self-auto">
+            <button
+              type="button"
+              onClick={() => setTimeRange("7d")}
+              className={`h-7 px-2.5 text-[11px] font-semibold rounded-md transition-all duration-150 cursor-pointer ${
+                timeRange === "7d"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-xs border border-zinc-200/50 dark:border-zinc-700"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              7 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeRange("30d")}
+              className={`h-7 px-2.5 text-[11px] font-semibold rounded-md transition-all duration-150 cursor-pointer ${
+                timeRange === "30d"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-xs border border-zinc-200/50 dark:border-zinc-700"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              30 Days
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimeRange("90d")}
+              className={`h-7 px-2.5 text-[11px] font-semibold rounded-md transition-all duration-150 cursor-pointer ${
+                timeRange === "90d"
+                  ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-xs border border-zinc-200/50 dark:border-zinc-700"
+                  : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              90 Days
+            </button>
+          </div>
         </CardHeader>
-        <CardContent className="px-2 pt-4 sm:px-6 flex-1 flex flex-col justify-center">
+
+        <CardContent className="pt-3 pb-3 px-2 sm:px-4 flex-1 flex flex-col justify-center">
           {filteredData.length === 0 ? (
             <div className="text-center py-8 text-zinc-400 dark:text-zinc-600 text-xs">
               Daily trend data is insufficient
             </div>
           ) : (
-            <ChartContainer config={chartConfig} className="aspect-auto h-[200px] w-full">
-              <AreaChart data={filteredData}>
+            <ChartContainer config={chartConfig} className="aspect-auto h-[210px] w-full">
+              <AreaChart data={filteredData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="fillOnTime" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.05} />
                   </linearGradient>
                   <linearGradient id="fillLate" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#f97316" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800/80" />
                 <XAxis
                   dataKey="date"
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
-                  minTickGap={32}
+                  minTickGap={28}
                   tickFormatter={(value) => {
                     const dateObj = new Date(value);
                     if (isNaN(dateObj.getTime())) return String(value);
@@ -179,14 +208,14 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
                       day: "numeric",
                     });
                   }}
-                  className="text-[10px] text-zinc-400 font-medium"
+                  className="text-[10px] text-zinc-500 font-medium"
                 />
                 <YAxis
                   tickLine={false}
                   axisLine={false}
                   tickMargin={8}
                   allowDecimals={false}
-                  className="text-[10px] text-zinc-400 font-medium"
+                  className="text-[10px] text-zinc-500 font-medium"
                 />
                 <ChartTooltip
                   cursor={false}
@@ -207,17 +236,17 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
                 />
                 <Area
                   dataKey="late"
-                  type="natural"
+                  type="monotone"
                   fill="url(#fillLate)"
-                  stroke="#f97316"
+                  stroke="var(--color-late)"
                   stackId="a"
                   strokeWidth={2}
                 />
                 <Area
                   dataKey="onTime"
-                  type="natural"
+                  type="monotone"
                   fill="url(#fillOnTime)"
-                  stroke="#10b981"
+                  stroke="var(--color-onTime)"
                   stackId="a"
                   strokeWidth={2}
                 />

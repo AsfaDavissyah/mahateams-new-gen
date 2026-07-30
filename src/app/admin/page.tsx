@@ -322,20 +322,28 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
   for (let i = 89; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    d.setHours(0, 0, 0, 0);
 
-    const year = d.getFullYear();
-    const monthStr = String(d.getMonth() + 1).padStart(2, "0");
-    const dayStr = String(d.getDate()).padStart(2, "0");
-    const dateStr = `${year}-${monthStr}-${dayStr}`;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const targetDateStr = `${yyyy}-${mm}-${dd}`;
 
-    const dateTime = d.getTime();
-    const matches = rawDailyTrend.filter(
-      (t) => new Date(t.attendanceDate).getTime() === dateTime
-    );
+    const matches = rawDailyTrend.filter((t) => {
+      const recDate = new Date(t.attendanceDate);
+      const rYyyy = recDate.getUTCFullYear();
+      const rMm = String(recDate.getUTCMonth() + 1).padStart(2, "0");
+      const rDd = String(recDate.getUTCDate()).padStart(2, "0");
+      return `${rYyyy}-${rMm}-${rDd}` === targetDateStr;
+    });
 
-    const onTimeMatch = matches.find((m) => m.status === "ON_TIME");
-    const lateMatch = matches.find((m) => m.status === "LATE");
+    const onTimeCount = matches
+      .filter((m) => m.status === "ON_TIME" || m.status === "PRESENT" || m.status === "DISPENSATION" || m.status === "WFH")
+      .reduce((acc, curr) => acc + curr._count._all, 0);
+
+    const lateCount = matches
+      .filter((m) => m.status === "LATE")
+      .reduce((acc, curr) => acc + curr._count._all, 0);
+
     const totalCount = matches.reduce((acc, curr) => acc + curr._count._all, 0);
 
     const dateLabel = new Intl.DateTimeFormat("en-US", {
@@ -345,10 +353,10 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     }).format(d);
 
     dailyTrend.push({
-      date: dateStr,
+      date: targetDateStr,
       dateLabel,
-      onTime: onTimeMatch?._count._all ?? 0,
-      late: lateMatch?._count._all ?? 0,
+      onTime: onTimeCount,
+      late: lateCount,
       count: totalCount,
     });
   }

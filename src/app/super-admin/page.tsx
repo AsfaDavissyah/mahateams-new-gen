@@ -79,7 +79,10 @@ const statusColor: Record<string, string> = {
 };
 
 type TrendPoint = {
+  date?: string;
   dateLabel: string;
+  onTime?: number;
+  late?: number;
   count: number;
 };
 
@@ -92,7 +95,7 @@ async function getSuperAdminDashboardData(selectedMonthKey?: string) {
 
   // Last 7 days for daily trend chart
   const trendStart = new Date();
-  trendStart.setDate(trendStart.getDate() - 6);
+  trendStart.setDate(trendStart.getDate() - 89);
   trendStart.setHours(0, 0, 0, 0);
 
   const [
@@ -179,7 +182,7 @@ async function getSuperAdminDashboardData(selectedMonthKey?: string) {
       },
     }),
     prisma.attendanceRecord.groupBy({
-      by: ["attendanceDate"],
+      by: ["attendanceDate", "status"],
       where: {
         attendanceDate: { gte: trendStart },
       },
@@ -208,14 +211,32 @@ async function getSuperAdminDashboardData(selectedMonthKey?: string) {
   };
 
   const dailyTrend: TrendPoint[] = [];
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 89; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    d.setHours(0, 0, 0, 0);
 
-    const match = rawDailyTrend.find(
-      (t) => t.attendanceDate.getTime() === d.getTime()
-    );
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const targetDateStr = `${yyyy}-${mm}-${dd}`;
+
+    const matches = rawDailyTrend.filter((t) => {
+      const recDate = new Date(t.attendanceDate);
+      const rYyyy = recDate.getUTCFullYear();
+      const rMm = String(recDate.getUTCMonth() + 1).padStart(2, "0");
+      const rDd = String(recDate.getUTCDate()).padStart(2, "0");
+      return `${rYyyy}-${rMm}-${rDd}` === targetDateStr;
+    });
+
+    const onTimeCount = matches
+      .filter((m) => m.status === "ON_TIME" || m.status === "PRESENT" || m.status === "DISPENSATION" || m.status === "WFH")
+      .reduce((acc, curr) => acc + curr._count._all, 0);
+
+    const lateCount = matches
+      .filter((m) => m.status === "LATE")
+      .reduce((acc, curr) => acc + curr._count._all, 0);
+
+    const totalCount = matches.reduce((acc, curr) => acc + curr._count._all, 0);
 
     const dateLabel = new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -224,8 +245,11 @@ async function getSuperAdminDashboardData(selectedMonthKey?: string) {
     }).format(d);
 
     dailyTrend.push({
+      date: targetDateStr,
       dateLabel,
-      count: match?._count._all ?? 0,
+      onTime: onTimeCount,
+      late: lateCount,
+      count: totalCount,
     });
   }
 
