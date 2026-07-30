@@ -1,8 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ClipboardList, TrendingUp } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type AttendanceSummary = {
   total: number;
@@ -16,7 +26,10 @@ type AttendanceSummary = {
 };
 
 type TrendPoint = {
+  date?: string;
   dateLabel: string;
+  onTime?: number;
+  late?: number;
   count: number;
 };
 
@@ -25,10 +38,24 @@ type Props = {
   dailyTrend?: TrendPoint[];
 };
 
+const chartConfig = {
+  attendance: {
+    label: "Attendance",
+  },
+  onTime: {
+    label: "On Time",
+    color: "#10b981",
+  },
+  late: {
+    label: "Late",
+    color: "#f97316",
+  },
+} satisfies ChartConfig;
+
 export function DashboardCharts({ summary, dailyTrend }: Props) {
+  const [timeRange, setTimeRange] = useState<"7d" | "30d" | "90d">("7d");
 
-
-  // ── 2. Horizontal Composition Calculations ──────────────────────────────
+  // ── 1. Composition Horizontal Bars Calculations ──────────────────────────
   const totalSummary = summary.total;
   const composition = useMemo(() => {
     if (totalSummary === 0) return [];
@@ -38,33 +65,26 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
       { label: "Sick / Permission / Leave", count: summary.sick + summary.permission + summary.leave, color: "bg-blue-500", textColor: "text-blue-500" },
       { label: "Alpha", count: summary.alpha, color: "bg-red-500", textColor: "text-red-500" },
     ];
-    return items.map(item => ({
+    return items.map((item) => ({
       ...item,
-      percent: Math.round((item.count / totalSummary) * 100)
+      percent: Math.round((item.count / totalSummary) * 100),
     }));
   }, [summary, totalSummary]);
 
-  // ── 3. Line Chart Trend Calculations ─────────────────────────────────────
-  const trendPoints = useMemo(() => {
-    if (!dailyTrend || dailyTrend.length === 0) return null;
-    const maxVal = Math.max(...dailyTrend.map(d => d.count), 5);
-    const width = 300;
-    const height = 100;
-    const padding = 15;
+  // ── 2. Filtered Trend Points based on timeRange ─────────────────────────
+  const filteredData = useMemo(() => {
+    if (!dailyTrend || dailyTrend.length === 0) return [];
+    let sliceDays = 7;
+    if (timeRange === "30d") sliceDays = 30;
+    if (timeRange === "90d") sliceDays = 90;
 
-    const points = dailyTrend.map((d, index) => {
-      const x = padding + (index * (width - 2 * padding)) / (dailyTrend.length - 1);
-      const y = height - padding - (d.count * (height - 2 * padding)) / maxVal;
-      return { x, y, dateLabel: d.dateLabel, count: d.count };
-    });
-
-    const pathString = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-    const areaString = points.length > 0 
-      ? `${pathString} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
-      : "";
-
-    return { points, pathString, areaString, width, height };
-  }, [dailyTrend]);
+    return dailyTrend.slice(-sliceDays).map((item) => ({
+      date: item.date || item.dateLabel,
+      dateLabel: item.dateLabel,
+      onTime: item.onTime ?? item.count,
+      late: item.late ?? 0,
+    }));
+  }, [dailyTrend, timeRange]);
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
@@ -84,7 +104,7 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
             </div>
           ) : (
             <div className="space-y-3.5 w-full">
-              {composition.map(item => (
+              {composition.map((item) => (
                 <div key={item.label} className="space-y-1">
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-zinc-600 dark:text-zinc-400">{item.label}</span>
@@ -103,70 +123,107 @@ export function DashboardCharts({ summary, dailyTrend }: Props) {
         </CardContent>
       </Card>
 
-      {/* 2. Trend Line Chart Card */}
+      {/* 2. Interactive Area Chart Card */}
       <Card className="shadow-none flex flex-col justify-between">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-zinc-900 dark:text-zinc-50">
-            <TrendingUp className="size-4 text-emerald-700 dark:text-emerald-400" />
-            Attendance Trend
-          </CardTitle>
-          <CardDescription>Attendance trend chart for the last 7 days</CardDescription>
+        <CardHeader className="flex items-center gap-2 space-y-0 border-b border-zinc-100 dark:border-zinc-800 py-3 sm:flex-row">
+          <div className="grid flex-1 gap-1 text-center sm:text-left">
+            <CardTitle className="text-sm font-semibold flex items-center gap-1.5 text-zinc-900 dark:text-zinc-50">
+              <TrendingUp className="size-4 text-emerald-700 dark:text-emerald-400" />
+              Attendance Trend
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Showing On Time vs Late breakdown over time
+            </CardDescription>
+          </div>
+          <Select value={timeRange} onValueChange={(value) => { if (value) setTimeRange(value as "7d" | "30d" | "90d"); }}>
+            <SelectTrigger className="w-[120px] h-8 text-xs font-medium rounded-lg" aria-label="Select time range">
+              <SelectValue placeholder="Last 7 days" />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl text-xs">
+              <SelectItem value="7d" className="rounded-lg text-xs">Last 7 days</SelectItem>
+              <SelectItem value="30d" className="rounded-lg text-xs">Last 30 days</SelectItem>
+              <SelectItem value="90d" className="rounded-lg text-xs">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
-        <CardContent className="py-4 flex-1 flex flex-col justify-center items-center">
-          {!trendPoints ? (
+        <CardContent className="px-2 pt-4 sm:px-6 flex-1 flex flex-col justify-center">
+          {filteredData.length === 0 ? (
             <div className="text-center py-8 text-zinc-400 dark:text-zinc-600 text-xs">
               Daily trend data is insufficient
             </div>
           ) : (
-            <div className="w-full">
-              <svg viewBox={`0 0 ${trendPoints.width} ${trendPoints.height}`} className="w-full h-24 overflow-visible">
+            <ChartContainer config={chartConfig} className="aspect-auto h-[200px] w-full">
+              <AreaChart data={filteredData}>
                 <defs>
-                  <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
+                  <linearGradient id="fillOnTime" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.1} />
+                  </linearGradient>
+                  <linearGradient id="fillLate" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#f97316" stopOpacity={0.1} />
                   </linearGradient>
                 </defs>
-                {/* Area under the line */}
-                <path d={trendPoints.areaString} fill="url(#areaGrad)" />
-                {/* Trend line */}
-                <path
-                  d={trendPoints.pathString}
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
+                <CartesianGrid vertical={false} strokeDasharray="3 3" className="stroke-zinc-200 dark:stroke-zinc-800" />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  minTickGap={32}
+                  tickFormatter={(value) => {
+                    const dateObj = new Date(value);
+                    if (isNaN(dateObj.getTime())) return String(value);
+                    return dateObj.toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                    });
+                  }}
+                  className="text-[10px] text-zinc-400 font-medium"
                 />
-                {/* Points */}
-                {trendPoints.points.map((p, idx) => (
-                  <g key={idx} className="group/point">
-                    <circle
-                      cx={p.x}
-                      cy={p.y}
-                      r="4"
-                      className="fill-white stroke-emerald-500 stroke-[2] hover:r-5 cursor-pointer transition-all"
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  allowDecimals={false}
+                  className="text-[10px] text-zinc-400 font-medium"
+                />
+                <ChartTooltip
+                  cursor={false}
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(value) => {
+                        const dateObj = new Date(value);
+                        if (isNaN(dateObj.getTime())) return String(value);
+                        return dateObj.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        });
+                      }}
+                      indicator="dot"
                     />
-                    {/* Tooltip hint on hover */}
-                    <text
-                      x={p.x}
-                      y={p.y - 8}
-                      textAnchor="middle"
-                      className="hidden group-hover/point:block text-[9px] fill-zinc-700 dark:fill-zinc-300 font-bold"
-                    >
-                      {p.count}
-                    </text>
-                  </g>
-                ))}
-              </svg>
-              {/* Date Labels Footer */}
-              <div className="flex justify-between px-2.5 mt-2.5 text-[9px] text-zinc-400 font-medium">
-                {dailyTrend?.map((d, i) => (
-                  <span key={i} className="text-center">
-                    {d.dateLabel.slice(5)}
-                  </span>
-                ))}
-              </div>
-            </div>
+                  }
+                />
+                <Area
+                  dataKey="late"
+                  type="natural"
+                  fill="url(#fillLate)"
+                  stroke="#f97316"
+                  stackId="a"
+                  strokeWidth={2}
+                />
+                <Area
+                  dataKey="onTime"
+                  type="natural"
+                  fill="url(#fillOnTime)"
+                  stroke="#10b981"
+                  stackId="a"
+                  strokeWidth={2}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+              </AreaChart>
+            </ChartContainer>
           )}
         </CardContent>
       </Card>

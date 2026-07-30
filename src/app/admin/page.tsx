@@ -36,9 +36,9 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
   const todayKey = getJakartaDateKey();
   const todayDate = dateOnlyFromKey(todayKey);
 
-  // Last 7 days for daily trend chart
+  // Last 90 days for daily trend chart
   const trendStart = new Date();
-  trendStart.setDate(trendStart.getDate() - 6);
+  trendStart.setDate(trendStart.getDate() - 89);
   trendStart.setHours(0, 0, 0, 0);
 
   const [
@@ -198,7 +198,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
       },
     }),
     prisma.attendanceRecord.groupBy({
-      by: ["attendanceDate"],
+      by: ["attendanceDate", "status"],
       where: {
         ...studioFilter,
         attendanceDate: { gte: trendStart },
@@ -318,15 +318,25 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     }),
   ]);
 
-  const dailyTrend: { dateLabel: string; count: number }[] = [];
-  for (let i = 6; i >= 0; i--) {
+  const dailyTrend: { date: string; dateLabel: string; onTime: number; late: number; count: number }[] = [];
+  for (let i = 89; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     d.setHours(0, 0, 0, 0);
 
-    const match = rawDailyTrend.find(
-      (t) => t.attendanceDate.getTime() === d.getTime()
+    const year = d.getFullYear();
+    const monthStr = String(d.getMonth() + 1).padStart(2, "0");
+    const dayStr = String(d.getDate()).padStart(2, "0");
+    const dateStr = `${year}-${monthStr}-${dayStr}`;
+
+    const dateTime = d.getTime();
+    const matches = rawDailyTrend.filter(
+      (t) => new Date(t.attendanceDate).getTime() === dateTime
     );
+
+    const onTimeMatch = matches.find((m) => m.status === "ON_TIME");
+    const lateMatch = matches.find((m) => m.status === "LATE");
+    const totalCount = matches.reduce((acc, curr) => acc + curr._count._all, 0);
 
     const dateLabel = new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -335,8 +345,11 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     }).format(d);
 
     dailyTrend.push({
+      date: dateStr,
       dateLabel,
-      count: match?._count._all ?? 0,
+      onTime: onTimeMatch?._count._all ?? 0,
+      late: lateMatch?._count._all ?? 0,
+      count: totalCount,
     });
   }
 

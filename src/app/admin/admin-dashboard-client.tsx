@@ -108,7 +108,7 @@ type Props = {
       checkInTime: string;
       checkOutTime: string;
     } | null;
-    dailyTrend?: Array<{ dateLabel: string; count: number }>;
+    dailyTrend?: Array<{ date?: string; dateLabel: string; onTime?: number; late?: number; count: number }>;
     pendingRequestList?: Array<{
       id: string;
       userId: string;
@@ -208,6 +208,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 }
 
 export function AdminDashboardClient({
+  currentUser,
   defaultTab,
   data,
   days,
