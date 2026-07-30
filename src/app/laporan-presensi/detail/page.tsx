@@ -208,6 +208,7 @@ export default async function AttendanceDetailStatPage({
         })
       : Promise.resolve([]),
     // Fetch user list if metric === MINUS_WORKDAYS
+    // Fetch user list if metric === MINUS_WORKDAYS
     metric === "MINUS_WORKDAYS"
       ? prisma.user.findMany({
           where: {
@@ -233,10 +234,18 @@ export default async function AttendanceDetailStatPage({
             role: true,
             memberStatus: true,
             workDayBalance: true,
-            internStartDate: true,
-            internEndDate: true,
+            internProfile: {
+              select: {
+                startDate: true,
+                endDate: true,
+              },
+            },
             defaultStudio: { select: { name: true } },
-            placementStudio: { select: { name: true } },
+            placements: {
+              where: { status: "ACTIVE" },
+              take: 1,
+              select: { studio: { select: { name: true } } },
+            },
             attendanceRecords: {
               take: 1,
               orderBy: { attendanceDate: "desc" },
@@ -283,10 +292,10 @@ export default async function AttendanceDetailStatPage({
     role: u.role,
     memberStatus: u.memberStatus,
     workDayBalance: u.workDayBalance,
-    internStartDate: u.internStartDate ? u.internStartDate.toISOString() : null,
-    internEndDate: u.internEndDate ? u.internEndDate.toISOString() : null,
+    internStartDate: u.internProfile?.startDate ? u.internProfile.startDate.toISOString() : null,
+    internEndDate: u.internProfile?.endDate ? u.internProfile.endDate.toISOString() : null,
     defaultStudio: u.defaultStudio,
-    placementStudio: u.placementStudio,
+    placementStudio: u.placements[0]?.studio ?? null,
     lastAttendance: u.attendanceRecords[0]
       ? {
           attendanceDate: u.attendanceRecords[0].attendanceDate.toISOString(),
@@ -298,18 +307,29 @@ export default async function AttendanceDetailStatPage({
   const currentStudioObj = studios.find((s) => s.id === selectedStudioId);
   const studioLabel =
     !selectedStudioId || selectedStudioId === "all"
-      ? "All Studios"
+      ? "Semua Studio"
       : currentStudioObj?.name ||
         currentUser.defaultStudio?.name ||
-        "Admin Studio";
+        "Studio Admin";
+
+  const metricTitleMap: Record<MetricType, string> = {
+    TOTAL: "Total Presensi",
+    ON_TIME: "Tepat Waktu",
+    LATE: "Terlambat",
+    SICK: "Sakit",
+    ALPHA: "Alpha",
+    WFH: "WFH",
+    LEAVE: "Cuti / Izin",
+    MINUS_WORKDAYS: "Hutang Hari Kerja",
+  };
 
   return (
     <DashboardShell
       user={currentUser}
       currentPath="/laporan-presensi"
-      badge="Filtered Statistics Detail"
+      badge="Detail Statistik Filter"
       title="Detail & Filter Statistik"
-      description={`Viewing ${metric} records for ${formatMonthLabel(month)} (${studioLabel}).`}
+      description={`Menampilkan data ${metricTitleMap[metric] || metric} untuk bulan ${formatMonthLabel(month)} (${studioLabel}).`}
     >
       <DetailStatisticClient
         currentUser={{

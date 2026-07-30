@@ -21,7 +21,7 @@ import {
   Calendar,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -122,31 +122,31 @@ const METRIC_CONFIG: Record<
   { label: string; icon: any; color: string; bgActive: string }
 > = {
   TOTAL: {
-    label: "Total Attendance",
+    label: "Total Presensi",
     icon: ClipboardCheck,
     color: "text-blue-600 dark:text-blue-400",
     bgActive: "border-blue-500 bg-blue-50/60 dark:bg-blue-950/40",
   },
   SICK: {
-    label: "Sick Leave",
+    label: "Sakit",
     icon: HeartPulse,
     color: "text-violet-600 dark:text-violet-400",
     bgActive: "border-violet-500 bg-violet-50/60 dark:bg-violet-950/40",
   },
   LATE: {
-    label: "Late",
+    label: "Terlambat",
     icon: Clock3,
     color: "text-orange-600 dark:text-orange-400",
     bgActive: "border-orange-500 bg-orange-50/60 dark:bg-orange-950/40",
   },
   ON_TIME: {
-    label: "On Time",
+    label: "Tepat Waktu",
     icon: CheckCircle2,
     color: "text-emerald-600 dark:text-emerald-400",
     bgActive: "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40",
   },
   ALPHA: {
-    label: "Alpha (Absent)",
+    label: "Alpha (Tidak Hadir)",
     icon: AlertTriangle,
     color: "text-red-600 dark:text-red-400",
     bgActive: "border-red-500 bg-red-50/60 dark:bg-red-950/40",
@@ -158,13 +158,13 @@ const METRIC_CONFIG: Record<
     bgActive: "border-sky-500 bg-sky-50/60 dark:bg-sky-950/40",
   },
   LEAVE: {
-    label: "Leave / Off",
+    label: "Cuti / Izin",
     icon: Calendar,
     color: "text-amber-600 dark:text-amber-400",
     bgActive: "border-amber-500 bg-amber-50/60 dark:bg-amber-950/40",
   },
   MINUS_WORKDAYS: {
-    label: "Minus Workdays",
+    label: "Hutang Hari Kerja",
     icon: ShieldAlert,
     color: "text-rose-600 dark:text-rose-400",
     bgActive: "border-rose-500 bg-rose-50/60 dark:bg-rose-950/40",
@@ -194,10 +194,10 @@ export function DetailStatisticClient({
   const currentStudioObj = studios.find((s) => s.id === selectedStudio);
   const studioLabel =
     selectedStudio === "all"
-      ? "All Studios"
+      ? "Semua Studio"
       : currentStudioObj?.name ||
         currentUser.defaultStudioName ||
-        "Admin Studio";
+        "Studio Admin";
 
   // Helper to update URL with new parameters
   const updateParams = (newParams: Partial<{
@@ -226,7 +226,7 @@ export function DetailStatisticClient({
   // CSV Export Handler
   const handleExportCSV = () => {
     if (metric === "MINUS_WORKDAYS") {
-      const headers = ["Name", "Email", "Role", "Member Status", "Default Studio", "Workday Debt (Days)", "Intern Start", "Intern End"];
+      const headers = ["Nama", "Email", "Role", "Status Anggota", "Default Studio", "Hutang Hari Kerja (Hari)", "Mulai Intern", "Selesai Intern"];
       const rows = minusWorkdayUsers.map((u) => [
         `"${u.name}"`,
         `"${u.email}"`,
@@ -241,12 +241,12 @@ export function DetailStatisticClient({
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Minus_Workdays_${studioLabel}_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute("download", `Hutang_Hari_Kerja_${studioLabel}_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
     } else {
-      const headers = ["Date", "Name", "Email", "Member Status", "Work Mode", "Status", "Check In", "Check Out", "Late (Mins)", "WFH Plan / Notes", "Studio"];
+      const headers = ["Tanggal", "Nama", "Email", "Status Anggota", "Mode Kerja", "Status", "Jam Masuk", "Jam Keluar", "Terlambat (Menit)", "Rencana WFH / Catatan", "Studio"];
       const rows = attendanceRecords.map((r) => [
         r.attendanceDate.slice(0, 10),
         `"${r.user.name}"`,
@@ -264,7 +264,7 @@ export function DetailStatisticClient({
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement("a");
       link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `Attendance_${metric}_${month}_${studioLabel}.csv`);
+      link.setAttribute("download", `Presensi_${metric}_${month}_${studioLabel}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -303,25 +303,19 @@ export function DetailStatisticClient({
         {/* Navigation & Header Actions */}
         <div className="flex flex-wrap items-center justify-between gap-3 no-print">
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="h-9 gap-1.5"
+            <Link
+              href="/laporan-presensi"
+              className={buttonVariants({ variant: "outline", size: "sm", className: "h-9 gap-1.5" })}
             >
-              <Link href="/laporan-presensi">
-                <ArrowLeft className="size-4" />
-                Kembali ke Laporan
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="h-9 text-xs text-muted-foreground"
+              <ArrowLeft className="size-4" />
+              Kembali ke Laporan
+            </Link>
+            <Link
+              href={dashboardBackUrl}
+              className={buttonVariants({ variant: "ghost", size: "sm", className: "h-9 text-xs text-muted-foreground" })}
             >
-              <Link href={dashboardBackUrl}>Dashboard</Link>
-            </Button>
+              Dashboard
+            </Link>
           </div>
 
           <div className="flex items-center gap-2">
@@ -332,7 +326,7 @@ export function DetailStatisticClient({
               className="h-9 gap-1.5 text-xs"
             >
               <Download className="size-3.5" />
-              Export CSV
+              Ekspor CSV
             </Button>
             <Button
               variant="outline"
@@ -341,7 +335,7 @@ export function DetailStatisticClient({
               className="h-9 gap-1.5 text-xs"
             >
               <Printer className="size-3.5" />
-              Print
+              Cetak
             </Button>
           </div>
         </div>
@@ -412,7 +406,7 @@ export function DetailStatisticClient({
               {/* Studio Selector */}
               <div className="grid gap-1.5">
                 <label htmlFor="filter-studio" className="text-xs font-medium text-muted-foreground">
-                  Studio Scope
+                  Cakupan Studio
                 </label>
                 <select
                   id="filter-studio"
@@ -421,14 +415,14 @@ export function DetailStatisticClient({
                   onChange={(e) => updateParams({ studio: e.target.value })}
                   className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-75"
                 >
-                  {isSuperAdmin && <option value="all">All Studios (Mahative & Kipa)</option>}
+                  {isSuperAdmin && <option value="all">Semua Studio (Mahative & Kipa)</option>}
                   {studios.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
                   ))}
                   {!isSuperAdmin && !studios.some(s => s.id === selectedStudio) && (
-                    <option value={selectedStudio}>{currentUser.defaultStudioName || "My Studio"}</option>
+                    <option value={selectedStudio}>{currentUser.defaultStudioName || "Studio Saya"}</option>
                   )}
                 </select>
               </div>
@@ -449,8 +443,8 @@ export function DetailStatisticClient({
                   className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="ALL">Semua Tipe (Team & Intern)</option>
-                  <option value="TEAM">Team Only</option>
-                  <option value="INTERN">Intern Only</option>
+                  <option value="TEAM">Khusus Team</option>
+                  <option value="INTERN">Khusus Intern</option>
                 </select>
               </div>
 
@@ -566,7 +560,7 @@ export function DetailStatisticClient({
                             {user.defaultStudio?.name || "-"}
                             {user.placementStudio && (
                               <span className="text-muted-foreground block text-[11px]">
-                                Placement: {user.placementStudio.name}
+                                Penempatan: {user.placementStudio.name}
                               </span>
                             )}
                           </TableCell>
@@ -700,21 +694,21 @@ export function DetailStatisticClient({
                               Out: {checkOutTime}
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs max-w-xs">
+                          <TableCell className="text-xs min-w-[200px] max-w-md whitespace-pre-wrap break-words">
                             {r.wfhPlan && (
-                              <div className="line-clamp-2" title={r.wfhPlan}>
+                              <div>
                                 <span className="font-semibold text-blue-600 dark:text-blue-400">Plan: </span>
                                 {r.wfhPlan}
                               </div>
                             )}
                             {r.wfhReport && (
-                              <div className="line-clamp-2 mt-0.5" title={r.wfhReport}>
+                              <div className="mt-0.5">
                                 <span className="font-semibold text-emerald-600 dark:text-emerald-400">Report: </span>
                                 {r.wfhReport}
                               </div>
                             )}
                             {r.moodNote && (
-                              <div className="line-clamp-2 text-muted-foreground italic" title={r.moodNote}>
+                              <div className="text-muted-foreground italic mt-0.5">
                                 "{r.moodNote}"
                               </div>
                             )}
@@ -726,7 +720,7 @@ export function DetailStatisticClient({
                             {r.ownerStudio?.name || "-"}
                             {r.locationValidationStatus === "OUTSIDE_RADIUS" && (
                               <span className="text-[10px] text-amber-600 dark:text-amber-400 block font-semibold">
-                                Outside Radius
+                                Di Luar Radius
                               </span>
                             )}
                           </TableCell>

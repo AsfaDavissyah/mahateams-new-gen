@@ -237,9 +237,18 @@ export default async function AttendanceReportPage({
     isManualCorrection: r.isManualCorrection,
     mood: r.mood,
     moodNote: r.moodNote,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString(),
-    user: r.user,
+    user: {
+      ...r.user,
+      internProfile: r.user.internProfile
+        ? {
+            program: r.user.internProfile.program,
+            institution: r.user.internProfile.institution,
+            startDate: r.user.internProfile.startDate.toISOString(),
+            endDate: r.user.internProfile.endDate.toISOString(),
+            mentorName: r.user.internProfile.mentor?.name ?? null,
+          }
+        : null,
+    },
     createdBy: r.createdBy,
     ownerStudio: r.ownerStudio,
     locationStudio: r.locationStudio,

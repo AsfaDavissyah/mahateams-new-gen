@@ -132,8 +132,8 @@ export function LaporanPresensiTabsClient({
         aVal = a.ownerStudio.name.toLowerCase();
         bVal = b.ownerStudio.name.toLowerCase();
       } else if (sortField === "validation") {
-        aVal = a.locationValidationStatus;
-        bVal = b.locationValidationStatus;
+        aVal = a.locationValidationStatus ?? "";
+        bVal = b.locationValidationStatus ?? "";
       } else if (sortField === "distance") {
         aVal = a.distanceMeters ?? 0;
         bVal = b.distanceMeters ?? 0;
@@ -150,11 +150,11 @@ export function LaporanPresensiTabsClient({
         aVal = a.checkOutAt ? new Date(a.checkOutAt).getTime() : 0;
         bVal = b.checkOutAt ? new Date(b.checkOutAt).getTime() : 0;
       } else if (sortField === "late") {
-        aVal = a.lateMinutes;
-        bVal = b.lateMinutes;
+        aVal = a.lateMinutes ?? 0;
+        bVal = b.lateMinutes ?? 0;
       } else if (sortField === "early") {
-        aVal = a.earlyCheckoutMinutes;
-        bVal = b.earlyCheckoutMinutes;
+        aVal = a.earlyCheckoutMinutes ?? 0;
+        bVal = b.earlyCheckoutMinutes ?? 0;
       }
 
       if (aVal < bVal) return sortAsc ? -1 : 1;

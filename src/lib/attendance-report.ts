@@ -1,31 +1,31 @@
 import { dateOnlyFromKey, getJakartaDateKey } from "@/lib/attendance-time";
 
 export const ATTENDANCE_STATUS_LABEL: Record<string, string> = {
-  PRESENT: "Present",
-  ON_TIME: "On Time",
-  LATE: "Late",
+  PRESENT: "Hadir",
+  ON_TIME: "Tepat Waktu",
+  LATE: "Terlambat",
   WFH: "WFH",
-  PERMISSION: "Permission",
-  SICK: "Sick Leave",
-  DISPENSATION: "Dispensation",
-  LEAVE: "Replacement Leave",
-  ALPHA: "Absent",
-  HOLIDAY: "Holiday",
-  OFF_DAY: "Off Day",
+  PERMISSION: "Izin",
+  SICK: "Sakit",
+  DISPENSATION: "Dispensasi",
+  LEAVE: "Cuti",
+  ALPHA: "Alpha",
+  HOLIDAY: "Hari Libur",
+  OFF_DAY: "Hari Libur",
 };
 
 export const ATTENDANCE_STATUS_COLOR: Record<string, string> = {
-  PRESENT: "bg-emerald-100 text-emerald-800",
-  ON_TIME: "bg-emerald-100 text-emerald-800",
-  LATE: "bg-orange-100 text-orange-800",
-  WFH: "bg-blue-100 text-blue-800",
-  PERMISSION: "bg-amber-100 text-amber-800",
-  SICK: "bg-violet-100 text-violet-800",
-  DISPENSATION: "bg-emerald-100 text-emerald-800",
-  LEAVE: "bg-sky-100 text-sky-800",
-  ALPHA: "bg-red-100 text-red-800",
-  HOLIDAY: "bg-zinc-200 text-zinc-700",
-  OFF_DAY: "bg-zinc-200 text-zinc-700",
+  PRESENT: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  ON_TIME: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  LATE: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
+  WFH: "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300",
+  PERMISSION: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  SICK: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  DISPENSATION: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  LEAVE: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+  ALPHA: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
+  HOLIDAY: "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  OFF_DAY: "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
 };
 
 export type AttendanceSummary = {
@@ -56,7 +56,7 @@ export function summarizeAttendanceStatuses(
     alpha: counts.ALPHA ?? 0,
     wfh: counts.WFH ?? 0,
     permission: counts.PERMISSION ?? 0,
-    leave: counts.LEAVE ?? 0,
+    leave: (counts.LEAVE ?? 0) + (counts.PERMISSION ?? 0),
   };
 }
 
@@ -77,7 +77,7 @@ export function getMonthRange(month: string) {
 }
 
 export function formatMonthLabel(month: string) {
-  return new Intl.DateTimeFormat("en-US", {
+  return new Intl.DateTimeFormat("id-ID", {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
