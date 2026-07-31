@@ -385,29 +385,29 @@ export function QrLoginScanner({
 
       {/* ─── Modal Verifikasi PIN Security ──────────────────────────────── */}
       <Dialog open={isPinModalOpen} onOpenChange={(open) => !open && closePinModal()}>
-        <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 p-6 shadow-2xl rounded-2xl">
-          <DialogHeader className="text-center sm:text-center">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 mb-2">
-              <ShieldCheck className="size-6 text-emerald-600 dark:text-emerald-400" />
+        <DialogContent className="sm:max-w-md max-w-[calc(100%-1.5rem)] max-h-[90vh] overflow-y-auto bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 p-4 sm:p-6 shadow-2xl rounded-2xl gap-3 sm:gap-4">
+          <DialogHeader className="text-center sm:text-center space-y-1">
+            <div className="mx-auto flex size-10 sm:size-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 mb-1">
+              <ShieldCheck className="size-5 sm:size-6 text-emerald-600 dark:text-emerald-400" />
             </div>
-            <DialogTitle className="text-xl font-bold text-zinc-900 dark:text-zinc-50">
+            <DialogTitle className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-50">
               Verifikasi PIN Keamanan
             </DialogTitle>
-            <DialogDescription className="text-sm text-zinc-500 dark:text-zinc-400">
+            <DialogDescription className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
               Masukkan 6-digit PIN Keamanan untuk mengonfirmasi kehadiran Anda.
             </DialogDescription>
           </DialogHeader>
 
           {scannedUser && (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-3 flex items-center gap-3">
-              <div className="size-10 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-sm">
-                <UserCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 sm:p-3 flex items-center gap-2.5 sm:gap-3">
+              <div className="size-9 sm:size-10 shrink-0 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs sm:text-sm">
+                <UserCheck className="size-4 sm:size-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-sm text-zinc-950 dark:text-zinc-50 truncate">
+                <p className="font-bold text-xs sm:text-sm text-zinc-950 dark:text-zinc-50 truncate">
                   {scannedUser.name}
                 </p>
-                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
                   {scannedUser.role === "ADMIN" ? "Admin" : "Member"} • {scannedUser.studioName}
                 </p>
               </div>
@@ -415,7 +415,7 @@ export function QrLoginScanner({
           )}
 
           {!scannedUser?.isPinSet && (
-            <div className="rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-2.5 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
               <Lock className="size-4 shrink-0 mt-0.5" />
               <span>
                 PIN default Anda adalah <strong className="font-bold">000000</strong>. Anda dapat mengubahnya sewaktu-waktu di menu Settings.
@@ -424,19 +424,19 @@ export function QrLoginScanner({
           )}
 
           {pinError && (
-            <div className="rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/40 p-2.5 text-xs text-red-700 dark:text-red-300 font-semibold text-center animate-shake">
+            <div className="rounded-lg border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/40 p-2 sm:p-2.5 text-[11px] sm:text-xs text-red-700 dark:text-red-300 font-semibold text-center animate-shake">
               {pinError}
             </div>
           )}
 
           {/* Display 6 Digits */}
-          <div className="flex justify-center gap-2 my-2">
+          <div className="flex justify-center gap-1.5 sm:gap-2 my-1 sm:my-2">
             {Array.from({ length: 6 }).map((_, idx) => {
               const hasVal = idx < pin.length;
               return (
                 <div
                   key={idx}
-                  className={`size-11 rounded-xl border-2 flex items-center justify-center text-xl font-extrabold transition-all ${
+                  className={`size-9 sm:size-11 rounded-xl border-2 flex items-center justify-center text-lg sm:text-xl font-extrabold transition-all ${
                     hasVal
                       ? "border-emerald-600 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-950 dark:text-emerald-100 shadow-sm scale-[1.03]"
                       : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-400"
@@ -449,7 +449,7 @@ export function QrLoginScanner({
           </div>
 
           {/* Virtual Numpad Grid */}
-          <div className="grid grid-cols-3 gap-2 max-w-xs mx-auto">
+          <div className="grid grid-cols-3 gap-1.5 sm:gap-2 max-w-[260px] sm:max-w-xs mx-auto">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((num) => (
               <Button
                 key={num}
@@ -457,7 +457,7 @@ export function QrLoginScanner({
                 variant="outline"
                 onClick={() => handleNumpadPress(num)}
                 disabled={isSubmittingPin}
-                className="h-12 text-lg font-bold rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+                className="h-10 sm:h-12 text-base sm:text-lg font-bold rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition-transform"
               >
                 {num}
               </Button>
@@ -468,7 +468,7 @@ export function QrLoginScanner({
               variant="ghost"
               onClick={() => handleNumpadPress("clear")}
               disabled={isSubmittingPin || pin.length === 0}
-              className="h-12 text-xs font-semibold rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
+              className="h-10 sm:h-12 text-xs font-semibold rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-red-600 dark:hover:text-red-400"
             >
               Clear
             </Button>
@@ -478,7 +478,7 @@ export function QrLoginScanner({
               variant="outline"
               onClick={() => handleNumpadPress("0")}
               disabled={isSubmittingPin}
-              className="h-12 text-lg font-bold rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition-transform"
+              className="h-10 sm:h-12 text-base sm:text-lg font-bold rounded-xl border-zinc-200 dark:border-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:scale-95 transition-transform"
             >
               0
             </Button>
@@ -488,19 +488,19 @@ export function QrLoginScanner({
               variant="ghost"
               onClick={() => handleNumpadPress("backspace")}
               disabled={isSubmittingPin || pin.length === 0}
-              className="h-12 flex items-center justify-center rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
+              className="h-10 sm:h-12 flex items-center justify-center rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
             >
-              <Delete className="size-5" />
+              <Delete className="size-4 sm:size-5" />
             </Button>
           </div>
 
-          <div className="flex items-center gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+          <div className="grid grid-cols-2 gap-2 pt-2.5 sm:pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
             <Button
               type="button"
               variant="ghost"
               onClick={closePinModal}
               disabled={isSubmittingPin}
-              className="w-full text-zinc-500"
+              className="w-full h-10 sm:h-11 text-xs sm:text-sm text-zinc-500"
             >
               <X className="mr-1.5 size-4" />
               Batal
@@ -510,7 +510,7 @@ export function QrLoginScanner({
               type="button"
               onClick={() => void handlePinSubmit(pin)}
               disabled={isSubmittingPin || pin.length !== 6}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              className="w-full h-10 sm:h-11 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
             >
               {isSubmittingPin ? "Memproses..." : "Konfirmasi"}
             </Button>
