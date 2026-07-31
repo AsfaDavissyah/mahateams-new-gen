@@ -60,6 +60,7 @@ Sudah ada (Fitur Terimplementasi):
 - Perubahan status akun hanya dapat disetujui Super Admin dan dicatat di audit log.
 - Matriks Izin dihapus dari dashboard dan laporan; data historis `PERMISSION` tetap dipertahankan.
 - Batas waktu pengajuan **Koreksi Presensi** diperpanjang menjadi hingga **14 hari ke belakang** (dari sebelumnya 7 hari) pada Server Component dan Server Action validation.
+- **Verifikasi Security PIN 6-Digit setelah Scan QR**: Menambahkan langkah autentikasi keamanan 2-faktor (QR Card + PIN 6-Digit) pada pemindai QR `/login` untuk mencegah titip absen. Dilengkapi dialog informasi profil pengguna, input angka 6-digit dengan efek visual OTP, serta **Virtual Numpad On-Screen** (dan keyboard fisik). Default PIN akun baru/eksis diset ke `000000` (dengan opsi ubah mandiri di `/settings` dan tombol Reset PIN ke `000000` oleh Admin di `/roles`).
 - **Sistem Notifikasi Email Studio (Pengajuan & Koreksi)**: Menambahkan atribut opsional `notificationEmail` pada model `Studio`, form pengelolaan email studio di `/super-admin/studios`, serta pengiriman email notifikasi 1-arah secara asinkron (non-blocking) ke email studio (dengan fallback ke email seluruh Admin studio & Super Admin) saat ada pengajuan Izin/Sakit/Cuti/WFH atau Koreksi Presensi baru.
 
 ## Setup di Laptop Baru

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Building2, Edit, Eye, Mail, Search, UserCog, UserPlus, Loader2, ArrowUpDown, Cake, Plus, Trash2, BarChart3, Calendar, CheckCircle2, Home, RefreshCw, ChevronLeft, ChevronRight, Briefcase } from "lucide-react";
+import { Building2, Edit, Eye, Mail, Search, UserCog, UserPlus, Loader2, ArrowUpDown, Cake, Plus, Trash2, BarChart3, Calendar, CheckCircle2, Home, RefreshCw, ChevronLeft, ChevronRight, Briefcase, KeyRound } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ROLE_LABEL } from "@/lib/roles";
-import { createUserAction, updateUserAction } from "./actions";
+import { createUserAction, updateUserAction, resetUserPinAction } from "./actions";
 import { getMood } from "@/lib/moods";
 import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 import { AttendanceDetailDialog, type DetailRecord } from "@/app/laporan-presensi/attendance-detail-dialog";
 
 type UserWithRelations = {
@@ -73,6 +74,9 @@ type UserWithRelations = {
     checkInAt: Date | null;
     checkOutAt: Date | null;
     lateMinutes: number;
+    locationStudio?: { name: string } | null;
+    wfhPlan?: string | null;
+    wfhReport?: string | null;
   }>;
 };
 
@@ -167,6 +171,26 @@ export function RolesClient({
   const [editAccountStatus, setEditAccountStatus] = useState("ACTIVE");
   const [editAnnualLeave, setEditAnnualLeave] = useState(12);
   const [searchQuery, setSearchQuery] = useState("");
+  const [resetPinLoading, setResetPinLoading] = useState(false);
+
+  async function handleResetPin() {
+    if (!selectedUser) return;
+    if (!confirm(`Reset PIN Keamanan ${selectedUser.name} ke default (000000)?`)) return;
+
+    setResetPinLoading(true);
+    try {
+      const res = await resetUserPinAction(selectedUser.id);
+      if (res.success) {
+        toast.success(`PIN Keamanan ${selectedUser.name} berhasil di-reset ke 000000.`);
+      } else {
+        toast.error(res.error || "Gagal mereset PIN.");
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Gagal mereset PIN.");
+    } finally {
+      setResetPinLoading(false);
+    }
+  }
   const [studioFilter, setStudioFilter] = useState("ALL");
   const [memberTypeFilter, setMemberTypeFilter] = useState<
     "ALL" | "TEAM" | "INTERN"
@@ -341,13 +365,25 @@ export function RolesClient({
 
     const latestAttendance = detailRecords[0];
 
+    const formatDateString = (d: Date | string | null | undefined) => {
+      if (!d) return null;
+      if (d instanceof Date) return d.toISOString();
+      return String(d);
+    };
+
+    const formatDateOnlyString = (d: Date | string | null | undefined) => {
+      if (!d) return new Date().toISOString().split("T")[0];
+      if (d instanceof Date) return d.toISOString().split("T")[0];
+      return String(d).split("T")[0];
+    };
+
     return {
       id: latestAttendance?.id || `user-${viewUser.id}`,
-      attendanceDate: latestAttendance?.attendanceDate || new Date().toISOString().split("T")[0],
+      attendanceDate: formatDateOnlyString(latestAttendance?.attendanceDate),
       workMode: latestAttendance?.workMode || "WFO",
       status: latestAttendance?.status || "PRESENT",
-      checkInAt: latestAttendance?.checkInAt || null,
-      checkOutAt: latestAttendance?.checkOutAt || null,
+      checkInAt: formatDateString(latestAttendance?.checkInAt),
+      checkOutAt: formatDateString(latestAttendance?.checkOutAt),
       lateMinutes: latestAttendance?.lateMinutes || 0,
       user: {
         id: viewUser.id,
@@ -363,8 +399,8 @@ export function RolesClient({
           ? {
               program: viewUser.internProfile.program,
               institution: viewUser.internProfile.institution,
-              startDate: viewUser.internProfile.startDate,
-              endDate: viewUser.internProfile.endDate,
+              startDate: formatDateOnlyString(viewUser.internProfile.startDate),
+              endDate: formatDateOnlyString(viewUser.internProfile.endDate),
               mentorName: mentors.find((m) => m.id === viewUser.internProfile?.mentorId)?.name,
             }
           : null,
@@ -378,11 +414,11 @@ export function RolesClient({
       statsRecap: detailStats,
       recentHistory: detailRecords.map((r) => ({
         id: r.id,
-        attendanceDate: r.attendanceDate,
+        attendanceDate: formatDateOnlyString(r.attendanceDate),
         workMode: r.workMode,
         status: r.status,
-        checkInAt: r.checkInAt,
-        checkOutAt: r.checkOutAt,
+        checkInAt: formatDateString(r.checkInAt),
+        checkOutAt: formatDateString(r.checkOutAt),
         lateMinutes: r.lateMinutes,
       })),
     };
@@ -1099,6 +1135,28 @@ export function RolesClient({
                   </div>
                 </div>
               )}
+
+              <div className="rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-3 flex items-center justify-between gap-2 mt-2">
+                <div>
+                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
+                    <KeyRound className="size-3.5 text-amber-600 dark:text-amber-400" /> Reset PIN Keamanan QR
+                  </p>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                    Reset PIN anggota ini kembali ke PIN default <strong className="font-semibold text-zinc-700 dark:text-zinc-300">000000</strong> jika anggota lupa PIN.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetPin}
+                  disabled={resetPinLoading || isPending || selectedUser.role === "SUPER_ADMIN"}
+                  className="text-xs shrink-0 border-amber-300 dark:border-amber-800 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-950/50"
+                >
+                  {resetPinLoading ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5 mr-1" />}
+                  Reset PIN (000000)
+                </Button>
+              </div>
 
               {errorMsg && (
                 <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mt-1">{errorMsg}</p>

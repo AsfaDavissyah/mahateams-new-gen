@@ -52,6 +52,17 @@ export function verifyPassword(password: string, storedHash: string | null) {
   return timingSafeEqual(passwordHash, storedPasswordHash);
 }
 
+export function hashPin(pin: string) {
+  return hashPassword(pin);
+}
+
+export function verifyPin(pin: string, storedHash: string | null) {
+  if (!storedHash) {
+    return pin === "000000";
+  }
+  return verifyPassword(pin, storedHash);
+}
+
 function createSessionToken(userId: string, maxAgeSeconds = SESSION_MAX_AGE_SECONDS) {
   const expiresAt = Date.now() + maxAgeSeconds * 1000;
   const payload = `${userId}.${expiresAt}`;
@@ -131,6 +142,7 @@ export async function getCurrentUser() {
       birthDate: true,
       phoneNumber: true,
       address: true,
+      isPinSet: true,
       defaultStudio: {
         select: {
           name: true,

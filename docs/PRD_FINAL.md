@@ -55,6 +55,7 @@ Aplikasi membagi metode kehadiran menjadi dua mode kerja:
 *   **Quick-Attend Logic**:
     *   Jika user belum check-in hari ini, pemindaian QR otomatis mencatat **Check-in**.
     *   Jika user sudah check-in dan sesi login-nya habis, pemindaian QR di halaman depan akan mendeteksi sesi dan melakukan masuk kembali tanpa meng-check-out presensi harian secara tidak sengaja.
+*   **Verifikasi Security PIN 6-Digit (Anti-Titip Absen)**: Setelah QR Code berhasil discan dan diverifikasi aktif, sistem membuka dialog **Verifikasi PIN Keamanan**. User wajib memasukkan 6-digit PIN milik akun bersangkutan (via keyboard atau **Virtual Numpad On-Screen**). PIN default akun terdaftar adalah `000000` dan dapat diubah secara mandiri di halaman `/settings`, atau di-reset oleh Admin/Super Admin di halaman `/roles`.
 *   **Notifikasi Layar Scan**: Layar scanner di halaman depan otomatis menampilkan pesan peringatan jika jadwal hari itu bukan WFO (seperti WFH, Cuti, Sakit, atau Libur) beserta tombol langsung untuk menuju ke Dashboard.
 
 ### 3.2. Work From Home (WFH)

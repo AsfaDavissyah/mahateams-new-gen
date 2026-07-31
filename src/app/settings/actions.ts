@@ -164,6 +164,53 @@ export async function updateMoodAction(formData: FormData) {
   return submitAttendanceMoodAction(formData);
 }
 
+// ─── Update Security PIN ─────────────────────────────────────────────────────
+
+export async function updateUserPinAction(formData: FormData) {
+  const actor = await requireUser();
+  const { hashPin, verifyPin, verifyPassword } = await import("@/lib/auth");
+
+  const currentVerification = String(formData.get("currentVerification") ?? "").trim();
+  const newPin = String(formData.get("newPin") ?? "").trim();
+  const confirmNewPin = String(formData.get("confirmNewPin") ?? "").trim();
+
+  if (!newPin || newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
+    throw new Error("PIN baru harus berupa 6 digit angka.");
+  }
+
+  if (newPin !== confirmNewPin) {
+    throw new Error("Konfirmasi PIN baru tidak cocok.");
+  }
+
+  const fullUser = await prisma.user.findUnique({
+    where: { id: actor.id },
+    select: { passwordHash: true, pinHash: true },
+  });
+
+  if (!fullUser) {
+    throw new Error("User tidak ditemukan.");
+  }
+
+  const isPasswordValid = verifyPassword(currentVerification, fullUser.passwordHash);
+  const isPinValid = verifyPin(currentVerification, fullUser.pinHash);
+
+  if (!isPasswordValid && !isPinValid) {
+    throw new Error("Password atau PIN saat ini tidak valid.");
+  }
+
+  const pinHash = hashPin(newPin);
+
+  await prisma.user.update({
+    where: { id: actor.id },
+    data: {
+      pinHash,
+      isPinSet: true,
+    },
+  });
+
+  revalidatePath("/settings");
+}
+
 // ─── Update Studio Attendance Policy ─────────────────────────────────────────
 
 export async function updateStudioPolicyAction(

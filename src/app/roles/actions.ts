@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAnyRole, hashPassword } from "@/lib/auth";
+import { requireAnyRole, hashPassword, hashPin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dateOnly } from "@/lib/calendar";
 import { getCurrentAnnualLeaveYear } from "@/lib/annual-leave";
@@ -165,6 +165,8 @@ export async function createUserAction(formData: FormData) {
           username,
           birthDate,
           passwordHash: hashPassword(password),
+          pinHash: hashPin("000000"),
+          isPinSet: false,
           role,
           memberStatus,
           accountStatus: "ACTIVE",
@@ -491,6 +493,53 @@ export async function updateUserAction(formData: FormData) {
     return { success: true };
   } catch (err: unknown) {
     return { success: false, error: err instanceof Error ? err.message : "Failed to update user." };
+  }
+}
+
+export async function resetUserPinAction(userId: string) {
+  try {
+    const actor = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
+
+    const target = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, role: true, defaultStudioId: true },
+    });
+
+    if (!target || target.role === "SUPER_ADMIN") {
+      throw new Error("User tidak ditemukan atau tidak dapat direset PIN-nya.");
+    }
+
+    if (actor.role !== "SUPER_ADMIN" && actor.defaultStudioId) {
+      if (target.defaultStudioId !== actor.defaultStudioId) {
+        throw new Error("Anda hanya diperbolehkan mereset PIN anggota dari studio Anda sendiri.");
+      }
+    }
+
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          pinHash: hashPin("000000"),
+          isPinSet: false,
+        },
+      }),
+      prisma.auditLog.create({
+        data: {
+          actorId: actor.id,
+          entity: "User",
+          entityId: userId,
+          action: "USER_PIN_RESET_TO_DEFAULT",
+          metadata: {
+            userName: target.name,
+          },
+        },
+      }),
+    ]);
+
+    revalidatePath("/roles");
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : "Gagal mereset PIN." };
   }
 }
 

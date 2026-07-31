@@ -6,6 +6,7 @@ import {
   getDashboardPath,
   setSession,
   verifyPassword,
+  verifyPin,
 } from "@/lib/auth";
 import {
   dateOnlyFromKey,
@@ -103,14 +104,65 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
+export async function verifyQrUserAction(qrUid: string) {
+  const cleanQrUid = qrUid.trim();
+
+  const credential = await prisma.qrCredential.findUnique({
+    where: { qrUid: cleanQrUid },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          role: true,
+          accountStatus: true,
+          isPinSet: true,
+          defaultStudio: {
+            select: { name: true },
+          },
+          placements: {
+            where: { status: "ACTIVE" },
+            select: { studio: { select: { name: true } } },
+            take: 1,
+          },
+        },
+      },
+    },
+  });
+
+  if (!credential || credential.status !== "ACTIVE" || credential.user.accountStatus !== "ACTIVE") {
+    return { success: false, error: "Kartu QR tidak valid atau dinonaktifkan." };
+  }
+
+  const user = credential.user;
+  const studioName = user.placements[0]?.studio.name ?? user.defaultStudio?.name ?? "Studio";
+
+  return {
+    success: true,
+    user: {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      studioName,
+      isPinSet: user.isPinSet,
+    },
+  };
+}
+
 // ─── Login and Attend via Office QR Scanner ────────────────────────────────
 
 export async function loginAndAttendWithQrAction(
   qrUid: string,
+  pin: string,
   input: QrAttendanceInput = {}
 ) {
   const cleanQrUid = qrUid.trim();
+  const cleanPin = pin.trim();
   const action = input.action;
+
+  if (!cleanPin) {
+    return { success: false, error: "PIN Keamanan 6-digit wajib diisi." };
+  }
 
   const credential = await prisma.qrCredential.findUnique({
     where: { qrUid: cleanQrUid },
@@ -122,6 +174,7 @@ export async function loginAndAttendWithQrAction(
           role: true,
           defaultStudioId: true,
           accountStatus: true,
+          pinHash: true,
         },
       },
     },
@@ -132,6 +185,10 @@ export async function loginAndAttendWithQrAction(
   }
 
   const user = credential.user;
+
+  if (!verifyPin(cleanPin, user.pinHash)) {
+    return { success: false, error: "PIN Keamanan salah. Silakan coba lagi." };
+  }
 
   // 1. Set login session (Remember Me diset true default untuk QR Scan)
   await setSession(user.id, true);

@@ -124,6 +124,8 @@ model User {
   username                   String?                @unique
   birthDate                  DateTime?              @db.Date
   passwordHash               String?
+  pinHash                    String?
+  isPinSet                   Boolean                @default(false)
   role                       UserRole               @default(MEMBER)
   memberStatus               MemberStatus           @default(TEAM)
   accountStatus              AccountStatus          @default(ACTIVE)
