@@ -135,6 +135,18 @@ export async function verifyQrUserAction(qrUid: string) {
   }
 
   const user = credential.user;
+
+  // Cek jika sudah ada sesi login aktif di browser
+  const { getCurrentUser } = await import("@/lib/auth");
+  const sessionUser = await getCurrentUser();
+
+  if (sessionUser && sessionUser.id !== user.id) {
+    return {
+      success: false,
+      error: `Kartu QR (milik ${user.name}) tidak cocok dengan akun yang sedang login saat ini (${sessionUser.name}). Silakan logout terlebih dahulu.`,
+    };
+  }
+
   const studioName = user.placements[0]?.studio.name ?? user.defaultStudio?.name ?? "Studio";
 
   return {
@@ -185,6 +197,17 @@ export async function loginAndAttendWithQrAction(
   }
 
   const user = credential.user;
+
+  // Cek jika sudah ada sesi login aktif di browser
+  const { getCurrentUser } = await import("@/lib/auth");
+  const sessionUser = await getCurrentUser();
+
+  if (sessionUser && sessionUser.id !== user.id) {
+    return {
+      success: false,
+      error: `Kartu QR (milik ${user.name}) tidak cocok dengan akun yang sedang login (${sessionUser.name}).`,
+    };
+  }
 
   if (!verifyPin(cleanPin, user.pinHash)) {
     return { success: false, error: "PIN Keamanan salah. Silakan coba lagi." };
