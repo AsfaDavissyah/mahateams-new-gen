@@ -788,7 +788,7 @@ export function AdminDashboardClient({
                       </span>
                     ) : (
                       <Link
-                        href={data.todayRecord?.checkInAt ? "/login?action=checkout" : "/member/presensi"}
+                        href={data.todayRecord?.checkInAt ? "/login?action=checkout" : "/login"}
                         className={cn(
                           buttonVariants({ variant: "default", size: "sm" }),
                           "flex items-center gap-1 text-xs bg-zinc-950 dark:bg-zinc-100 hover:bg-zinc-900 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 cursor-pointer"
