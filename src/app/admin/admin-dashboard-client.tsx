@@ -834,125 +834,127 @@ export function AdminDashboardClient({
                 </div>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="grid grid-cols-7 border border-zinc-250 dark:border-zinc-800 rounded overflow-hidden">
-                  {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
-                    <div key={d} className="bg-zinc-50 dark:bg-zinc-900/50 py-1.5 text-center text-[10px] font-bold text-zinc-650 border-b border-zinc-200 dark:border-zinc-800">
-                      {d}
-                    </div>
-                  ))}
-                  {Array.from({ length: leadingBlankDays }, (_, idx) => (
-                    <div key={`blank-${idx}`} className="bg-zinc-50/50 dark:bg-zinc-900/10 border-b border-r border-zinc-150 dark:border-zinc-800 min-h-12" />
-                  ))}
-                  {days.map((day) => {
-                    const schedule = scheduleByDateMap[day.dateKey];
-                    const attendanceRecord = attendanceByDateMap[day.dateKey];
-                    const isToday = day.dateKey === todayKey;
-                    const dayHolidays = adminHolidaysMap.get(day.dateKey) ?? [];
-                    const isSundayOrMonday = day.date.getDay() === 0 || day.date.getDay() === 1;
+                <div className="w-full overflow-x-auto pb-1 scrollbar-thin">
+                  <div className="min-w-[620px] sm:min-w-0 grid grid-cols-7 border border-zinc-250 dark:border-zinc-800 rounded overflow-hidden font-sans">
+                    {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+                      <div key={d} className="bg-zinc-50 dark:bg-zinc-900/50 py-1.5 text-center text-[10px] font-bold text-zinc-650 dark:text-zinc-400 border-b border-zinc-200 dark:border-zinc-800">
+                        {d}
+                      </div>
+                    ))}
+                    {Array.from({ length: leadingBlankDays }, (_, idx) => (
+                      <div key={`blank-${idx}`} className="bg-zinc-50/50 dark:bg-zinc-900/10 border-b border-r border-zinc-150 dark:border-zinc-800 min-h-16 sm:min-h-20" />
+                    ))}
+                    {days.map((day) => {
+                      const schedule = scheduleByDateMap[day.dateKey];
+                      const attendanceRecord = attendanceByDateMap[day.dateKey];
+                      const isToday = day.dateKey === todayKey;
+                      const dayHolidays = adminHolidaysMap.get(day.dateKey) ?? [];
+                      const isSundayOrMonday = day.date.getDay() === 0 || day.date.getDay() === 1;
 
-                    const hasHoliday = dayHolidays.some(h => 
-                      h.type === "NATIONAL_HOLIDAY" || 
-                      h.type === "COMPANY_LEAVE" || 
-                      h.type === "REGULAR_OFF_DAY"
-                    );
-                    const hasReplacement = dayHolidays.some(h => h.type === "REPLACEMENT_WORKDAY");
-                    const isRealHoliday = hasHoliday && !hasReplacement;
+                      const hasHoliday = dayHolidays.some(h => 
+                        h.type === "NATIONAL_HOLIDAY" || 
+                        h.type === "COMPANY_LEAVE" || 
+                        h.type === "REGULAR_OFF_DAY"
+                      );
+                      const hasReplacement = dayHolidays.some(h => h.type === "REPLACEMENT_WORKDAY");
+                      const isRealHoliday = hasHoliday && !hasReplacement;
 
-                    return (
-                      <div
-                        key={day.dateKey}
-                        className={cn(
-                          "min-h-16 p-1 bg-white dark:bg-zinc-950 flex flex-col justify-between transition-colors border-b border-r border-zinc-150 dark:border-zinc-800",
-                          isToday && "bg-zinc-50 dark:bg-zinc-900/50"
-                        )}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span
-                            className={cn(
-                              "inline-flex size-5 items-center justify-center rounded-full text-[10px] font-semibold",
-                              isToday
-                                ? "bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950"
-                                : "text-zinc-500 dark:text-zinc-400"
-                            )}
-                          >
-                            {day.dayNumber}
-                          </span>
-                          <div className="flex items-center gap-1 flex-wrap justify-end">
-                            {isRealHoliday ? (
-                              <span className="rounded px-1 py-0.5 text-[8px] font-semibold border bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900">
-                                Holiday
-                              </span>
-                            ) : attendanceRecord ? (
-                              <div className="flex flex-col items-end gap-0.5">
-                                <span className={cn("rounded px-1 py-0.5 text-[8px] font-semibold border uppercase", statusColor[attendanceRecord.status] || "bg-zinc-100 text-zinc-700 border-zinc-200")}>
-                                  {attendanceRecord.status === "PRESENT" ? "Present" : attendanceRecord.status}
+                      return (
+                        <div
+                          key={day.dateKey}
+                          className={cn(
+                            "min-h-16 sm:min-h-20 p-1 sm:p-1.5 bg-white dark:bg-zinc-950 flex flex-col justify-between transition-colors border-b border-r border-zinc-150 dark:border-zinc-800",
+                            isToday && "bg-zinc-50 dark:bg-zinc-900/50"
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span
+                              className={cn(
+                                "inline-flex size-5 items-center justify-center rounded-full text-[10px] font-semibold",
+                                isToday
+                                  ? "bg-zinc-950 dark:bg-zinc-100 text-white dark:text-zinc-950"
+                                  : "text-zinc-500 dark:text-zinc-400"
+                              )}
+                            >
+                              {day.dayNumber}
+                            </span>
+                            <div className="flex items-center gap-1 flex-wrap justify-end">
+                              {isRealHoliday ? (
+                                <span className="rounded px-1 py-0.5 text-[8px] font-semibold border bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900">
+                                  Holiday
                                 </span>
-                                {attendanceRecord.isManualCorrection && (
-                                  <span className="text-[7px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-1 py-0.2 rounded border border-blue-100 dark:border-blue-900/50">
-                                    Corrected
+                              ) : attendanceRecord ? (
+                                <div className="flex flex-col items-end gap-0.5">
+                                  <span className={cn("rounded px-1 py-0.5 text-[8px] font-semibold border uppercase", statusColor[attendanceRecord.status] || "bg-zinc-100 text-zinc-700 border-zinc-200")}>
+                                    {attendanceRecord.status === "PRESENT" ? "Present" : attendanceRecord.status}
                                   </span>
+                                  {attendanceRecord.isManualCorrection && (
+                                    <span className="text-[7px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 px-1 py-0.2 rounded border border-blue-100 dark:border-blue-900/50">
+                                      Corrected
+                                    </span>
+                                  )}
+                                </div>
+                              ) : schedule ? (
+                                <span className={cn(
+                                  "rounded px-1 py-0.5 text-[8px] font-medium border",
+                                  schedule.workMode === "WFH"
+                                    ? "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-900"
+                                    : "bg-zinc-100 dark:bg-zinc-900 text-zinc-655 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800"
+                                )}>
+                                  {schedule.workMode}
+                                </span>
+                              ) : isSundayOrMonday ? null : (
+                                <span className="rounded px-1 py-0.5 text-[8px] font-medium border bg-zinc-100 dark:bg-zinc-900 text-zinc-655 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800">
+                                  WFO
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col gap-0.5 mt-1">
+                            {dayHolidays.map((h, hIdx) => (
+                              <div
+                                key={hIdx}
+                                className={cn(
+                                  "text-[7px] font-bold px-1 py-0.5 rounded border truncate text-left select-none leading-none",
+                                  h.type === "NATIONAL_HOLIDAY"
+                                    ? "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900"
+                                    : h.type === "COMPANY_LEAVE"
+                                    ? "bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900"
+                                    : "bg-zinc-100 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
                                 )}
+                                title={h.title}
+                              >
+                                {h.title}
                               </div>
-                            ) : schedule ? (
-                              <span className={cn(
-                                "rounded px-1 py-0.5 text-[8px] font-medium border",
-                                schedule.workMode === "WFH"
-                                  ? "bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-900"
-                                  : "bg-zinc-100 dark:bg-zinc-900 text-zinc-655 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800"
-                              )}>
-                                {schedule.workMode}
-                              </span>
+                            ))}
+
+                            {isRealHoliday ? (
+                              <div className="text-[8px] font-bold px-1 py-0.5 rounded border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-center select-none font-semibold">
+                                Holiday
+                              </div>
+                            ) : attendanceRecord ? (
+                              <p className="truncate text-[8px] text-zinc-500 font-medium italic">
+                                Mode: {attendanceRecord.workMode}
+                              </p>
+                            ) : schedule?.note ? (
+                              <p className="truncate text-[8px] text-zinc-400 font-medium" title={schedule.note}>
+                                {schedule.note}
+                              </p>
+                            ) : hasReplacement ? (
+                              <p className="truncate text-[8px] text-zinc-500 font-semibold" title="Replacement Workday">
+                                Replacement (WFO)
+                              </p>
                             ) : isSundayOrMonday ? null : (
-                              <span className="rounded px-1 py-0.5 text-[8px] font-medium border bg-zinc-100 dark:bg-zinc-900 text-zinc-655 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800">
-                                WFO
-                              </span>
+                              <p className="truncate text-[8px] text-zinc-300 dark:text-zinc-600 font-medium">
+                                Default WFO
+                              </p>
                             )}
                           </div>
                         </div>
-
-                        <div className="space-y-0.5 mt-1">
-                          {dayHolidays.map((h, hIdx) => (
-                            <div
-                              key={hIdx}
-                              className={cn(
-                                "text-[7px] font-bold px-1 py-0.5 rounded border truncate text-left select-none leading-none",
-                                h.type === "NATIONAL_HOLIDAY"
-                                  ? "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900"
-                                  : h.type === "COMPANY_LEAVE"
-                                  ? "bg-orange-50 dark:bg-orange-950/20 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-900"
-                                  : "bg-zinc-100 dark:bg-zinc-800 text-zinc-650 dark:text-zinc-400 border-zinc-200 dark:border-zinc-700"
-                              )}
-                              title={h.title}
-                            >
-                              {h.title}
-                            </div>
-                          ))}
-
-                          {isRealHoliday ? (
-                            <div className="text-[8px] font-bold px-1 py-0.5 rounded border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 text-center select-none font-semibold">
-                              Holiday
-                            </div>
-                          ) : attendanceRecord ? (
-                            <p className="truncate text-[8px] text-zinc-500 font-medium italic">
-                              Mode: {attendanceRecord.workMode}
-                            </p>
-                          ) : schedule?.note ? (
-                            <p className="truncate text-[8px] text-zinc-400 font-medium" title={schedule.note}>
-                              {schedule.note}
-                            </p>
-                          ) : hasReplacement ? (
-                            <p className="truncate text-[8px] text-zinc-500 font-semibold" title="Replacement Workday">
-                              Replacement (WFO)
-                            </p>
-                          ) : isSundayOrMonday ? null : (
-                            <p className="truncate text-[8px] text-zinc-300 dark:text-zinc-600 font-medium">
-                              Default WFO
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </CardContent>
             </Card>
