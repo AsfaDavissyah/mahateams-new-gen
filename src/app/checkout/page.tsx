@@ -83,13 +83,12 @@ export default async function CheckoutPage() {
           </div>
           <h1 className="text-xl font-bold tracking-tight">Check-out WFO</h1>
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Scan your QR Card and allow location access to complete today's attendance.
+            Scan your QR Card and allow location access to complete today&apos;s attendance.
           </p>
         </div>
 
         <QrLoginScanner
           action="checkout"
-          autoStart={Boolean(currentUser) && !checkoutDisabled}
           disabled={checkoutDisabled}
           disabledMessage={disabledMessage}
           currentUser={

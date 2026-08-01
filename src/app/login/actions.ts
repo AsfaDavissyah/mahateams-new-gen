@@ -18,6 +18,7 @@ import {
 } from "@/lib/attendance-time";
 import { formatMinutesAsClock, getCheckoutEligibility } from "@/lib/checkout-policy";
 import { prisma } from "@/lib/prisma";
+import { getSecurityPinError } from "@/lib/security-pin";
 import { isExtraWorkday } from "@/lib/workday-balance";
 
 type QrAttendanceInput = {
@@ -135,7 +136,7 @@ export async function verifyQrUserAction(qrUid: string) {
   });
 
   if (!credential || credential.status !== "ACTIVE" || credential.user.accountStatus !== "ACTIVE") {
-    return { success: false, error: "Kartu QR tidak valid atau dinonaktifkan." };
+    return { success: false, error: "This QR Card is invalid or inactive." };
   }
 
   const user = credential.user;
@@ -158,7 +159,7 @@ export async function verifyQrUserAction(qrUid: string) {
 
     return {
       success: false,
-      error: `Kartu QR (milik ${user.name}) tidak cocok dengan akun yang sedang login saat ini (${sessionUser.name}). Silakan logout terlebih dahulu.`,
+      error: `This QR Card belongs to ${user.name} and does not match the signed-in account (${sessionUser.name}).`,
     };
   }
 
@@ -212,7 +213,7 @@ export async function loginAndAttendWithQrAction(
   });
 
   if (!credential || credential.status !== "ACTIVE" || credential.user.accountStatus !== "ACTIVE") {
-    return { success: false, error: "Kartu QR tidak valid atau dinonaktifkan." };
+    return { success: false, error: "This QR Card is invalid or inactive." };
   }
 
   const user = credential.user;
@@ -235,7 +236,7 @@ export async function loginAndAttendWithQrAction(
 
     return {
       success: false,
-      error: `Kartu QR (milik ${user.name}) tidak cocok dengan akun yang sedang login (${sessionUser.name}).`,
+      error: `This QR Card belongs to ${user.name} and does not match the signed-in account (${sessionUser.name}).`,
     };
   }
 
@@ -247,8 +248,12 @@ export async function loginAndAttendWithQrAction(
       };
     }
 
-    if (!/^\d{6}$/.test(cleanPin)) {
-      return { success: false, error: "A 6-digit security PIN is required." };
+    const pinError = getSecurityPinError(cleanPin);
+    if (pinError) {
+      return {
+        success: false,
+        error: `${pinError} Sign in with your credentials and set a new PIN in Settings.`,
+      };
     }
 
     const pinWindowStart = new Date(
@@ -336,7 +341,7 @@ export async function loginAndAttendWithQrAction(
   const userLng = typeof input.longitude === "number" ? input.longitude : null;
 
   if (userLat === null || userLng === null || Number.isNaN(userLat) || Number.isNaN(userLng)) {
-    return { success: false, error: "Lokasi wajib diaktifkan untuk presensi WFO." };
+    return { success: false, error: "Location access is required for WFO attendance." };
   }
 
   const now = new Date();
@@ -467,7 +472,7 @@ export async function loginAndAttendWithQrAction(
   if (distance > radiusMeters) {
     return {
       success: false,
-      error: "Tidak bisa presensi karena berada di luar radius studio.",
+      error: "Attendance cannot be recorded outside the studio radius.",
     };
   }
 
@@ -593,7 +598,7 @@ export async function loginAndAttendWithQrAction(
         if (existingRecord.workMode !== "WFH" && (!existingRecord.wfhReport || !existingRecord.wfhReport.trim())) {
           return {
             success: false,
-            error: "WFO Journal wajib diisi dan disimpan sebelum melakukan Check-out.",
+            error: "Your WFO Journal must be completed and saved before check-out.",
           };
         }
 

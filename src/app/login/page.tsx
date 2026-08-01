@@ -24,7 +24,7 @@ const errorMessages: Record<string, string> = {
   "need-presence": "Dashboard access locked. Please scan your QR attendance card or submit an approved request for today.",
   "archived": "Your account is currently archived. Please contact an administrator for assistance.",
   "inactive": "Your account is currently disabled. Please contact an administrator.",
-  "outside-radius": "Tidak bisa presensi karena berada di luar radius studio.",
+  "outside-radius": "Attendance cannot be recorded outside the studio radius.",
 };
 
 const successMessages: Record<string, string> = {
@@ -44,10 +44,6 @@ export default async function LoginPage({
   if (currentUser && currentUser.role === "SUPER_ADMIN") {
     redirect("/super-admin");
   }
-
-  const isRegistered = params.registered === "1";
-  const errorMessage = params.error ? errorMessages[params.error] : null;
-  const successMessage = params.success ? successMessages[params.success] : null;
 
   let statusText = "Not checked in (WFO)";
   let statusColor = "bg-zinc-100 text-zinc-500 border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800 dark:text-zinc-400";
@@ -190,7 +186,6 @@ export default async function LoginPage({
         {currentUser ? (
           <div className="grid gap-4">
             <QrLoginScanner
-              autoStart={!scannerDisabled}
               action={params.action}
               disabled={scannerDisabled}
               disabledMessage={scannerDisabledMessage}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireRole, requireUser, hashPassword } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getSecurityPinError } from "@/lib/security-pin";
 
 // ─── WeeklyWorkRule upsert (bulk 7 hari per studio) ─────────────────────────
 
@@ -129,7 +130,7 @@ export async function updateProfileAction(formData: FormData) {
       throw new Error("Password baru minimal 6 karakter.");
     }
     if (newPassword !== confirmNewPassword) {
-      throw new Error("Konfirmasi password baru tidak cocok.");
+      throw new Error("New password confirmation does not match.");
     }
     passwordHash = hashPassword(newPassword);
   }
@@ -174,12 +175,13 @@ export async function updateUserPinAction(formData: FormData) {
   const newPin = String(formData.get("newPin") ?? "").trim();
   const confirmNewPin = String(formData.get("confirmNewPin") ?? "").trim();
 
-  if (!newPin || newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
-    throw new Error("PIN baru harus berupa 6 digit angka.");
+  const pinError = getSecurityPinError(newPin);
+  if (pinError) {
+    throw new Error(pinError);
   }
 
   if (newPin !== confirmNewPin) {
-    throw new Error("Konfirmasi PIN baru tidak cocok.");
+    throw new Error("PIN confirmation does not match.");
   }
 
   const fullUser = await prisma.user.findUnique({
@@ -188,14 +190,14 @@ export async function updateUserPinAction(formData: FormData) {
   });
 
   if (!fullUser) {
-    throw new Error("User tidak ditemukan.");
+    throw new Error("User was not found.");
   }
 
   const isPasswordValid = verifyPassword(currentVerification, fullUser.passwordHash);
   const isPinValid = verifyPin(currentVerification, fullUser.pinHash);
 
   if (!isPasswordValid && !isPinValid) {
-    throw new Error("Password atau PIN saat ini tidak valid.");
+    throw new Error("Your current password or PIN is incorrect.");
   }
 
   const pinHash = hashPin(newPin);

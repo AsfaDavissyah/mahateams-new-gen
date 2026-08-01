@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { updateMoodAction, updateProfileAction, updateUserPinAction } from "./actions";
 import { MOODS } from "@/lib/moods";
 import { BackgroundSettingsCard } from "./background-settings-card";
+import { getSecurityPinError } from "@/lib/security-pin";
 
 type UserProfile = {
   name: string;
@@ -58,9 +59,22 @@ export function ProfileSettingsClient({ initialUser }: Props) {
 
   async function handlePinSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setPinLoading(true);
-
     const formData = new FormData(event.currentTarget);
+    const newPin = String(formData.get("newPin") ?? "");
+    const confirmNewPin = String(formData.get("confirmNewPin") ?? "");
+    const pinError = getSecurityPinError(newPin);
+
+    if (pinError) {
+      toast.error(pinError);
+      return;
+    }
+
+    if (newPin !== confirmNewPin) {
+      toast.error("PIN confirmation does not match.");
+      return;
+    }
+
+    setPinLoading(true);
     try {
       await updateUserPinAction(formData);
       toast.success("Security PIN updated successfully!");
@@ -252,7 +266,7 @@ export function ProfileSettingsClient({ initialUser }: Props) {
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
               <ShieldCheck className="size-5 text-emerald-600 dark:text-emerald-400" />
-              PIN Keamanan Presensi QR (6 Digit)
+              QR Attendance Security PIN
             </CardTitle>
             <span
               className={`text-xs px-2.5 py-1 rounded-full font-bold border ${
@@ -261,11 +275,11 @@ export function ProfileSettingsClient({ initialUser }: Props) {
                   : "bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
               }`}
             >
-              {initialUser.isPinSet ? "PIN Kustom Aktif" : "PIN Default (000000)"}
+              {initialUser.isPinSet ? "Personal PIN Active" : "PIN Setup Required"}
             </span>
           </div>
           <CardDescription>
-            Atur PIN 6-digit rahasia yang akan diminta setelah Anda melakukan scan QR Card WFO di studio.
+            Set a private 6-digit PIN for QR sign-in when no account session is active.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -273,7 +287,7 @@ export function ProfileSettingsClient({ initialUser }: Props) {
             <div className="grid gap-4">
               <div className="grid gap-1.5">
                 <Label htmlFor="pin-current-verification" className="text-zinc-700 dark:text-zinc-300">
-                  Password atau PIN Saat Ini
+                  Current Password or PIN
                 </Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
@@ -281,7 +295,7 @@ export function ProfileSettingsClient({ initialUser }: Props) {
                     id="pin-current-verification"
                     name="currentVerification"
                     type="password"
-                    placeholder="Masukkan password atau PIN lama"
+                    placeholder="Enter your current password or PIN"
                     className="pl-9"
                     required
                   />
@@ -291,7 +305,7 @@ export function ProfileSettingsClient({ initialUser }: Props) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-1.5">
                   <Label htmlFor="pin-new" className="text-zinc-700 dark:text-zinc-300">
-                    PIN 6-Digit Baru
+                    New 6-Digit PIN
                   </Label>
                   <div className="relative">
                     <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
@@ -301,7 +315,8 @@ export function ProfileSettingsClient({ initialUser }: Props) {
                       type="password"
                       maxLength={6}
                       pattern="[0-9]{6}"
-                      placeholder="Contoh: 123456"
+                      placeholder="Example: 482905"
+                      title="Use 6 digits without repeated or sequential patterns."
                       className="pl-9 text-center font-bold tracking-widest"
                       required
                     />
@@ -310,7 +325,7 @@ export function ProfileSettingsClient({ initialUser }: Props) {
 
                 <div className="grid gap-1.5">
                   <Label htmlFor="pin-confirm" className="text-zinc-700 dark:text-zinc-300">
-                    Konfirmasi PIN 6-Digit
+                    Confirm New PIN
                   </Label>
                   <div className="relative">
                     <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
@@ -320,7 +335,7 @@ export function ProfileSettingsClient({ initialUser }: Props) {
                       type="password"
                       maxLength={6}
                       pattern="[0-9]{6}"
-                      placeholder="Ketik ulang PIN 6-digit"
+                      placeholder="Re-enter your 6-digit PIN"
                       className="pl-9 text-center font-bold tracking-widest"
                       required
                     />
@@ -333,12 +348,12 @@ export function ProfileSettingsClient({ initialUser }: Props) {
               {pinLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Menyimpan PIN...
+                  Saving PIN...
                 </>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
-                  Simpan PIN Baru
+                  Save New PIN
                 </>
               )}
             </Button>

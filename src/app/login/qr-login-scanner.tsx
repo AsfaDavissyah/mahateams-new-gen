@@ -52,13 +52,11 @@ async function getCurrentPosition() {
 }
 
 export function QrLoginScanner({
-  autoStart = false,
   currentUser,
   action,
   disabled = false,
   disabledMessage = "Scan action not available.",
 }: {
-  autoStart?: boolean;
   currentUser?: CurrentUserProp;
   action?: string;
   disabled?: boolean;
@@ -80,8 +78,8 @@ export function QrLoginScanner({
   const defaultMsg = disabled
     ? disabledMessage
     : currentUser
-      ? "Arahkan QR Card ke kamera untuk presensi WFO."
-      : "Arahkan QR Card ke kamera untuk masuk & presensi otomatis.";
+      ? "Start the scanner, then point your QR Card at the camera."
+      : "Start the scanner to sign in and record attendance with your QR Card.";
 
   const [message, setMessage] = useState(defaultMsg);
   const [statusType, setStatusType] = useState<"info" | "success" | "error" | null>(null);
@@ -138,7 +136,7 @@ export function QrLoginScanner({
             setMessage(res.message);
             setStatusType("success");
           } else {
-            setMessage("Berhasil. Mengalihkan...");
+            setMessage("Success. Redirecting...");
             setStatusType("success");
           }
 
@@ -147,7 +145,7 @@ export function QrLoginScanner({
             window.location.href = res.redirectUrl || "/";
           }, delay);
         } else if (fromPinModal) {
-          setPinError(res.error || "PIN tidak valid.");
+          setPinError(res.error || "Invalid PIN.");
           setPin("");
           setIsSubmittingPin(false);
         } else {
@@ -241,9 +239,6 @@ export function QrLoginScanner({
     setPinError(null);
     setIsSubmittingPin(false);
     setLoading(false);
-    if (autoStart && !disabled) {
-      void startScanner();
-    }
   }
 
   async function startScanner() {
@@ -256,12 +251,12 @@ export function QrLoginScanner({
     if (loading) return;
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setMessage("Kamera tidak didukung di browser ini.");
+      setMessage("Camera access is not supported in this browser.");
       setStatusType("error");
       return;
     }
 
-    setMessage("Membuka kamera...");
+    setMessage("Opening camera...");
     setStatusType("info");
 
     try {
@@ -283,7 +278,7 @@ export function QrLoginScanner({
           if (!qrUid) return;
 
           setLoading(true);
-          setMessage("QR terdeteksi. Memverifikasi anggota...");
+          setMessage("QR detected. Verifying account...");
           setStatusType("info");
           await stopScanner();
 
@@ -302,7 +297,7 @@ export function QrLoginScanner({
                 await processQrAttendance(qrUid);
               }
             } else {
-              setMessage(userRes.error || "Kartu QR tidak terdaftar.");
+              setMessage(userRes.error || "This QR Card is not registered.");
               setStatusType("error");
               setLoading(false);
             }
@@ -310,7 +305,7 @@ export function QrLoginScanner({
             setMessage(
               error instanceof Error
                 ? error.message
-                : "Gagal memverifikasi kartu QR."
+                : "Unable to verify this QR Card."
             );
             setStatusType("error");
             setLoading(false);
@@ -322,30 +317,24 @@ export function QrLoginScanner({
       );
 
       setIsScanning(true);
-      setMessage("Arahkan QR Card ke depan kamera.");
+      setMessage("Point your QR Card at the camera.");
       setStatusType("info");
     } catch {
       await stopScanner();
-      setMessage("Gagal mengaktifkan kamera. Pastikan izin kamera telah diberikan.");
+      setMessage("Unable to start the camera. Check your browser camera permission.");
       setStatusType("error");
     }
   }
 
   useEffect(() => {
-    if (autoStart && !disabled && !isPinModalOpen) {
-      const timer = setTimeout(() => {
-        void startScanner();
-      }, 300);
-      return () => {
-        clearTimeout(timer);
-        void stopScanner();
-      };
-    }
     return () => {
-      void stopScanner();
+      const scanner = scannerRef.current;
+      scannerRef.current = null;
+      if (scanner?.isScanning) {
+        void scanner.stop().then(() => scanner.clear()).catch(() => undefined);
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoStart, disabled, isPinModalOpen]);
+  }, []);
 
   return (
     <div className="grid gap-3">
@@ -354,11 +343,11 @@ export function QrLoginScanner({
           <div>
             <p className="font-bold text-zinc-950 dark:text-zinc-50 text-base">{currentUser.name}</p>
             <p className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">
-              {currentUser.role === "ADMIN" ? "Admin" : "Member"} • {currentUser.studioName}
+              {currentUser.role === "ADMIN" ? "Admin" : "Member"} | {currentUser.studioName}
             </p>
           </div>
           <div className="flex flex-col gap-1.5 pt-2.5 border-t border-zinc-200 dark:border-zinc-800/80">
-            <span className="text-xs text-zinc-500 dark:text-zinc-450 font-semibold">Status Hari Ini:</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-450 font-semibold">Today&apos;s Status:</span>
             <span className={`text-sm font-bold px-3 py-2.5 rounded-lg border text-center shadow-sm ${currentUser.statusColor}`}>
               {currentUser.statusText}
             </span>
@@ -373,17 +362,17 @@ export function QrLoginScanner({
         />
         {!isScanning && !loading && !isPinModalOpen ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-zinc-400">
-            Kamera tidak aktif
+            Camera is inactive
           </div>
         ) : null}
         {loading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 text-sm text-zinc-100">
-            Memproses...
+            Processing...
           </div>
         ) : null}
       </div>
 
-      {!autoStart && !isPinModalOpen ? (
+      {!isPinModalOpen ? (
         <div className="flex flex-wrap gap-2">
           <Button
             type="button"
@@ -393,7 +382,7 @@ export function QrLoginScanner({
             className="w-full"
           >
             <Camera aria-hidden="true" className="mr-1.5 size-4" />
-            Mulai Scan QR
+            Start QR Scan
           </Button>
         </div>
       ) : null}
@@ -420,10 +409,10 @@ export function QrLoginScanner({
               <ShieldCheck className="size-5 sm:size-6 text-emerald-600 dark:text-emerald-400" />
             </div>
             <DialogTitle className="text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-50">
-              Verifikasi PIN Keamanan
+              Security PIN Verification
             </DialogTitle>
             <DialogDescription className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
-              Masukkan 6-digit PIN Keamanan untuk mengonfirmasi kehadiran Anda.
+              Enter your 6-digit security PIN to confirm your identity.
             </DialogDescription>
           </DialogHeader>
 
@@ -437,7 +426,7 @@ export function QrLoginScanner({
                   {scannedUser.name}
                 </p>
                 <p className="text-[11px] sm:text-xs text-zinc-500 dark:text-zinc-400 truncate">
-                  {scannedUser.role === "ADMIN" ? "Admin" : "Member"} • {scannedUser.studioName}
+                  {scannedUser.role === "ADMIN" ? "Admin" : "Member"} | {scannedUser.studioName}
                 </p>
               </div>
             </div>
@@ -462,7 +451,7 @@ export function QrLoginScanner({
                       : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-400"
                   }`}
                 >
-                  {hasVal ? "•" : ""}
+                  {hasVal ? "\u2022" : ""}
                 </div>
               );
             })}
@@ -523,7 +512,7 @@ export function QrLoginScanner({
               className="w-full h-10 sm:h-11 text-xs sm:text-sm text-zinc-500"
             >
               <X className="mr-1.5 size-4" />
-              Batal
+              Cancel
             </Button>
 
             <Button
@@ -532,7 +521,7 @@ export function QrLoginScanner({
               disabled={isSubmittingPin || pin.length !== 6}
               className="w-full h-10 sm:h-11 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
             >
-              {isSubmittingPin ? "Memproses..." : "Konfirmasi"}
+              {isSubmittingPin ? "Processing..." : "Confirm"}
             </Button>
           </div>
         </DialogContent>
