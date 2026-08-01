@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import {
   clearSession,
+  getCurrentUser,
   getDashboardPath,
   setSession,
   verifyPassword,
@@ -24,6 +25,9 @@ type QrAttendanceInput = {
   latitude?: number;
   longitude?: number;
 };
+
+const QR_PIN_MAX_ATTEMPTS = 5;
+const QR_PIN_WINDOW_MINUTES = 15;
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const earthRadiusMeters = 6371e3;
@@ -136,14 +140,32 @@ export async function verifyQrUserAction(qrUid: string) {
 
   const user = credential.user;
 
-  // Cek jika sudah ada sesi login aktif di browser
-  const { getCurrentUser } = await import("@/lib/auth");
   const sessionUser = await getCurrentUser();
 
   if (sessionUser && sessionUser.id !== user.id) {
+    await prisma.auditLog.create({
+      data: {
+        actorId: sessionUser.id,
+        entity: "QR_CREDENTIAL",
+        entityId: credential.id,
+        action: "QR_SESSION_MISMATCH",
+        metadata: {
+          sessionUserId: sessionUser.id,
+          cardUserId: user.id,
+        },
+      },
+    });
+
     return {
       success: false,
       error: `Kartu QR (milik ${user.name}) tidak cocok dengan akun yang sedang login saat ini (${sessionUser.name}). Silakan logout terlebih dahulu.`,
+    };
+  }
+
+  if (!sessionUser && !user.isPinSet) {
+    return {
+      success: false,
+      error: "Set a personal security PIN from Settings before using QR sign-in.",
     };
   }
 
@@ -151,12 +173,12 @@ export async function verifyQrUserAction(qrUid: string) {
 
   return {
     success: true,
+    requiresPin: !sessionUser,
     user: {
       id: user.id,
       name: user.name,
       role: user.role,
       studioName,
-      isPinSet: user.isPinSet,
     },
   };
 }
@@ -165,16 +187,12 @@ export async function verifyQrUserAction(qrUid: string) {
 
 export async function loginAndAttendWithQrAction(
   qrUid: string,
-  pin: string,
+  pin: string | undefined,
   input: QrAttendanceInput = {}
 ) {
   const cleanQrUid = qrUid.trim();
-  const cleanPin = pin.trim();
+  const cleanPin = pin?.trim() ?? "";
   const action = input.action;
-
-  if (!cleanPin) {
-    return { success: false, error: "PIN Keamanan 6-digit wajib diisi." };
-  }
 
   const credential = await prisma.qrCredential.findUnique({
     where: { qrUid: cleanQrUid },
@@ -187,6 +205,7 @@ export async function loginAndAttendWithQrAction(
           defaultStudioId: true,
           accountStatus: true,
           pinHash: true,
+          isPinSet: true,
         },
       },
     },
@@ -198,23 +217,104 @@ export async function loginAndAttendWithQrAction(
 
   const user = credential.user;
 
-  // Cek jika sudah ada sesi login aktif di browser
-  const { getCurrentUser } = await import("@/lib/auth");
   const sessionUser = await getCurrentUser();
 
   if (sessionUser && sessionUser.id !== user.id) {
+    await prisma.auditLog.create({
+      data: {
+        actorId: sessionUser.id,
+        entity: "QR_CREDENTIAL",
+        entityId: credential.id,
+        action: "QR_SESSION_MISMATCH",
+        metadata: {
+          sessionUserId: sessionUser.id,
+          cardUserId: user.id,
+        },
+      },
+    });
+
     return {
       success: false,
       error: `Kartu QR (milik ${user.name}) tidak cocok dengan akun yang sedang login (${sessionUser.name}).`,
     };
   }
 
-  if (!verifyPin(cleanPin, user.pinHash)) {
-    return { success: false, error: "PIN Keamanan salah. Silakan coba lagi." };
+  if (!sessionUser) {
+    if (!user.isPinSet || !user.pinHash) {
+      return {
+        success: false,
+        error: "Set a personal security PIN from Settings before using QR sign-in.",
+      };
+    }
+
+    if (!/^\d{6}$/.test(cleanPin)) {
+      return { success: false, error: "A 6-digit security PIN is required." };
+    }
+
+    const pinWindowStart = new Date(
+      Date.now() - QR_PIN_WINDOW_MINUTES * 60 * 1000
+    );
+    const latestPinVerification = await prisma.auditLog.findFirst({
+      where: {
+        entity: "QR_AUTH",
+        entityId: user.id,
+        action: "PIN_VERIFIED",
+      },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    const failedAttemptWindowStart =
+      latestPinVerification && latestPinVerification.createdAt > pinWindowStart
+        ? latestPinVerification.createdAt
+        : pinWindowStart;
+    const recentFailedAttempts = await prisma.auditLog.count({
+      where: {
+        entity: "QR_AUTH",
+        entityId: user.id,
+        action: "PIN_FAILED",
+        createdAt: { gte: failedAttemptWindowStart },
+      },
+    });
+
+    if (recentFailedAttempts >= QR_PIN_MAX_ATTEMPTS) {
+      return {
+        success: false,
+        error: `Too many incorrect PIN attempts. Try again in ${QR_PIN_WINDOW_MINUTES} minutes.`,
+      };
+    }
+
+    if (!verifyPin(cleanPin, user.pinHash)) {
+      await prisma.auditLog.create({
+        data: {
+          entity: "QR_AUTH",
+          entityId: user.id,
+          action: "PIN_FAILED",
+          metadata: {
+            attempt: recentFailedAttempts + 1,
+            maxAttempts: QR_PIN_MAX_ATTEMPTS,
+          },
+        },
+      });
+
+      return { success: false, error: "Incorrect security PIN. Please try again." };
+    }
+
+    await prisma.auditLog.create({
+      data: {
+        actorId: user.id,
+        entity: "QR_AUTH",
+        entityId: user.id,
+        action: "PIN_VERIFIED",
+      },
+    });
   }
 
-  // 1. Set login session (Remember Me diset true default untuk QR Scan)
-  await setSession(user.id, true);
+  const completeQrAuthentication = async <T>(result: T) => {
+    if (!sessionUser) {
+      await setSession(user.id, true);
+    }
+    return result;
+  };
 
   // Check active placement
   const activePlacement = await prisma.placement.findFirst({
@@ -229,7 +329,7 @@ export async function loginAndAttendWithQrAction(
   const currentStudioId = activePlacement?.studioId ?? user.defaultStudioId;
 
   if (!currentStudioId) {
-    return { success: true, redirectUrl: getDashboardPath(user.role) };
+    return completeQrAuthentication({ success: true, redirectUrl: getDashboardPath(user.role) });
   }
 
   const userLat = typeof input.latitude === "number" ? input.latitude : null;
@@ -258,11 +358,11 @@ export async function loginAndAttendWithQrAction(
   });
 
   if (unfinishedRecord) {
-    return {
+    return completeQrAuthentication({
       success: true,
       warning: `You did not check out on the previous work day (${formatDate(unfinishedRecord.attendanceDate)}). Please submit an attendance correction in your dashboard.`,
       redirectUrl: getDashboardPath(user.role),
-    };
+    });
   }
 
   // 3. Ambil data jadwal, aturan libur, pengajuan, dan status kehadiran hari ini
@@ -375,11 +475,11 @@ export async function loginAndAttendWithQrAction(
 
   // A. Jika sudah melakukan check-in WFH hari ini, blok WFO scan
   if (existingRecord?.workMode === "WFH" && existingRecord.checkInAt) {
-    return {
+    return completeQrAuthentication({
       success: true,
       info: "You have already checked in for WFH today. Please proceed to the dashboard to submit your report.",
       redirectUrl: getDashboardPath(user.role),
-    };
+    });
   }
 
   // B. Jika ada pengajuan Izin/Sakit/Cuti yang disetujui untuk hari ini
@@ -392,11 +492,11 @@ export async function loginAndAttendWithQrAction(
           : approvedRequest.type === "DISPENSATION"
             ? "Dispensation"
             : "Personal Leave";
-    return {
+    return completeQrAuthentication({
       success: true,
       info: `Your schedule today is ${requestLabel}.`,
       redirectUrl: getDashboardPath(user.role),
-    };
+    });
   }
 
   // C. Jika hari ini adalah Hari Libur Nasional / Cuti Bersama atau Libur Mingguan (dan tidak ada jadwal WFO khusus / Hari Pengganti)
@@ -407,11 +507,11 @@ export async function loginAndAttendWithQrAction(
       (weeklyRule?.isWorkday === false && personalSchedule?.workMode !== "WFO" && !replacementWorkday)) &&
     !isOptionalMondayWfo;
   if (isWeekendOrHoliday) {
-    return {
+    return completeQrAuthentication({
       success: true,
       info: "Today is a Holiday / Off Day.",
       redirectUrl: getDashboardPath(user.role),
-    };
+    });
   }
 
   // D. Proses WFO Attendance
@@ -439,11 +539,11 @@ export async function loginAndAttendWithQrAction(
         },
       });
 
-      return {
+      return completeQrAuthentication({
         success: true,
         warning: "Attendance cutoff time (12:00 PM) has passed. Status recorded as Alpha.",
         redirectUrl: getDashboardPath(user.role),
-      };
+      });
     }
 
     const rawLateMinutes = Math.max(0, currentMinutes - scheduledMinutes);
@@ -472,11 +572,11 @@ export async function loginAndAttendWithQrAction(
       ? `WFO Check-in successful (${lateMinutes} mins late).`
       : "WFO Check-in successful (On Time).";
 
-    return {
+    return completeQrAuthentication({
       success: true,
       message: successMsg,
       redirectUrl: "/member/mood",
-    };
+    });
   } else {
     // Check-out WFO
     if (existingRecord.checkInAt && existingRecord.checkOutAt) {
@@ -552,15 +652,15 @@ export async function loginAndAttendWithQrAction(
       }
 
       // Hanya login kembali ke dashboard tanpa mengubah status check-in yang sudah ada
-      return {
+      return completeQrAuthentication({
         success: true,
         message: "Already checked in today. Opening dashboard...",
         redirectUrl: getDashboardPath(user.role),
-      };
+      });
     }
 
     // fallback jika status record aneh
-    return { success: true, redirectUrl: getDashboardPath(user.role) };
+    return completeQrAuthentication({ success: true, redirectUrl: getDashboardPath(user.role) });
   }
 }
 

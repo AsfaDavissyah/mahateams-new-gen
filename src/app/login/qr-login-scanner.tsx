@@ -2,7 +2,7 @@
 
 import type { Html5Qrcode } from "html5-qrcode";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { Camera, Delete, Lock, ShieldCheck, UserCheck, X } from "lucide-react";
+import { Camera, Delete, ShieldCheck, UserCheck, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -26,8 +26,30 @@ type ScannedUser = {
   name: string;
   role: string;
   studioName: string;
-  isPinSet: boolean;
 };
+
+type QrAttendanceResult = {
+  success: boolean;
+  error?: string;
+  warning?: string;
+  info?: string;
+  message?: string;
+  redirectUrl?: string;
+};
+
+async function getCurrentPosition() {
+  if (!navigator.geolocation) {
+    throw new Error("Location access is not supported in this browser.");
+  }
+
+  return new Promise<GeolocationPosition>((resolve, reject) => {
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 0,
+    });
+  });
+}
 
 export function QrLoginScanner({
   autoStart = false,
@@ -64,20 +86,6 @@ export function QrLoginScanner({
   const [message, setMessage] = useState(defaultMsg);
   const [statusType, setStatusType] = useState<"info" | "success" | "error" | null>(null);
 
-  async function getCurrentPosition() {
-    if (!navigator.geolocation) {
-      throw new Error("Akses lokasi tidak didukung di browser ini.");
-    }
-
-    return new Promise<GeolocationPosition>((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: true,
-        timeout: 12000,
-        maximumAge: 0,
-      });
-    });
-  }
-
   async function stopScanner() {
     const scanner = scannerRef.current;
     if (!scanner) {
@@ -97,31 +105,29 @@ export function QrLoginScanner({
     }
   }
 
-  const handlePinSubmit = useCallback(
-    async (pinToSubmit: string) => {
-      if (!scannedQrUid || pinToSubmit.length !== 6 || isSubmittingPin) return;
-
-      setIsSubmittingPin(true);
-      setPinError(null);
+  const processQrAttendance = useCallback(
+    async (qrUid: string, pinToSubmit?: string, fromPinModal = false) => {
+      if (fromPinModal) {
+        setIsSubmittingPin(true);
+        setPinError(null);
+      } else {
+        setLoading(true);
+        setMessage("QR verified. Checking location...");
+        setStatusType("info");
+      }
 
       try {
         const position = await getCurrentPosition();
 
-        const res = (await loginAndAttendWithQrAction(scannedQrUid, pinToSubmit, {
+        const res = (await loginAndAttendWithQrAction(qrUid, pinToSubmit, {
           action,
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        })) as {
-          success: boolean;
-          error?: string;
-          warning?: string;
-          info?: string;
-          message?: string;
-          redirectUrl?: string;
-        };
+        })) as QrAttendanceResult;
 
         if (res.success) {
           setIsPinModalOpen(false);
+          setLoading(false);
           if (res.warning) {
             setMessage(res.warning);
             setStatusType("error");
@@ -140,22 +146,41 @@ export function QrLoginScanner({
           setTimeout(() => {
             window.location.href = res.redirectUrl || "/";
           }, delay);
-        } else {
+        } else if (fromPinModal) {
           setPinError(res.error || "PIN tidak valid.");
           setPin("");
           setIsSubmittingPin(false);
+        } else {
+          setMessage(res.error || "Unable to process attendance.");
+          setStatusType("error");
+          setLoading(false);
         }
       } catch (error: unknown) {
-        setPinError(
+        const errorMessage =
           error instanceof Error
             ? error.message
-            : "Terjadi kesalahan sistem saat memproses presensi."
-        );
-        setPin("");
-        setIsSubmittingPin(false);
+            : "A system error occurred while processing attendance.";
+
+        if (fromPinModal) {
+          setPinError(errorMessage);
+          setPin("");
+          setIsSubmittingPin(false);
+        } else {
+          setMessage(errorMessage);
+          setStatusType("error");
+          setLoading(false);
+        }
       }
     },
-    [scannedQrUid, action, isSubmittingPin]
+    [action]
+  );
+
+  const handlePinSubmit = useCallback(
+    async (pinToSubmit: string) => {
+      if (!scannedQrUid || pinToSubmit.length !== 6 || isSubmittingPin) return;
+      await processQrAttendance(scannedQrUid, pinToSubmit, true);
+    },
+    [scannedQrUid, isSubmittingPin, processQrAttendance]
   );
 
   function handleNumpadPress(val: string) {
@@ -266,12 +291,16 @@ export function QrLoginScanner({
             const userRes = await verifyQrUserAction(qrUid);
 
             if (userRes.success && userRes.user) {
-              setScannedQrUid(qrUid);
-              setScannedUser(userRes.user);
-              setPin("");
-              setPinError(null);
-              setIsPinModalOpen(true);
-              setLoading(false);
+              if (userRes.requiresPin) {
+                setScannedQrUid(qrUid);
+                setScannedUser(userRes.user);
+                setPin("");
+                setPinError(null);
+                setIsPinModalOpen(true);
+                setLoading(false);
+              } else {
+                await processQrAttendance(qrUid);
+              }
             } else {
               setMessage(userRes.error || "Kartu QR tidak terdaftar.");
               setStatusType("error");
@@ -411,15 +440,6 @@ export function QrLoginScanner({
                   {scannedUser.role === "ADMIN" ? "Admin" : "Member"} • {scannedUser.studioName}
                 </p>
               </div>
-            </div>
-          )}
-
-          {!scannedUser?.isPinSet && (
-            <div className="rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-2 sm:p-2.5 text-[11px] sm:text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
-              <Lock className="size-4 shrink-0 mt-0.5" />
-              <span>
-                PIN default Anda adalah <strong className="font-bold">000000</strong>. Anda dapat mengubahnya sewaktu-waktu di menu Settings.
-              </span>
             </div>
           )}
 
