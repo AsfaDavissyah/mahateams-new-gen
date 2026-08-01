@@ -9,7 +9,6 @@ import { prisma } from "@/lib/prisma";
 import { getJakartaDateKey, dateOnlyFromKey } from "@/lib/attendance-time";
 import { cn } from "@/lib/utils";
 import { QrScannerForm } from "./qr-scanner-form";
-import { ConfettiTrigger } from "@/components/confetti-trigger";
 import { ToastNotificationListener } from "@/components/toast-notification-listener";
 
 export const dynamic = "force-dynamic";
@@ -116,7 +115,6 @@ export default async function MemberPresensiPage({
       description="Scan your QR Card using your camera to Check-in or Check-out for WFO."
     >
       <div className="max-w-2xl mx-auto space-y-6">
-        {params.success && <ConfettiTrigger />}
         <ToastNotificationListener
           successMessages={successMessages}
           errorMessages={errorMessages}

@@ -3,7 +3,6 @@ import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { ApprovalsTabsClient } from "./approvals-tabs-client";
-import { ConfettiTrigger } from "@/components/confetti-trigger";
 import { ToastNotificationListener } from "@/components/toast-notification-listener";
 
 export const dynamic = "force-dynamic";
@@ -197,7 +196,6 @@ export default async function AdminApprovalsPage({
           : `Manage member leave requests and attendance correction requests for studio ${currentUser.defaultStudio?.name ?? ""}.`
       }
     >
-      {params.success === "approve" && <ConfettiTrigger />}
       <ToastNotificationListener successMessages={successMessages} />
 
       <ApprovalsTabsClient

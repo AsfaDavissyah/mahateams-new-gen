@@ -7,10 +7,25 @@ type ConfettiPreset = "school-pride" | "snow" | "fireworks" | "all";
 
 interface ConfettiTriggerProps {
   preset?: ConfettiPreset;
+  storageKey?: string;
 }
 
-export function ConfettiTrigger({ preset = "all" }: ConfettiTriggerProps) {
+export function ConfettiTrigger({ preset = "all", storageKey = "birthday_confetti" }: ConfettiTriggerProps) {
   useEffect(() => {
+    if (storageKey) {
+      try {
+        const today = new Date().toISOString().split("T")[0];
+        const fullKey = `confetti_shown_${storageKey}_${today}`;
+        if (sessionStorage.getItem(fullKey) || localStorage.getItem(fullKey)) {
+          return;
+        }
+        sessionStorage.setItem(fullKey, "true");
+        localStorage.setItem(fullKey, "true");
+      } catch {
+        // Ignore storage access errors
+      }
+    }
+
     const selectedPreset = preset === "all"
       ? (["school-pride", "snow", "fireworks"][Math.floor(Math.random() * 3)] as ConfettiPreset)
       : preset;
@@ -104,7 +119,7 @@ export function ConfettiTrigger({ preset = "all" }: ConfettiTriggerProps) {
         });
       }, 250);
     }
-  }, [preset]);
+  }, [preset, storageKey]);
 
   return null;
 }

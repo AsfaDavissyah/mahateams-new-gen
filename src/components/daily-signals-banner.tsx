@@ -39,7 +39,7 @@ export function DailySignalsBanner({ signals, currentUserId, className }: Props)
   return (
     <div className={`space-y-3 mb-6 ${className ?? ""}`}>
       {/* Trigger confetti when any studio colleague has a birthday today */}
-      {hasRawBirthdays && <ConfettiTrigger preset="fireworks" />}
+      {hasRawBirthdays && <ConfettiTrigger preset="fireworks" storageKey="colleague_birthday_confetti" />}
 
       {/* Birthday Signal Banner for colleagues */}
       {hasFilteredBirthdays && (
