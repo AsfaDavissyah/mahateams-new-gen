@@ -8,6 +8,7 @@ import {
   Search,
   ClipboardList,
   Clock,
+  FileText,
   Eye,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -141,17 +142,17 @@ const statusLabel: Record<string, string> = {
 };
 
 const statusColor: Record<string, string> = {
-  PRESENT: "bg-emerald-100 text-emerald-800",
-  ON_TIME: "bg-emerald-100 text-emerald-800",
-  LATE: "bg-orange-100 text-orange-800",
-  WFH: "bg-blue-100 text-blue-800",
-  PERMISSION: "bg-amber-100 text-amber-800",
-  SICK: "bg-violet-100 text-violet-800",
-  DISPENSATION: "bg-emerald-100 text-emerald-800",
-  LEAVE: "bg-sky-100 text-sky-800",
-  ALPHA: "bg-red-100 text-red-800",
-  HOLIDAY: "bg-zinc-200 text-zinc-700",
-  OFF_DAY: "bg-zinc-200 text-zinc-700",
+  PRESENT: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+  ON_TIME: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+  LATE: "bg-orange-100 text-orange-800 dark:bg-orange-950/40 dark:text-orange-300",
+  WFH: "bg-blue-100 text-blue-800 dark:bg-blue-950/40 dark:text-blue-300",
+  PERMISSION: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300",
+  SICK: "bg-violet-100 text-violet-800 dark:bg-violet-950/40 dark:text-violet-300",
+  DISPENSATION: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
+  LEAVE: "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-300",
+  ALPHA: "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-300",
+  HOLIDAY: "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  OFF_DAY: "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
 };
 
 function formatDate(date: Date | string | null | undefined) {
@@ -406,13 +407,13 @@ export function ApprovalsTabsClient({
           />
         </div>
 
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="size-5 text-blue-700" />
+        <Card className="shadow-none rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/90">
+          <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
+              <ClipboardList className="size-5 text-blue-600 dark:text-blue-400" />
               Pending Leave Requests ({sortedAndFilteredPendingReq.length})
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               List of leave, sick, dispensation, leave exchange, or WFH requests awaiting your review.
             </CardDescription>
           </CardHeader>
@@ -466,7 +467,7 @@ export function ApprovalsTabsClient({
                           )}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className={requestTypeColor[req.type]}>
+                          <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${requestTypeColor[req.type]}`}>
                             {requestTypeLabel[req.type] ?? req.type}
                           </Badge>
                         </TableCell>
@@ -486,7 +487,7 @@ export function ApprovalsTabsClient({
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                                   >
                                     <Eye className="size-3 mr-1" aria-hidden="true" />
                                     Details
@@ -536,7 +537,7 @@ export function ApprovalsTabsClient({
                               <Button
                                 type="submit"
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-8"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-8 cursor-pointer"
                               >
                                 <CheckCircle2 className="size-3 mr-1" />
                                 Approve
@@ -549,7 +550,7 @@ export function ApprovalsTabsClient({
                                 type="submit"
                                 size="sm"
                                 variant="destructive"
-                                className="text-[11px] h-8"
+                                className="text-[11px] h-8 cursor-pointer"
                               >
                                 <XCircle className="size-3 mr-1" />
                                 Reject
@@ -567,13 +568,13 @@ export function ApprovalsTabsClient({
         </Card>
 
         {/* RIWAYAT PERSETUJUAN IZIN */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-              <Clock className="size-5 text-zinc-500" />
-              Leave Request Approval History (Last 50)
+        <Card className="shadow-none rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/90">
+          <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
+              <FileText className="size-5 text-zinc-600 dark:text-zinc-400" />
+              Leave Request Approval History ({sortedAndFilteredHistoryReq.length})
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               List of leave requests that have been approved, rejected, or cancelled.
             </CardDescription>
           </CardHeader>
@@ -585,11 +586,6 @@ export function ApprovalsTabsClient({
                     <TableHead onClick={() => handleSortHistoryReq("name")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                       <div className="flex items-center gap-1">
                         Name / Email <ArrowUpDown className="size-3 text-zinc-400" />
-                      </div>
-                    </TableHead>
-                    <TableHead onClick={() => handleSortHistoryReq("studio")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                      <div className="flex items-center gap-1">
-                        Studio <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
                     <TableHead onClick={() => handleSortHistoryReq("type")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
@@ -626,7 +622,7 @@ export function ApprovalsTabsClient({
                   {sortedAndFilteredHistoryReq.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={currentUser.role === "SUPER_ADMIN" ? 10 : 9}
+                        colSpan={9}
                         className="h-24 text-center text-sm text-zinc-500"
                       >
                         No leave request history found.
@@ -638,10 +634,14 @@ export function ApprovalsTabsClient({
                         <TableCell>
                           <div className="font-semibold text-zinc-900 dark:text-zinc-100">{req.user.name}</div>
                           <div className="text-[10px] text-zinc-500">{req.user.email}</div>
+                          {req.user.defaultStudio?.name && (
+                            <Badge variant="outline" className="text-[9px] scale-90 origin-left border-zinc-200 mt-0.5">
+                              {req.user.defaultStudio.name}
+                            </Badge>
+                          )}
                         </TableCell>
-                        <TableCell className="text-xs">{req.user.defaultStudio?.name ?? "-"}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary" className={`text-xs ${requestTypeColor[req.type]}`}>
+                          <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${requestTypeColor[req.type]}`}>
                             {requestTypeLabel[req.type] ?? req.type}
                           </Badge>
                         </TableCell>
@@ -669,7 +669,7 @@ export function ApprovalsTabsClient({
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                                   >
                                     <Eye className="size-3 mr-1" aria-hidden="true" />
                                     Details
@@ -730,7 +730,7 @@ export function ApprovalsTabsClient({
                                   type="submit"
                                   size="sm"
                                   variant="ghost"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 h-7 px-2"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 h-7 px-2 cursor-pointer"
                                 >
                                   Delete
                                 </Button>
@@ -760,14 +760,14 @@ export function ApprovalsTabsClient({
           />
         </div>
 
-        <Card className="shadow-none">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <ClipboardList className="size-5 text-amber-600" />
+        <Card className="shadow-none rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/90">
+          <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
+              <ClipboardList className="size-5 text-amber-600 dark:text-amber-400" />
               Pending Attendance Corrections ({sortedAndFilteredPendingCorr.length})
             </CardTitle>
-            <CardDescription>
-              List of past attendance correction requests submitted by members.
+            <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              List of past attendance correction requests awaiting your review.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -780,24 +780,14 @@ export function ApprovalsTabsClient({
                         Name / Email <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSortPendingCorr("studio")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                      <div className="flex items-center gap-1">
-                        Studio <ArrowUpDown className="size-3 text-zinc-400" />
-                      </div>
-                    </TableHead>
                     <TableHead onClick={() => handleSortPendingCorr("date")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                       <div className="flex items-center gap-1">
                         Attendance Date <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSortPendingCorr("previousStatus")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                      <div className="flex items-center gap-1">
-                        Previous Status <ArrowUpDown className="size-3 text-zinc-400" />
-                      </div>
-                    </TableHead>
                     <TableHead onClick={() => handleSortPendingCorr("newStatus")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                       <div className="flex items-center gap-1">
-                        New Status <ArrowUpDown className="size-3 text-zinc-400" />
+                        Status Adjustment <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
                     <TableHead>Correction Reason</TableHead>
@@ -808,7 +798,7 @@ export function ApprovalsTabsClient({
                 <TableBody>
                   {sortedAndFilteredPendingCorr.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="h-24 text-center text-sm text-zinc-500">
+                      <TableCell colSpan={6} className="h-24 text-center text-sm text-zinc-500">
                         No pending attendance corrections at this time.
                       </TableCell>
                     </TableRow>
@@ -817,19 +807,31 @@ export function ApprovalsTabsClient({
                       <TableRow key={corr.id}>
                         <TableCell>
                           <div className="font-semibold text-zinc-900 dark:text-zinc-100">{corr.requestedBy.name}</div>
-                          <div className="text-xs text-zinc-500">{corr.requestedBy.email}</div>
+                          <div className="text-[10px] text-zinc-500">{corr.requestedBy.email}</div>
+                          {corr.requestedBy.defaultStudio?.name && (
+                            <Badge variant="outline" className="text-[9px] scale-90 origin-left border-zinc-200 mt-0.5">
+                              {corr.requestedBy.defaultStudio.name}
+                            </Badge>
+                          )}
                         </TableCell>
-                        <TableCell>{corr.requestedBy.defaultStudio?.name ?? "-"}</TableCell>
                         <TableCell className="text-xs font-mono">{formatDate(corr.attendanceRecord?.attendanceDate)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={corr.previousStatus ? statusColor[corr.previousStatus] : ""}>
-                            {corr.previousStatus ? (statusLabel[corr.previousStatus] ?? corr.previousStatus) : "-"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={corr.newStatus ? statusColor[corr.newStatus] : ""}>
-                            {corr.newStatus ? (statusLabel[corr.newStatus] ?? corr.newStatus) : "-"}
-                          </Badge>
+                          <div className="flex flex-col gap-1 items-start">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.previousStatus ? statusColor[corr.previousStatus] : ""}`}>
+                                {corr.previousStatus ? (statusLabel[corr.previousStatus] ?? corr.previousStatus) : "-"}
+                              </Badge>
+                              <span className="text-zinc-400 text-xs">➔</span>
+                              <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.newStatus ? statusColor[corr.newStatus] : ""}`}>
+                                {corr.newStatus ? (statusLabel[corr.newStatus] ?? corr.newStatus) : "-"}
+                              </Badge>
+                            </div>
+                            {(corr.proposedCheckInTime || corr.proposedCheckOutTime) && (
+                              <div className="text-[11px] font-mono font-medium text-zinc-700 dark:text-zinc-300 pl-2.5 mt-0.5">
+                                {corr.proposedCheckInTime || "--:--"} - {corr.proposedCheckOutTime || "--:--"}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="max-w-[200px] truncate text-xs" title={corr.reason}>
                           {corr.reason}
@@ -845,7 +847,7 @@ export function ApprovalsTabsClient({
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                                   >
                                     <Eye className="size-3 mr-1" aria-hidden="true" />
                                     Details
@@ -873,13 +875,13 @@ export function ApprovalsTabsClient({
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-xs font-semibold text-zinc-400">Previous Status</p>
-                                      <Badge variant="outline" className={corr.previousStatus ? statusColor[corr.previousStatus] : "mt-1"}>
+                                      <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.previousStatus ? statusColor[corr.previousStatus] : "mt-1"}`}>
                                         {corr.previousStatus ? (statusLabel[corr.previousStatus] ?? corr.previousStatus) : "-"}
                                       </Badge>
                                     </div>
                                     <div>
                                       <p className="text-xs font-semibold text-zinc-400">New Status</p>
-                                      <Badge variant="outline" className={corr.newStatus ? statusColor[corr.newStatus] : "mt-1"}>
+                                      <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.newStatus ? statusColor[corr.newStatus] : "mt-1"}`}>
                                         {corr.newStatus ? (statusLabel[corr.newStatus] ?? corr.newStatus) : "-"}
                                       </Badge>
                                     </div>
@@ -915,7 +917,7 @@ export function ApprovalsTabsClient({
                               <Button
                                 type="submit"
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-8"
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] h-8 cursor-pointer"
                               >
                                 <CheckCircle2 className="size-3 mr-1" />
                                 Approve
@@ -928,7 +930,7 @@ export function ApprovalsTabsClient({
                                 type="submit"
                                 size="sm"
                                 variant="destructive"
-                                className="text-[11px] h-8"
+                                className="text-[11px] h-8 cursor-pointer"
                               >
                                 <XCircle className="size-3 mr-1" />
                                 Reject
@@ -946,14 +948,14 @@ export function ApprovalsTabsClient({
         </Card>
 
         {/* RIWAYAT PERSETUJUAN KOREKSI */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
-              <Clock className="size-5 text-zinc-500" />
-              Attendance Correction History (Last 50)
+        <Card className="shadow-none rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/90">
+          <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
+              <FileText className="size-5 text-zinc-600 dark:text-zinc-400" />
+              Attendance Correction History ({sortedAndFilteredHistoryCorr.length})
             </CardTitle>
-            <CardDescription>
-              List of attendance correction requests that have been approved or rejected.
+            <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+              List of processed attendance correction requests.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
@@ -966,24 +968,14 @@ export function ApprovalsTabsClient({
                         Name / Email <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSortHistoryCorr("studio")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                      <div className="flex items-center gap-1">
-                        Studio <ArrowUpDown className="size-3 text-zinc-400" />
-                      </div>
-                    </TableHead>
                     <TableHead onClick={() => handleSortHistoryCorr("date")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                       <div className="flex items-center gap-1">
                         Attendance Date <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
-                    <TableHead onClick={() => handleSortHistoryCorr("previousStatus")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
-                      <div className="flex items-center gap-1">
-                        Previous Status <ArrowUpDown className="size-3 text-zinc-400" />
-                      </div>
-                    </TableHead>
                     <TableHead onClick={() => handleSortHistoryCorr("newStatus")} className="cursor-pointer select-none hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
                       <div className="flex items-center gap-1">
-                        New Status <ArrowUpDown className="size-3 text-zinc-400" />
+                        Status Adjustment <ArrowUpDown className="size-3 text-zinc-400" />
                       </div>
                     </TableHead>
                     <TableHead>Correction Reason</TableHead>
@@ -1005,7 +997,7 @@ export function ApprovalsTabsClient({
                   {sortedAndFilteredHistoryCorr.length === 0 ? (
                     <TableRow>
                       <TableCell
-                        colSpan={currentUser.role === "SUPER_ADMIN" ? 10 : 9}
+                        colSpan={8}
                         className="h-24 text-center text-sm text-zinc-500"
                       >
                         No correction history found.
@@ -1017,18 +1009,30 @@ export function ApprovalsTabsClient({
                         <TableCell>
                           <div className="font-semibold text-zinc-900 dark:text-zinc-100">{corr.requestedBy.name}</div>
                           <div className="text-[10px] text-zinc-500">{corr.requestedBy.email}</div>
+                          {corr.requestedBy.defaultStudio?.name && (
+                            <Badge variant="outline" className="text-[9px] scale-90 origin-left border-zinc-200 mt-0.5">
+                              {corr.requestedBy.defaultStudio.name}
+                            </Badge>
+                          )}
                         </TableCell>
-                        <TableCell className="text-xs">{corr.requestedBy.defaultStudio?.name ?? "-"}</TableCell>
                         <TableCell className="text-xs font-mono">{formatDate(corr.attendanceRecord?.attendanceDate)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={`text-xs ${corr.previousStatus ? statusColor[corr.previousStatus] : ""}`}>
-                            {corr.previousStatus ? (statusLabel[corr.previousStatus] ?? corr.previousStatus) : "-"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={`text-xs ${corr.newStatus ? statusColor[corr.newStatus] : ""}`}>
-                            {corr.newStatus ? (statusLabel[corr.newStatus] ?? corr.newStatus) : "-"}
-                          </Badge>
+                          <div className="flex flex-col gap-1 items-start">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.previousStatus ? statusColor[corr.previousStatus] : ""}`}>
+                                {corr.previousStatus ? (statusLabel[corr.previousStatus] ?? corr.previousStatus) : "-"}
+                              </Badge>
+                              <span className="text-zinc-400 text-xs">➔</span>
+                              <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.newStatus ? statusColor[corr.newStatus] : ""}`}>
+                                {corr.newStatus ? (statusLabel[corr.newStatus] ?? corr.newStatus) : "-"}
+                              </Badge>
+                            </div>
+                            {(corr.proposedCheckInTime || corr.proposedCheckOutTime) && (
+                              <div className="text-[11px] font-mono font-medium text-zinc-700 dark:text-zinc-300 pl-2.5 mt-0.5">
+                                {corr.proposedCheckInTime || "--:--"} - {corr.proposedCheckOutTime || "--:--"}
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="max-w-[150px] truncate text-xs" title={corr.reason}>
                           {corr.reason}
@@ -1052,7 +1056,7 @@ export function ApprovalsTabsClient({
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900"
+                                    className="h-8 px-2 text-xs border-zinc-200 text-zinc-700 hover:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-900 cursor-pointer"
                                   >
                                     <Eye className="size-3 mr-1" aria-hidden="true" />
                                     Details
@@ -1080,13 +1084,13 @@ export function ApprovalsTabsClient({
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <p className="text-xs font-semibold text-zinc-400">Previous Status</p>
-                                      <Badge variant="outline" className={corr.previousStatus ? statusColor[corr.previousStatus] : "mt-1"}>
+                                      <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.previousStatus ? statusColor[corr.previousStatus] : "mt-1"}`}>
                                         {corr.previousStatus ? (statusLabel[corr.previousStatus] ?? corr.previousStatus) : "-"}
                                       </Badge>
                                     </div>
                                     <div>
                                       <p className="text-xs font-semibold text-zinc-400">New Status</p>
-                                      <Badge variant="outline" className={corr.newStatus ? statusColor[corr.newStatus] : "mt-1"}>
+                                      <Badge variant="secondary" className={`text-xs font-semibold px-2.5 py-0.5 ${corr.newStatus ? statusColor[corr.newStatus] : "mt-1"}`}>
                                         {corr.newStatus ? (statusLabel[corr.newStatus] ?? corr.newStatus) : "-"}
                                       </Badge>
                                     </div>
@@ -1133,7 +1137,7 @@ export function ApprovalsTabsClient({
                                   type="submit"
                                   size="sm"
                                   variant="ghost"
-                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 h-7 px-2"
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20 h-7 px-2 cursor-pointer"
                                 >
                                   Delete
                                 </Button>

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import {
   upsertWeeklyWorkRulesAction,
   updateStudioWeekStartAction,
@@ -177,215 +178,225 @@ export function WorkdaySettingsClient({ studios }: Props) {
   }
 
   return (
-    <div className="grid gap-6">
-      {/* Studio Selector */}
-      {studios.length > 1 && (
-        <div className="flex flex-wrap gap-2">
-          {studios.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => setSelectedStudioId(s.id)}
-              className={`rounded-lg border px-4 py-1.5 text-sm font-medium transition-colors ${
-                selectedStudioId === s.id
-                  ? "border-zinc-950 bg-zinc-950 text-white"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
+    <Card id="section-workday" className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-none rounded-2xl overflow-hidden scroll-mt-28">
+      <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
+        <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
+          <Clock className="size-5 text-blue-600 dark:text-blue-400" />
+          Studio Workdays & Attendance Policies
+        </CardTitle>
+        <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+          Configure weekly workdays, grace period limits, and studio schedule policies.
+        </CardDescription>
+      </CardHeader>
 
-      {/* 1. Grace Period & Presence Time Policy Form */}
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-none">
-        <div className="mb-4">
-          <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Presence Time & Tolerance Policy (Grace Period)</p>
-          <p className="text-sm text-zinc-500">
-            Adjust lateness rules and working hours for studio members.
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
-          <div className="grid gap-1.5">
-            <Label htmlFor="policy-in" className="text-zinc-700 dark:text-zinc-300">Check-in Time</Label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-              <Input
-                id="policy-in"
-                type="time"
-                value={currentPolicy.checkInTime}
-                onChange={(e) => updatePolicyField("checkInTime", e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="policy-out" className="text-zinc-700 dark:text-zinc-300">Check-out Time</Label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-              <Input
-                id="policy-out"
-                type="time"
-                value={currentPolicy.checkOutTime}
-                onChange={(e) => updatePolicyField("checkOutTime", e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="policy-grace" className="text-zinc-700 dark:text-zinc-300">Late Tolerance (Minutes)</Label>
-            <div className="relative">
-              <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-              <Input
-                id="policy-grace"
-                type="number"
-                value={currentPolicy.graceMinutes}
-                onChange={(e) => updatePolicyField("graceMinutes", Number(e.target.value))}
-                className="pl-9"
-                placeholder="10"
-                min={0}
-              />
-            </div>
-          </div>
-          <div className="grid gap-1.5">
-            <Label htmlFor="policy-cutoff" className="text-zinc-700 dark:text-zinc-300">Alpha Cutoff Time</Label>
-            <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-              <Input
-                id="policy-cutoff"
-                type="time"
-                value={currentPolicy.alphaCutoffTime}
-                onChange={(e) => updatePolicyField("alphaCutoffTime", e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Work Days */}
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-none">
-        <div className="mb-4">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Weekly Workdays</span>
-          </div>
-          <p className="text-sm text-zinc-500">
-            Click to cycle: <span className="font-medium text-zinc-700 dark:text-zinc-300">Off</span> →{" "}
-            <span className="font-medium text-zinc-900 dark:text-zinc-50">Required</span> →{" "}
-            <span className="font-medium text-amber-600">Optional</span> → Off
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {currentRules.map((rule, idx) => {
-            const label = DAY_LABELS_DISPLAY[idx];
-            const isOptional = rule.isWorkday && rule.isOptional;
-            const isRequired = rule.isWorkday && !rule.isOptional;
-
-            return (
+      <CardContent className="pt-6 space-y-6">
+        {/* Studio Selector */}
+        {studios.length > 1 && (
+          <div className="flex flex-wrap gap-2">
+            {studios.map((s) => (
               <button
-                key={rule.dayOfWeek}
-                onClick={() => toggleDay(idx)}
-                className={`relative flex flex-col items-center justify-center rounded-xl border-2 w-14 h-14 text-sm font-bold transition-all ${
-                  isRequired
-                    ? "border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100 text-white dark:text-zinc-950"
-                    : isOptional
-                    ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300"
-                    : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-400"
-                }`}
-                title={isRequired ? "Required" : isOptional ? "Optional" : "Off"}
-              >
-                {label}
-                {isOptional && (
-                  <span className="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-400 text-white rounded-full px-1 leading-tight font-medium">
-                    opt
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        <div className="flex flex-wrap gap-4 text-xs text-zinc-500">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block size-2.5 rounded-full bg-zinc-900 dark:bg-zinc-100" />
-            Required:{" "}
-            {currentRules
-              .filter((r) => r.isWorkday && !r.isOptional)
-              .map((r) => DAY_LABELS_DISPLAY[DISPLAY_ORDER.indexOf(r.dayOfWeek)])
-              .join(", ") || "-"}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block size-2.5 rounded-full bg-amber-400" />
-            Optional:{" "}
-            {currentRules
-              .filter((r) => r.isWorkday && r.isOptional)
-              .map((r) => DAY_LABELS_DISPLAY[DISPLAY_ORDER.indexOf(r.dayOfWeek)])
-              .join(", ") || "-"}
-          </span>
-        </div>
-        {currentRules.some((r) => r.isOptional) && (
-          <p className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
-            💡 Optional days count as present if attended, but are not marked as absent (alpha) if missed.
-          </p>
-        )}
-      </div>
-
-      {/* Week Starts On + Monthly Count */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {/* Week Starts On */}
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-none">
-          <div className="mb-4">
-            <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Week Starts On</p>
-            <p className="text-sm text-zinc-500">Used for weekly reports</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {WEEK_START_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                onClick={() =>
-                  setWeekStartMap((prev) => ({ ...prev, [selectedStudioId]: opt.value }))
-                }
-                className={`rounded-lg border py-2 text-sm font-medium transition-colors ${
-                  currentWeekStart === opt.value
-                    ? "border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100 text-white dark:text-zinc-950"
-                    : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                key={s.id}
+                onClick={() => setSelectedStudioId(s.id)}
+                className={`rounded-lg border px-4 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+                  selectedStudioId === s.id
+                    ? "border-zinc-950 bg-zinc-950 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950"
+                    : "border-zinc-200 bg-white text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
                 }`}
               >
-                {opt.label}
+                {s.name}
               </button>
             ))}
           </div>
-        </div>
+        )}
 
-        {/* Monthly Count */}
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-5 shadow-none">
+        {/* 1. Grace Period & Presence Time Policy Form */}
+        <div id="sub-presence-policy" className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-5 shadow-none scroll-mt-24">
           <div className="mb-4">
-            <p className="text-base font-semibold text-zinc-900 dark:text-zinc-50">Monthly Workday Count</p>
-            <p className="text-sm text-zinc-500">How to calculate total workdays per month</p>
-          </div>
-          <div
-            className="rounded-lg border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 p-3 cursor-default"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-sm font-semibold text-emerald-900 dark:text-emerald-300">Calendar-based</span>
-              <Badge className="text-[10px] bg-emerald-500 text-white border-0">Active</Badge>
-            </div>
-            <p className="text-xs text-emerald-700 dark:text-emerald-400">Dinamically calculate required days in each month</p>
-            <p className="mt-2 text-xs font-semibold text-emerald-800 dark:text-emerald-300">
-              {monthLabel}: {requiredDays} required days
+            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Presence Time & Tolerance Policy (Grace Period)</p>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Adjust lateness rules and working hours for studio members.
             </p>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="policy-in" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Check-in Time</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Input
+                  id="policy-in"
+                  type="time"
+                  value={currentPolicy.checkInTime}
+                  onChange={(e) => updatePolicyField("checkInTime", e.target.value)}
+                  className="pl-9 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="policy-out" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Check-out Time</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Input
+                  id="policy-out"
+                  type="time"
+                  value={currentPolicy.checkOutTime}
+                  onChange={(e) => updatePolicyField("checkOutTime", e.target.value)}
+                  className="pl-9 text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="policy-grace" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Late Tolerance (Minutes)</Label>
+              <div className="relative">
+                <ShieldAlert className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Input
+                  id="policy-grace"
+                  type="number"
+                  value={currentPolicy.graceMinutes}
+                  onChange={(e) => updatePolicyField("graceMinutes", Number(e.target.value))}
+                  className="pl-9 text-sm"
+                  placeholder="10"
+                  min={0}
+                />
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="policy-cutoff" className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">Alpha Cutoff Time</Label>
+              <div className="relative">
+                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Input
+                  id="policy-cutoff"
+                  type="time"
+                  value={currentPolicy.alphaCutoffTime}
+                  onChange={(e) => updatePolicyField("alphaCutoffTime", e.target.value)}
+                  className="pl-9 text-sm"
+                />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Save button */}
-      <div className="flex items-center justify-end gap-3">
-        {savedMsg && <p className="text-sm text-emerald-700 font-medium">{savedMsg}</p>}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button onClick={handleSave} disabled={isPending}>
+        {/* 2. Work Days */}
+        <div id="sub-weekly-workdays" className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-5 shadow-none scroll-mt-24">
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Weekly Workdays</span>
+            </div>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
+              Click to cycle: <span className="font-medium text-zinc-700 dark:text-zinc-300">Off</span> →{" "}
+              <span className="font-medium text-zinc-900 dark:text-zinc-50">Required</span> →{" "}
+              <span className="font-medium text-amber-600 dark:text-amber-400">Optional</span> → Off
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {currentRules.map((rule, idx) => {
+              const label = DAY_LABELS_DISPLAY[idx];
+              const isOptional = rule.isWorkday && rule.isOptional;
+              const isRequired = rule.isWorkday && !rule.isOptional;
+
+              return (
+                <button
+                  key={rule.dayOfWeek}
+                  onClick={() => toggleDay(idx)}
+                  className={`relative flex flex-col items-center justify-center rounded-xl border-2 size-14 text-xs font-bold transition-all cursor-pointer ${
+                    isRequired
+                      ? "border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100 text-white dark:text-zinc-950"
+                      : isOptional
+                      ? "border-amber-400 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300"
+                      : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-400"
+                  }`}
+                  title={isRequired ? "Required" : isOptional ? "Optional" : "Off"}
+                >
+                  {label}
+                  {isOptional && (
+                    <span className="absolute -top-1.5 -right-1.5 text-[9px] bg-amber-400 text-white rounded-full px-1 leading-tight font-medium">
+                      opt
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap gap-4 text-xs text-zinc-500">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-full bg-zinc-900 dark:bg-zinc-100" />
+              Required:{" "}
+              {currentRules
+                .filter((r) => r.isWorkday && !r.isOptional)
+                .map((r) => DAY_LABELS_DISPLAY[DISPLAY_ORDER.indexOf(r.dayOfWeek)])
+                .join(", ") || "-"}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block size-2.5 rounded-full bg-amber-400" />
+              Optional:{" "}
+              {currentRules
+                .filter((r) => r.isWorkday && r.isOptional)
+                .map((r) => DAY_LABELS_DISPLAY[DISPLAY_ORDER.indexOf(r.dayOfWeek)])
+                .join(", ") || "-"}
+            </span>
+          </div>
+          {currentRules.some((r) => r.isOptional) && (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg px-3 py-2">
+              💡 Optional days count as present if attended, but are not marked as absent (alpha) if missed.
+            </p>
+          )}
+        </div>
+
+        {/* Week Starts On + Monthly Count */}
+        <div id="sub-week-start" className="grid gap-4 sm:grid-cols-2 scroll-mt-24">
+          {/* Week Starts On */}
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-5 shadow-none">
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Week Starts On</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">Used for weekly reports</p>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {WEEK_START_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() =>
+                    setWeekStartMap((prev) => ({ ...prev, [selectedStudioId]: opt.value }))
+                  }
+                  className={`rounded-lg border py-2 text-xs font-semibold transition-colors cursor-pointer ${
+                    currentWeekStart === opt.value
+                      ? "border-zinc-900 bg-zinc-900 dark:border-zinc-100 dark:bg-zinc-100 text-white dark:text-zinc-950"
+                      : "border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Monthly Count */}
+          <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-5 shadow-none">
+            <div className="mb-4">
+              <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">Monthly Workday Count</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400">How to calculate total workdays per month</p>
+            </div>
+            <div className="rounded-lg border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/20 p-3 cursor-default">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300">Calendar-based</span>
+                <Badge className="text-[10px] bg-emerald-500 text-white border-0">Active</Badge>
+              </div>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400">Dynamically calculate required days in each month</p>
+              <p className="mt-2 text-xs font-bold text-emerald-800 dark:text-emerald-300">
+                {monthLabel}: {requiredDays} required days
+              </p>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+
+      {/* Card Action Footer */}
+      <CardFooter className="border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-900/30 px-6 py-4 flex items-center justify-between sm:justify-end gap-3">
+        {savedMsg && <p className="text-xs text-emerald-700 font-medium">{savedMsg}</p>}
+        {error && <p className="text-xs text-red-600">{error}</p>}
+        <Button onClick={handleSave} disabled={isPending} className="font-semibold">
           {isPending ? <Loader2 className="size-4 animate-spin mr-2" /> : null}
-          Save Studio Settings
+          Save Studio Workday Settings
         </Button>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

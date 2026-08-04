@@ -57,15 +57,15 @@ export function BackgroundSettingsCard() {
   const gradientPresets = selectedMode === "dark" ? DARK_GRADIENT_PRESETS : LIGHT_GRADIENT_PRESETS;
 
   return (
-    <Card className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none">
-      <CardHeader>
-        <div className="flex items-center justify-between">
+    <Card id="section-appearance" className="border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 shadow-none rounded-2xl overflow-hidden scroll-mt-28">
+      <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <CardTitle className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
+            <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
               <Palette className="size-5 text-purple-600 dark:text-purple-400" />
-              Custom Layout Background
+              Custom Layout Appearance & Backgrounds
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
               Customize background colors and linear gradients with angle controls for Light and Dark modes.
             </CardDescription>
           </div>
@@ -73,7 +73,7 @@ export function BackgroundSettingsCard() {
             variant="outline"
             size="sm"
             onClick={resetAll}
-            className="text-xs h-8 border-zinc-200 dark:border-zinc-800"
+            className="text-xs h-8 border-zinc-200 dark:border-zinc-800 self-start sm:self-auto cursor-pointer"
           >
             <RotateCcw className="size-3.5 mr-1.5" />
             Reset All
@@ -81,13 +81,13 @@ export function BackgroundSettingsCard() {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-6">
+      <CardContent className="pt-6 space-y-6">
         {/* Mode Switcher Tabs */}
-        <div className="inline-flex p-1 bg-zinc-100 dark:bg-zinc-950 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800">
+        <div id="theme-mode" className="inline-flex p-1 bg-zinc-100 dark:bg-zinc-950 rounded-lg text-xs font-medium border border-zinc-200 dark:border-zinc-800 scroll-mt-24">
           <button
             type="button"
             onClick={() => setSelectedMode("light")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-md transition-all cursor-pointer ${
               selectedMode === "light"
                 ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
                 : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
@@ -100,7 +100,7 @@ export function BackgroundSettingsCard() {
           <button
             type="button"
             onClick={() => setSelectedMode("dark")}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-md transition-all cursor-pointer ${
               selectedMode === "dark"
                 ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-xs font-semibold"
                 : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300"
@@ -112,17 +112,17 @@ export function BackgroundSettingsCard() {
         </div>
 
         {/* Style Type Selector */}
-        <div className="space-y-2">
+        <div id="background-type" className="space-y-2 scroll-mt-28">
           <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
             Background Type
           </label>
-          <div className="grid grid-cols-3 gap-3 max-w-md">
+          <div className="grid grid-cols-3 gap-3 w-full">
             {(["default", "solid", "gradient"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
                 onClick={() => updateModeConfig(selectedMode, { type: t })}
-                className={`py-2 text-xs font-medium capitalize rounded-lg border transition-all ${
+                className={`py-2 text-xs font-medium capitalize rounded-lg border transition-all cursor-pointer ${
                   currentConfig.type === t
                     ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 font-semibold ring-1 ring-purple-500"
                     : "border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-950"
@@ -136,7 +136,7 @@ export function BackgroundSettingsCard() {
 
         {/* Solid Color Config & Swatches */}
         {currentConfig.type === "solid" && (
-          <div className="space-y-4 max-w-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full pt-2">
             <div className="space-y-2">
               <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                 Solid Color Presets
@@ -159,7 +159,7 @@ export function BackgroundSettingsCard() {
               </div>
             </div>
 
-            <div className="space-y-1.5 max-w-md">
+            <div className="space-y-1.5 w-full">
               <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                 Custom Color Value
               </label>
@@ -184,151 +184,156 @@ export function BackgroundSettingsCard() {
 
         {/* Linear Gradient Config & Presets */}
         {currentConfig.type === "gradient" && (
-          <div className="space-y-4 max-w-xl">
-            {/* Presets (Gradient & Solid Color Options for Gradient Setting) */}
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                Solid & Gradient Presets
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {/* Solid Presets applied in Gradient mode */}
-                {solidPresets.map((p) => (
-                  <button
-                    key={p.name}
-                    type="button"
-                    onClick={() =>
-                      updateModeConfig(selectedMode, {
-                        gradientStart: p.color,
-                        gradientEnd: p.gradientEnd,
-                      })
-                    }
-                    className="px-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-2 hover:scale-105 transition-transform bg-zinc-50 dark:bg-zinc-950 cursor-pointer"
-                    title={`Apply ${p.name} gradient pair`}
-                  >
-                    <span
-                      className="size-3.5 rounded-full border border-black/10"
-                      style={{ background: `linear-gradient(135deg, ${p.color}, ${p.gradientEnd})` }}
-                    />
-                    <span className="text-zinc-700 dark:text-zinc-300">{p.name}</span>
-                  </button>
-                ))}
-
-                {/* Curated Gradient Pairs */}
-                {gradientPresets.map((p) => (
-                  <button
-                    key={p.name}
-                    type="button"
-                    onClick={() =>
-                      updateModeConfig(selectedMode, {
-                        gradientStart: p.start,
-                        gradientEnd: p.end,
-                      })
-                    }
-                    className="px-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-2 hover:scale-105 transition-transform bg-zinc-50 dark:bg-zinc-950 cursor-pointer"
-                  >
-                    <span
-                      className="size-3.5 rounded-full border border-black/10"
-                      style={{ background: `linear-gradient(135deg, ${p.start}, ${p.end})` }}
-                    />
-                    <span className="text-zinc-700 dark:text-zinc-300">{p.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Gradient Colors */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full pt-2">
+            {/* Left Column: Presets & Color Controls */}
+            <div className="space-y-4 w-full">
+              <div className="space-y-2">
                 <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  Start Color
+                  Solid & Gradient Presets
                 </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={currentConfig.gradientStart}
-                    onChange={(e) => updateModeConfig(selectedMode, { gradientStart: e.target.value })}
-                    className="size-9 rounded border border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
-                  />
-                  <input
-                    type="text"
-                    value={currentConfig.gradientStart}
-                    onChange={(e) => updateModeConfig(selectedMode, { gradientStart: e.target.value })}
-                    className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-mono"
-                  />
+                <div className="flex flex-wrap gap-2">
+                  {/* Solid Presets applied in Gradient mode */}
+                  {solidPresets.map((p) => (
+                    <button
+                      key={p.name}
+                      type="button"
+                      onClick={() =>
+                        updateModeConfig(selectedMode, {
+                          gradientStart: p.color,
+                          gradientEnd: p.gradientEnd,
+                        })
+                      }
+                      className="px-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-2 hover:scale-105 transition-transform bg-zinc-50 dark:bg-zinc-950 cursor-pointer"
+                      title={`Apply ${p.name} gradient pair`}
+                    >
+                      <span
+                        className="size-3.5 rounded-full border border-black/10"
+                        style={{ background: `linear-gradient(135deg, ${p.color}, ${p.gradientEnd})` }}
+                      />
+                      <span className="text-zinc-700 dark:text-zinc-300">{p.name}</span>
+                    </button>
+                  ))}
+
+                  {/* Curated Gradient Pairs */}
+                  {gradientPresets.map((p) => (
+                    <button
+                      key={p.name}
+                      type="button"
+                      onClick={() =>
+                        updateModeConfig(selectedMode, {
+                          gradientStart: p.start,
+                          gradientEnd: p.end,
+                        })
+                      }
+                      className="px-3 py-1.5 text-xs rounded-lg border border-zinc-200 dark:border-zinc-800 flex items-center gap-2 hover:scale-105 transition-transform bg-zinc-50 dark:bg-zinc-950 cursor-pointer"
+                    >
+                      <span
+                        className="size-3.5 rounded-full border border-black/10"
+                        style={{ background: `linear-gradient(135deg, ${p.start}, ${p.end})` }}
+                      />
+                      <span className="text-zinc-700 dark:text-zinc-300">{p.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                  End Color
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={currentConfig.gradientEnd}
-                    onChange={(e) => updateModeConfig(selectedMode, { gradientEnd: e.target.value })}
-                    className="size-9 rounded border border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
-                  />
-                  <input
-                    type="text"
-                    value={currentConfig.gradientEnd}
-                    onChange={(e) => updateModeConfig(selectedMode, { gradientEnd: e.target.value })}
-                    className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-mono"
-                  />
+              {/* Gradient Colors */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    Start Color
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentConfig.gradientStart}
+                      onChange={(e) => updateModeConfig(selectedMode, { gradientStart: e.target.value })}
+                      className="size-9 rounded border border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={currentConfig.gradientStart}
+                      onChange={(e) => updateModeConfig(selectedMode, { gradientStart: e.target.value })}
+                      className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    End Color
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={currentConfig.gradientEnd}
+                      onChange={(e) => updateModeConfig(selectedMode, { gradientEnd: e.target.value })}
+                      className="size-9 rounded border border-zinc-200 dark:border-zinc-800 cursor-pointer bg-transparent"
+                    />
+                    <input
+                      type="text"
+                      value={currentConfig.gradientEnd}
+                      onChange={(e) => updateModeConfig(selectedMode, { gradientEnd: e.target.value })}
+                      className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-2.5 text-xs font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Gradient Angle Slider */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-zinc-600 dark:text-zinc-400">
-                  Gradient Angle Control
-                </label>
-                <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-sm">
-                  {currentConfig.gradientAngle}&deg;
-                </span>
+            {/* Right Column: Sliders & Opacity Control */}
+            <div className="space-y-4 w-full">
+              {/* Gradient Angle Slider */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <label className="font-medium text-zinc-600 dark:text-zinc-400">
+                    Gradient Angle Control
+                  </label>
+                  <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-sm">
+                    {currentConfig.gradientAngle}&deg;
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  step="5"
+                  value={currentConfig.gradientAngle}
+                  onChange={(e) =>
+                    updateModeConfig(selectedMode, { gradientAngle: parseInt(e.target.value) || 0 })
+                  }
+                  className="w-full accent-purple-600 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                />
               </div>
-              <input
-                type="range"
-                min="0"
-                max="360"
-                step="5"
-                value={currentConfig.gradientAngle}
-                onChange={(e) =>
-                  updateModeConfig(selectedMode, { gradientAngle: parseInt(e.target.value) || 0 })
-                }
-                className="w-full accent-purple-600 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
-              />
-            </div>
 
-            {/* Surface Tint Opacity (30%-50%) */}
-            <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
-              <div className="flex justify-between items-center text-xs">
-                <label className="font-medium text-zinc-600 dark:text-zinc-400">
-                  Surface Tint Opacity (Sidebar, Navbar & Cards)
-                </label>
-                <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-sm">
-                  {currentConfig.surfaceOpacity ?? 40}%
-                </span>
+              {/* Surface Tint Opacity (30%-50%) */}
+              <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800/60">
+                <div className="flex justify-between items-center text-xs">
+                  <label className="font-medium text-zinc-600 dark:text-zinc-400">
+                    Surface Tint Opacity (Sidebar, Navbar & Cards)
+                  </label>
+                  <span className="font-mono font-bold text-purple-600 dark:text-purple-400 text-sm">
+                    {currentConfig.surfaceOpacity ?? 40}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="30"
+                  max="50"
+                  step="1"
+                  value={currentConfig.surfaceOpacity ?? 40}
+                  onChange={(e) =>
+                    updateModeConfig(selectedMode, { surfaceOpacity: parseInt(e.target.value) || 40 })
+                  }
+                  className="w-full accent-purple-600 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
+                />
               </div>
-              <input
-                type="range"
-                min="30"
-                max="50"
-                step="1"
-                value={currentConfig.surfaceOpacity ?? 40}
-                onChange={(e) =>
-                  updateModeConfig(selectedMode, { surfaceOpacity: parseInt(e.target.value) || 40 })
-                }
-                className="w-full accent-purple-600 h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg cursor-pointer"
-              />
             </div>
           </div>
         )}
 
         {/* Live Preview Card */}
-        <div className="space-y-2 max-w-xl">
+        <div className="space-y-2 w-full pt-2">
           <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">
             Realtime Background Preview ({selectedMode.toUpperCase()} MODE)
           </label>
