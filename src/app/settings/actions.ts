@@ -304,10 +304,11 @@ export async function updateHelpRulesAction(rules: {
   rules_correction: string;
   rules_wfh_plan: string;
   rules_wfh_report: string;
+  max_correction_days?: number;
 }) {
   await requireRole("SUPER_ADMIN");
 
-  await prisma.$transaction([
+  const ops: Array<ReturnType<typeof prisma.systemSetting.upsert>> = [
     prisma.systemSetting.upsert({
       where: { key: "rules_wfo" },
       create: { key: "rules_wfo", value: rules.rules_wfo },
@@ -333,11 +334,41 @@ export async function updateHelpRulesAction(rules: {
       create: { key: "rules_wfh_report", value: rules.rules_wfh_report },
       update: { value: rules.rules_wfh_report },
     }),
-  ]);
+  ];
+
+  if (typeof rules.max_correction_days === "number" && rules.max_correction_days >= 0) {
+    ops.push(
+      prisma.systemSetting.upsert({
+        where: { key: "max_correction_days" },
+        create: { key: "max_correction_days", value: String(rules.max_correction_days) },
+        update: { value: String(rules.max_correction_days) },
+      })
+    );
+  }
+
+  await prisma.$transaction(ops);
 
   revalidatePath("/settings");
   revalidatePath("/member");
   revalidatePath("/member/requests");
   revalidatePath("/member/corrections");
+  revalidatePath("/member/presensi/riwayat");
 }
 
+export async function updateMaxCorrectionDaysAction(days: number) {
+  await requireRole("SUPER_ADMIN");
+
+  const validDays = Math.max(0, Math.min(365, days));
+
+  await prisma.systemSetting.upsert({
+    where: { key: "max_correction_days" },
+    create: { key: "max_correction_days", value: String(validDays) },
+    update: { value: String(validDays) },
+  });
+
+  revalidatePath("/settings");
+  revalidatePath("/member");
+  revalidatePath("/member/requests");
+  revalidatePath("/member/corrections");
+  revalidatePath("/member/presensi/riwayat");
+}

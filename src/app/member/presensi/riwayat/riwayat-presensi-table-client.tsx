@@ -2,10 +2,17 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, Search } from "lucide-react";
+import { ArrowUpDown, Filter, RotateCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -32,6 +39,7 @@ type AttendanceRecordItem = {
 
 type Props = {
   records: AttendanceRecordItem[];
+  maxCorrectionDays?: number;
 };
 
 const statusLabel: Record<string, string> = {
@@ -48,16 +56,26 @@ const statusLabel: Record<string, string> = {
 };
 
 const statusColor: Record<string, string> = {
-  PRESENT: "bg-emerald-100 text-emerald-800",
-  ON_TIME: "bg-emerald-100 text-emerald-800",
-  LATE: "bg-orange-100 text-orange-800",
-  WFH: "bg-blue-100 text-blue-800",
-  PERMISSION: "bg-amber-100 text-amber-800",
-  SICK: "bg-violet-100 text-violet-800",
-  LEAVE: "bg-sky-100 text-sky-800",
-  ALPHA: "bg-red-100 text-red-800",
-  HOLIDAY: "bg-zinc-200 text-zinc-700",
-  OFF_DAY: "bg-zinc-200 text-zinc-700",
+  PRESENT:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60",
+  ON_TIME:
+    "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60",
+  LATE:
+    "bg-orange-100 text-orange-800 dark:bg-orange-950/60 dark:text-orange-300 border border-orange-200/60 dark:border-orange-800/60",
+  WFH:
+    "bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60",
+  PERMISSION:
+    "bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60",
+  SICK:
+    "bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-300 border border-violet-200/60 dark:border-violet-800/60",
+  LEAVE:
+    "bg-sky-100 text-sky-800 dark:bg-sky-950/60 dark:text-sky-300 border border-sky-200/60 dark:border-sky-800/60",
+  ALPHA:
+    "bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300 border border-red-200/60 dark:border-red-800/60",
+  HOLIDAY:
+    "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700",
+  OFF_DAY:
+    "bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-300 dark:border-zinc-700",
 };
 
 function formatDate(date: Date | string) {
@@ -81,8 +99,10 @@ function formatTime(date: Date | string | null) {
   }).format(new Date(date));
 }
 
-export function RiwayatPresensiTableClient({ records }: Props) {
+export function RiwayatPresensiTableClient({ records, maxCorrectionDays = 14 }: Props) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [modeFilter, setModeFilter] = useState<string>("ALL");
   const [sortField, setSortField] = useState<string>("date");
   const [sortAsc, setSortAsc] = useState<boolean>(false);
 
@@ -95,12 +115,38 @@ export function RiwayatPresensiTableClient({ records }: Props) {
     }
   };
 
+  const hasActiveFilters =
+    statusFilter !== "ALL" || modeFilter !== "ALL" || searchQuery.trim() !== "";
+
+  const handleResetFilters = () => {
+    setStatusFilter("ALL");
+    setModeFilter("ALL");
+    setSearchQuery("");
+  };
+
   const sortedAndFilteredRecords = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     let result = records;
 
+    if (statusFilter !== "ALL") {
+      if (statusFilter === "PRESENT") {
+        result = result.filter(
+          (r) =>
+            r.status === "PRESENT" ||
+            r.status === "ON_TIME" ||
+            r.status === "DISPENSATION"
+        );
+      } else {
+        result = result.filter((r) => r.status === statusFilter);
+      }
+    }
+
+    if (modeFilter !== "ALL") {
+      result = result.filter((r) => r.workMode === modeFilter);
+    }
+
     if (q) {
-      result = records.filter(
+      result = result.filter(
         (r) =>
           r.workMode.toLowerCase().includes(q) ||
           statusLabel[r.status]?.toLowerCase().includes(q) ||
@@ -147,18 +193,64 @@ export function RiwayatPresensiTableClient({ records }: Props) {
       if (aVal > bVal) return sortAsc ? 1 : -1;
       return 0;
     });
-  }, [records, searchQuery, sortField, sortAsc]);
+  }, [records, searchQuery, statusFilter, modeFilter, sortField, sortAsc]);
 
   return (
     <div className="space-y-4">
-      <div className="flex max-w-sm relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search mode, status, or studio..."
-          className="pl-9"
-        />
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search mode, status, or studio..."
+              className="pl-9 h-9 text-xs"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+            <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "ALL")}>
+              <SelectTrigger className="h-9 text-xs min-w-[130px] bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Statuses</SelectItem>
+                <SelectItem value="PRESENT">On Time / Present</SelectItem>
+                <SelectItem value="LATE">Late</SelectItem>
+                <SelectItem value="ALPHA">Alpha</SelectItem>
+                <SelectItem value="WFH">WFH</SelectItem>
+                <SelectItem value="SICK">Sick</SelectItem>
+                <SelectItem value="LEAVE">Leave Exchange</SelectItem>
+                <SelectItem value="PERMISSION">Permission</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={modeFilter} onValueChange={(val) => setModeFilter(val || "ALL")}>
+              <SelectTrigger className="h-9 text-xs min-w-[110px] bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+                <SelectValue placeholder="All Modes" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Modes</SelectItem>
+                <SelectItem value="WFO">WFO</SelectItem>
+                <SelectItem value="WFH">WFH</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleResetFilters}
+                className="h-9 px-2 text-xs text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1 cursor-pointer"
+              >
+                <RotateCcw className="size-3.5" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
@@ -255,7 +347,7 @@ export function RiwayatPresensiTableClient({ records }: Props) {
                         const diffTime = todayMidnight.getTime() - recordDate.getTime();
                         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-                        if (diffDays >= 0 && diffDays <= 14) {
+                        if (diffDays >= 0 && diffDays <= maxCorrectionDays) {
                           return (
                             <Link
                               href={`/member/corrections?recordId=${record.id}`}

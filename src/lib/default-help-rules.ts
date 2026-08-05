@@ -51,16 +51,43 @@ export const DEFAULT_RULES_WFH_PLAN = `<p>Every time you Check-in for WFH (Work 
 export const DEFAULT_RULES_WFH_REPORT = `<p>Every time you Check-out for WFH (Work From Home) in the afternoon, you must fill in a written report of the results you have achieved today.</p>
 <p class="text-[10px] text-zinc-500">This requirement must be met for WFH attendance to be considered valid and approved by management.</p>`;
 
+export const DEFAULT_MAX_CORRECTION_DAYS = 14;
+
+export async function getMaxCorrectionDays(): Promise<number> {
+  const { prisma } = await import("./prisma");
+  const setting = await prisma.systemSetting.findUnique({
+    where: { key: "max_correction_days" },
+  });
+
+  if (setting && setting.value) {
+    const parsed = parseInt(setting.value, 10);
+    if (!isNaN(parsed) && parsed >= 0) {
+      return parsed;
+    }
+  }
+
+  return DEFAULT_MAX_CORRECTION_DAYS;
+}
+
 export async function getHelpRules() {
   const { prisma } = await import("./prisma");
+  const maxCorrectionDays = await getMaxCorrectionDays();
   const settings = await prisma.systemSetting.findMany();
   
   const rules = {
     rules_wfo: DEFAULT_RULES_WFO,
     rules_leave_sick: DEFAULT_RULES_LEAVE_SICK,
-    rules_correction: DEFAULT_RULES_CORRECTION,
+    rules_correction: `<div>
+  <h4 class="font-bold text-zinc-900 dark:text-zinc-200">1. Correction Date Range</h4>
+  <p class="mt-0.5">Attendance corrections are allowed for dates ranging from <b>Today (H-0) up to ${maxCorrectionDays} days ago</b>. Dates outside the ${maxCorrectionDays}-day range cannot be selected.</p>
+</div>
+<div>
+  <h4 class="font-bold text-zinc-900 dark:text-zinc-200">2. Estimated Check-in/out Time</h4>
+  <p class="mt-0.5">If correcting your status to physical presence (On Time or Late), you must provide the proposed check-in time (and check-out time for past days) so the system can calculate late minutes accurately.</p>
+</div>`,
     rules_wfh_plan: DEFAULT_RULES_WFH_PLAN,
     rules_wfh_report: DEFAULT_RULES_WFH_REPORT,
+    max_correction_days: maxCorrectionDays,
   };
 
   settings.forEach((s: { key: string; value: string }) => {

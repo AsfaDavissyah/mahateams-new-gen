@@ -16,6 +16,7 @@ import {
 import { DashboardShell } from "@/components/dashboard-shell";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getMaxCorrectionDays } from "@/lib/default-help-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -84,7 +85,10 @@ async function getPersonalAttendanceHistory(userId: string) {
 
 export default async function PersonalAttendanceHistoryPage() {
   const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
-  const data = await getPersonalAttendanceHistory(currentUser.id);
+  const [data, maxCorrectionDays] = await Promise.all([
+    getPersonalAttendanceHistory(currentUser.id),
+    getMaxCorrectionDays(),
+  ]);
   const monthName = new Intl.DateTimeFormat("en-US", {
     month: "long",
     timeZone: "UTC",
@@ -160,7 +164,7 @@ export default async function PersonalAttendanceHistoryPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <RiwayatPresensiTableClient records={data.records} />
+            <RiwayatPresensiTableClient records={data.records} maxCorrectionDays={maxCorrectionDays} />
           </CardContent>
         </Card>
       </div>

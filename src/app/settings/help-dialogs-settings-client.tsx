@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { HelpCircle, FileText, CheckCircle, Info, Loader2, Clock3, BookOpen, Save } from "lucide-react";
+import { HelpCircle, FileText, CheckCircle, Info, Loader2, Clock3, BookOpen, Save, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { updateHelpRulesAction } from "./actions";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
 
@@ -14,6 +15,7 @@ type Rules = {
   rules_correction: string;
   rules_wfh_plan: string;
   rules_wfh_report: string;
+  max_correction_days?: number;
 };
 
 export function HelpDialogsSettingsClient({ initialRules }: { initialRules: Rules }) {
@@ -33,7 +35,7 @@ export function HelpDialogsSettingsClient({ initialRules }: { initialRules: Rule
     }
   };
 
-  const handleChange = (key: keyof Rules, val: string) => {
+  const handleChange = <K extends keyof Rules>(key: K, val: Rules[K]) => {
     setRules((prev) => ({ ...prev, [key]: val }));
   };
 
@@ -42,10 +44,10 @@ export function HelpDialogsSettingsClient({ initialRules }: { initialRules: Rule
       <CardHeader className="border-b border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/40 pb-4">
         <CardTitle className="flex items-center gap-2 text-base font-bold text-zinc-900 dark:text-zinc-50">
           <BookOpen className="size-5 text-blue-600 dark:text-blue-400" />
-          Help Rules Popups Configuration
+          Help Rules Popups & Correction Limits Configuration
         </CardTitle>
         <CardDescription className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-          Configure help popup rich text content shown across WFO, WFH, and leave requests.
+          Configure help popup rich text content and maximum correction date range for team members.
         </CardDescription>
       </CardHeader>
 
@@ -54,14 +56,36 @@ export function HelpDialogsSettingsClient({ initialRules }: { initialRules: Rule
           <div className="rounded-xl bg-blue-50/50 dark:bg-blue-950/10 border border-blue-200 dark:border-blue-900/50 p-4 text-xs leading-relaxed text-blue-800 dark:text-blue-300 flex gap-2.5 items-start">
             <Info className="size-4 shrink-0 text-blue-600 dark:text-blue-400 mt-0.5" />
             <div>
-              <p className="font-semibold">Rich Text Editor Enabled</p>
+              <p className="font-semibold">Rich Text Editor & Correction Limits Enabled</p>
               <p className="mt-1 text-zinc-600 dark:text-zinc-400">
-                Use the toolbar to format rules with headings, bold, italic, underline, bullets, or numbers. Previews on the right update in real-time.
+                Use the toolbar to format rules with headings, bold, italic, underline, bullets, or numbers. You can also adjust the max attendance correction window. Previews update in real-time.
               </p>
             </div>
           </div>
 
           <div className="flex flex-col gap-6">
+            {/* Max Correction Days Setting */}
+            <div className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-950/20 space-y-3 shadow-xs">
+              <label className="text-sm font-semibold flex items-center gap-1.5 text-zinc-800 dark:text-zinc-200">
+                <Calendar className="size-4 text-emerald-600" />
+                Maximum Attendance Correction Window (Days)
+              </label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={365}
+                  value={rules.max_correction_days ?? 14}
+                  onChange={(e) => handleChange("max_correction_days", parseInt(e.target.value, 10) || 0)}
+                  className="max-w-[140px] h-9 text-xs"
+                />
+                <span className="text-xs text-zinc-500 dark:text-zinc-400">days ago (from Today H-0)</span>
+              </div>
+              <p className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                Team members & Interns can submit attendance corrections for records between Today and this number of days ago.
+              </p>
+            </div>
+
             {/* WFO Rules */}
             <div id="sub-wfo-rules" className="p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50/40 dark:bg-zinc-950/20 grid gap-5 lg:grid-cols-2 scroll-mt-28 shadow-xs">
               <div className="space-y-2">

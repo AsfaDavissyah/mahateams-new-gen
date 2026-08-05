@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getJakartaDateKey } from "@/lib/attendance-time";
+import { getMaxCorrectionDays } from "@/lib/default-help-rules";
 
 export async function createCorrectionAction(formData: FormData) {
   const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
@@ -88,14 +89,15 @@ export async function createCorrectionAction(formData: FormData) {
     redirect("/member/corrections?error=unauthorized");
   }
 
-  // Validate time limit (0 to 14 days ago)
+  // Validate time limit
+  const maxCorrectionDays = await getMaxCorrectionDays();
   const todayKey = getJakartaDateKey(new Date());
   const todayMidnight = new Date(`${todayKey}T00:00:00.000Z`);
   const recordDate = new Date(record.attendanceDate);
   const diffTime = todayMidnight.getTime() - recordDate.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-  if (diffDays < 0 || diffDays > 14) {
+  if (diffDays < 0 || diffDays > maxCorrectionDays) {
     redirect("/member/corrections?error=out-of-range");
   }
 

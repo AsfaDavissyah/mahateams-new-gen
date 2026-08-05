@@ -27,7 +27,7 @@ import { prisma } from "@/lib/prisma";
 import { createCorrectionAction, cancelCorrectionAction } from "./actions";
 import { getJakartaDateKey } from "@/lib/attendance-time";
 import { CorrectionFormClient } from "./correction-form-client";
-import { getHelpRules } from "@/lib/default-help-rules";
+import { getHelpRules, getMaxCorrectionDays } from "@/lib/default-help-rules";
 
 export const dynamic = "force-dynamic";
 
@@ -81,18 +81,13 @@ function formatDate(date: Date) {
   }).format(date);
 }
 
-const successMessages: Record<string, string> = {
-  created: "Attendance correction requested successfully and is pending approval.",
-  cancelled: "Attendance correction request cancelled successfully.",
-};
-
-const errorMessages: Record<string, string> = {
+const ERROR_MESSAGES: Record<string, string> = {
   "missing-fields": "Please complete all form fields.",
   "missing-checkout": "Correction for forgotten checkout for past days requires check-in and check-out times.",
   "not-found": "Attendance record not found.",
   unauthorized: "You are not authorized to correct this record.",
   "already-pending": "This attendance record already has a pending correction request.",
-  "out-of-range": "Correction requests can only be submitted for dates between today and 14 days ago.",
+  "out-of-range": "Correction requests can only be submitted for dates within the allowed correction window.",
   "already-processed": "The request cannot be cancelled because it has already been reviewed by an Admin.",
   "attachment-required": "An official support document is required for dispensation.",
   "intern-leave": "Interns are not allowed to request annual leave.",
@@ -106,13 +101,14 @@ export default async function MemberCorrectionsPage({
   searchParams: Promise<{ recordId?: string; success?: string; error?: string }>;
 }) {
   const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
+  const maxCorrectionDays = await getMaxCorrectionDays();
   const params = await searchParams;
   const recordIdParam = params.recordId ?? "";
   const loadErrors: string[] = [];
 
   const todayKey = getJakartaDateKey(new Date());
   const todayMidnight = new Date(`${todayKey}T00:00:00.000Z`);
-  const minDate = new Date(todayMidnight.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const minDate = new Date(todayMidnight.getTime() - maxCorrectionDays * 24 * 60 * 60 * 1000);
   const maxDate = todayMidnight;
 
   let recentRecords: Array<{
@@ -236,8 +232,11 @@ export default async function MemberCorrectionsPage({
       description="Use this module to correct past attendance records, such as forgotten check-ins or check-outs."
     >
       <ToastNotificationListener
-        successMessages={successMessages}
-        errorMessages={errorMessages}
+        successMessages={{
+          created: "Attendance correction requested successfully and is pending approval.",
+          cancelled: "Attendance correction request cancelled successfully.",
+        }}
+        errorMessages={ERROR_MESSAGES}
       />
 
       {loadErrors.length > 0 ? (
@@ -266,6 +265,7 @@ export default async function MemberCorrectionsPage({
               memberStatus={currentUser.memberStatus}
               action={createCorrectionAction}
               rulesContent={helpRules.rules_correction}
+              maxCorrectionDays={maxCorrectionDays}
             />
           </CardContent>
         </Card>

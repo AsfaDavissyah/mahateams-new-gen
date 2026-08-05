@@ -30,6 +30,7 @@ type Props = {
   memberStatus?: string;
   action: (formData: FormData) => void;
   rulesContent?: string;
+  maxCorrectionDays?: number;
 };
 
 const CORRECTION_HELPER_TEXT: Record<string, { title: string; desc: string; variant: "amber" | "violet" | "emerald" | "blue" | "rose" }> = {
@@ -78,6 +79,7 @@ export function CorrectionFormClient({
   memberStatus,
   action,
   rulesContent,
+  maxCorrectionDays = 14,
 }: Props) {
   const [newStatus, setNewStatus] = useState("ON_TIME");
   const [selectedRecordId, setSelectedRecordId] = useState(preselectedRecord?.id ?? "");
@@ -136,7 +138,7 @@ export function CorrectionFormClient({
                 <div className="rules-rich-editor space-y-3 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">1. Correction Date Range</h4>
-                    <p className="mt-0.5">Attendance corrections are allowed for dates ranging from <b>Today (H-0) up to 14 days ago</b>. Dates outside the 14-day range cannot be selected.</p>
+                    <p className="mt-0.5">Attendance corrections are allowed for dates ranging from <b>Today (H-0) up to {maxCorrectionDays} days ago</b>. Dates outside the {maxCorrectionDays}-day range cannot be selected.</p>
                   </div>
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">2. Estimated Check-in/out Time</h4>
