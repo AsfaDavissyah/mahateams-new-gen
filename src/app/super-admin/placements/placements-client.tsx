@@ -218,8 +218,17 @@ export function PlacementsClient({ initialPlacements, users, studios }: Props) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search member's full name..."
-            className="pl-9"
+            className="pl-9 pr-8"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
         <Button onClick={() => setAddOpen(true)} className="w-full sm:w-auto">
           <Plus className="size-4 mr-1.5" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import {
   Building,
   Info,
   Calendar,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -218,10 +219,15 @@ export function DetailStatisticClient({
     router.push(`/laporan-presensi/detail?${p.toString()}`);
   };
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateParams({ q: inputSearch });
-  };
+  // Debounced auto-update for live search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (inputSearch !== searchQuery) {
+        updateParams({ q: inputSearch });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputSearch, searchQuery]);
 
   // CSV Export Handler
   const handleExportCSV = () => {
@@ -448,28 +454,36 @@ export function DetailStatisticClient({
                 </select>
               </div>
 
-              {/* Search Form */}
-              <form onSubmit={handleSearchSubmit} className="flex items-end gap-2">
-                <div className="grid gap-1.5">
-                  <label htmlFor="filter-search" className="text-xs font-medium text-muted-foreground">
-                    Cari Nama / Email
-                  </label>
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-                    <input
-                      id="filter-search"
-                      type="text"
-                      placeholder="Cari anggota..."
-                      value={inputSearch}
-                      onChange={(e) => setInputSearch(e.target.value)}
-                      className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 pl-8 pr-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring w-48 sm:w-64"
-                    />
-                  </div>
+              {/* Search Field */}
+              <div className="grid gap-1.5">
+                <label htmlFor="filter-search" className="text-xs font-medium text-muted-foreground">
+                  Cari Nama / Email
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+                  <input
+                    id="filter-search"
+                    type="text"
+                    placeholder="Cari anggota..."
+                    value={inputSearch}
+                    onChange={(e) => setInputSearch(e.target.value)}
+                    className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 pl-8 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-ring w-48 sm:w-64"
+                  />
+                  {inputSearch && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInputSearch("");
+                        updateParams({ q: "" });
+                      }}
+                      className="absolute right-2.5 top-2.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                      title="Clear search"
+                    >
+                      <X className="size-4" />
+                    </button>
+                  )}
                 </div>
-                <Button type="submit" size="sm" className="h-9">
-                  Cari
-                </Button>
-              </form>
+              </div>
             </div>
 
             {(searchQuery || memberStatus !== "ALL" || (isSuperAdmin && selectedStudio !== "all")) && (

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState, useTransition, useEffect, useRef } from "react";
-import { ArrowUpDown, Building2, Edit2, Plus, Search, Navigation, Loader2, Trash2 } from "lucide-react";
+import { ArrowUpDown, Building2, Edit2, Plus, Search, Navigation, Loader2, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -458,8 +458,17 @@ export function StudiosClient({ initialStudios }: Props) {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search studio name, slug, or address..."
-            className="pl-9"
+            className="pl-9 pr-8"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
         <Button onClick={() => setAddOpen(true)} className="w-full sm:w-auto">
           <Plus className="size-4 mr-1.5" />

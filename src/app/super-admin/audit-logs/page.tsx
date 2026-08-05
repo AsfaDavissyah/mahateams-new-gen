@@ -4,8 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { DashboardShell } from "@/components/dashboard-shell";
 import { requireRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Input } from "@/components/ui/input";
 import { AuditLogsTableClient } from "./audit-logs-table-client";
+import { AuditLogsFilterClient } from "./audit-logs-filter-client";
 
 export const dynamic = "force-dynamic";
 
@@ -83,70 +83,13 @@ export default async function AuditLogsPage({
         </div>
 
         {/* Filters */}
-        <Card className="shadow-none">
-          <CardContent className="pt-6">
-            <form className="grid gap-4 sm:grid-cols-4 items-end">
-              <div className="grid gap-1.5">
-                <label htmlFor="actor-select" className="text-sm font-semibold flex items-center gap-1.5">
-                  <User className="size-4 text-zinc-500" />
-                  Actor
-                </label>
-                <select
-                  id="actor-select"
-                  name="actorId"
-                  defaultValue={filterActorId}
-                  className="h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none"
-                >
-                  <option value="">All Actors</option>
-                  {actors.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-1.5">
-                <label htmlFor="entity-select" className="text-sm font-semibold flex items-center gap-1.5">
-                  <Archive className="size-4 text-zinc-500" />
-                  Entity
-                </label>
-                <select
-                  id="entity-select"
-                  name="entity"
-                  defaultValue={filterEntity}
-                  className="h-9 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none"
-                >
-                  <option value="">All Entities</option>
-                  {entities.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid gap-1.5">
-                <label htmlFor="search-input" className="text-sm font-semibold flex items-center gap-1.5">
-                  <Search className="size-4 text-zinc-500" />
-                  Search
-                </label>
-                <Input
-                  id="search-input"
-                  name="search"
-                  placeholder="Action..."
-                  defaultValue={filterSearch}
-                  className="h-9"
-                />
-              </div>
-
-              <Button type="submit" className="w-full">
-                <Filter className="size-4 mr-1.5" />
-                Filter Logs
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <AuditLogsFilterClient
+          actors={actors}
+          entities={entities}
+          initialActorId={filterActorId}
+          initialEntity={filterEntity}
+          initialSearch={filterSearch}
+        />
 
         {/* Logs Table */}
         <Card className="shadow-none">

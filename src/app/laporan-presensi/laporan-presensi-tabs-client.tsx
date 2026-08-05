@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AttendanceTableBodyClient } from "./attendance-table-body-client";
-import { FileText, Home, ArrowUpDown } from "lucide-react";
+import { FileText, Home, ArrowUpDown, Search, X } from "lucide-react";
 import { getMood } from "@/lib/moods";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -213,7 +213,8 @@ export function LaporanPresensiTabsClient({
               Work Journal (WFO & WFH)
             </TabsTrigger>
           </TabsList>
-          <div className="w-full sm:max-w-xs">
+          <div className="w-full sm:max-w-xs relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
             <input
               type="text"
               placeholder="Search name or email..."
@@ -223,8 +224,21 @@ export function LaporanPresensiTabsClient({
                 setAttendancePage(1);
                 setJournalPage(1);
               }}
-              className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none"
+              className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 pl-9 pr-8 text-sm focus:outline-none"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setAttendancePage(1);
+                  setJournalPage(1);
+                }}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            )}
           </div>
         </div>
 

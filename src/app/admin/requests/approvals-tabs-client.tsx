@@ -10,6 +10,7 @@ import {
   Clock,
   FileText,
   Eye,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -403,8 +404,17 @@ export function ApprovalsTabsClient({
             value={searchReq}
             onChange={(e) => setSearchReq(e.target.value)}
             placeholder="Search full name..."
-            className="pl-9"
+            className="pl-9 pr-8"
           />
+          {searchReq && (
+            <button
+              type="button"
+              onClick={() => setSearchReq("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
 
         <Card className="shadow-none rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/90">
@@ -756,8 +766,17 @@ export function ApprovalsTabsClient({
             value={searchCorr}
             onChange={(e) => setSearchCorr(e.target.value)}
             placeholder="Search full name..."
-            className="pl-9"
+            className="pl-9 pr-8"
           />
+          {searchCorr && (
+            <button
+              type="button"
+              onClick={() => setSearchCorr("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X className="size-4" />
+            </button>
+          )}
         </div>
 
         <Card className="shadow-none rounded-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-900/90">

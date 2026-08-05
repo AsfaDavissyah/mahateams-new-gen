@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Building2, Edit, Eye, Mail, Search, UserCog, UserPlus, Loader2, ArrowUpDown, Cake, Plus, Trash2, BarChart3, Calendar, CheckCircle2, Home, RefreshCw, ChevronLeft, ChevronRight, Briefcase, KeyRound } from "lucide-react";
+import { Building2, Edit, Eye, Mail, Search, UserCog, UserPlus, Loader2, ArrowUpDown, Cake, Plus, Trash2, BarChart3, Calendar, CheckCircle2, Home, RefreshCw, ChevronLeft, ChevronRight, Briefcase, KeyRound, X } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -561,8 +561,20 @@ export function RolesClient({
                   setPage(1);
                 }}
                 placeholder="Search full name..."
-                className="pl-9"
+                className="pl-9 pr-8"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
             <div className="flex gap-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 p-0.5 shadow-sm">
               {(["ACTIVE", "INACTIVE", "ARCHIVED"] as const).map((status) => (
