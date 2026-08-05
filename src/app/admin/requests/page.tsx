@@ -28,10 +28,13 @@ export default async function AdminApprovalsPage({
           status: "PENDING",
           type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] },
           user: {
-            defaultStudioId: currentUser.defaultStudioId,
             role: {
               notIn: ["ADMIN", "SUPER_ADMIN"],
             },
+            OR: [
+              { defaultStudioId: currentUser.defaultStudioId },
+              { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } },
+            ],
           },
         };
 
@@ -41,12 +44,16 @@ export default async function AdminApprovalsPage({
       : {
           status: "PENDING",
           attendanceRecord: {
-            ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__",
             user: {
               role: {
                 notIn: ["ADMIN", "SUPER_ADMIN"],
               },
             },
+            OR: [
+              { ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
+              { locationStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
+              { user: { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } } },
+            ],
           },
         };
 
@@ -57,10 +64,13 @@ export default async function AdminApprovalsPage({
           status: { in: ["APPROVED", "REJECTED", "CANCELLED"] },
           type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] },
           user: {
-            defaultStudioId: currentUser.defaultStudioId,
             role: {
               notIn: ["ADMIN", "SUPER_ADMIN"],
             },
+            OR: [
+              { defaultStudioId: currentUser.defaultStudioId },
+              { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } },
+            ],
           },
         };
 
@@ -70,12 +80,16 @@ export default async function AdminApprovalsPage({
       : {
           status: { in: ["APPROVED", "REJECTED"] },
           attendanceRecord: {
-            ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__",
             user: {
               role: {
                 notIn: ["ADMIN", "SUPER_ADMIN"],
               },
             },
+            OR: [
+              { ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
+              { locationStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
+              { user: { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } } },
+            ],
           },
         };
 

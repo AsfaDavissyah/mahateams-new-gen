@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -239,7 +239,7 @@ export function AttendanceDetailDialog({
             User & Attendance Details
           </DialogTitle>
           <DialogDescription className="text-xs text-zinc-500 dark:text-zinc-400">
-            Unified view of user profile, today's attendance status, statistical recap, and latest activity logs.
+            Unified view of user profile, today&apos;s attendance status, statistical recap, and latest activity logs.
           </DialogDescription>
         </DialogHeader>
 
@@ -296,7 +296,7 @@ export function AttendanceDetailDialog({
             <div className="space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 flex items-center gap-1.5">
                 <Calendar className="size-4 text-indigo-600 dark:text-indigo-400" />
-                Today's Info Status & Logs
+                Today&apos;s Info Status & Logs
               </h4>
               <Tabs defaultValue="summary" className="w-full">
                 <TabsList className="grid w-full grid-cols-3 bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg">

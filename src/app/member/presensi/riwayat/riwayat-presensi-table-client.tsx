@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowUpDown, Filter, RotateCcw, Search } from "lucide-react";
+import { ArrowUpDown, RotateCcw, Search } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -49,7 +49,7 @@ const statusLabel: Record<string, string> = {
   WFH: "WFH",
   PERMISSION: "Permission",
   SICK: "Sick",
-  LEAVE: "Leave Exchange",
+  LEAVE: "Annual Leave",
   ALPHA: "Alpha",
   HOLIDAY: "Holiday",
   OFF_DAY: "Off Day",
@@ -222,7 +222,7 @@ export function RiwayatPresensiTableClient({ records, maxCorrectionDays = 14 }: 
                 <SelectItem value="ALPHA">Alpha</SelectItem>
                 <SelectItem value="WFH">WFH</SelectItem>
                 <SelectItem value="SICK">Sick</SelectItem>
-                <SelectItem value="LEAVE">Leave Exchange</SelectItem>
+                <SelectItem value="LEAVE">Annual Leave</SelectItem>
                 <SelectItem value="PERMISSION">Permission</SelectItem>
               </SelectContent>
             </Select>

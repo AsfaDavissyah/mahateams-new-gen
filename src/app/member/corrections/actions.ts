@@ -33,8 +33,8 @@ export async function createCorrectionAction(formData: FormData) {
     redirect("/member/corrections?error=missing-fields");
   }
 
-  if (newStatus === "LEAVE" && currentUser.memberStatus === "INTERN") {
-    redirect("/member/corrections?error=intern-leave");
+  if ((newStatus === "LEAVE" || newStatus === "WFH") && currentUser.memberStatus === "INTERN") {
+    redirect("/member/corrections?error=intern-wfh");
   }
 
   const isPhysicalCorrection = newStatus === "ON_TIME" || newStatus === "LATE";
@@ -71,7 +71,7 @@ export async function createCorrectionAction(formData: FormData) {
     }
   }
 
-  if (newStatus === "DISPENSATION" && !attachmentUrl) {
+  if ((newStatus === "DISPENSATION" || newStatus === "SICK") && !attachmentUrl) {
     redirect("/member/corrections?error=attachment-required");
   }
 
@@ -123,6 +123,12 @@ export async function createCorrectionAction(formData: FormData) {
       attendanceRecordId: recordId,
       requestedById: currentUser.id,
       previousStatus: record.status,
+      previousWorkMode: record.workMode,
+      previousCheckInAt: record.checkInAt,
+      previousCheckOutAt: record.checkOutAt,
+      previousLateMinutes: record.lateMinutes,
+      previousExtraWorkdayBalanceApplied: record.extraWorkdayBalanceApplied,
+      previousAbsenceBalanceApplied: record.absenceBalanceApplied,
       newStatus: newStatus as typeof record.status,
       proposedCheckInTime,
       proposedCheckOutTime,

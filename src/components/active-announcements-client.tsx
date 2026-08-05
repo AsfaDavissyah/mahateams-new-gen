@@ -36,24 +36,21 @@ export function ActiveAnnouncementsClient({ announcements }: Props) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setDismissedIds(JSON.parse(stored));
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setDismissedIds(JSON.parse(stored));
+        }
+      } catch (e) {
+        console.error("Failed to load dismissed announcements from localStorage:", e);
       }
-    } catch (e) {
-      console.error("Failed to load dismissed announcements from localStorage:", e);
-    }
-    setIsLoaded(true);
+      setIsLoaded(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const activeItems = announcements.filter((a) => !dismissedIds.includes(a.id));
-
-  useEffect(() => {
-    if (currentIndex >= activeItems.length && activeItems.length > 0) {
-      setCurrentIndex(0);
-    }
-  }, [activeItems.length, currentIndex]);
 
   if (!isLoaded || activeItems.length === 0) return null;
 

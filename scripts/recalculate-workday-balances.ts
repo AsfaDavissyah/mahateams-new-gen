@@ -68,7 +68,7 @@ async function main() {
     const studioId = user.defaultStudioId;
     if (!studioId) continue;
 
-    const [attendanceRecords, sickRequests] = await Promise.all([
+    const [attendanceRecords, attachmentRequests, attachmentCorrections] = await Promise.all([
       prisma.attendanceRecord.findMany({
         where: { userId: user.id },
         select: {
@@ -78,27 +78,43 @@ async function main() {
           checkOutAt: true,
           ownerStudioId: true,
           extraWorkdayBalanceApplied: true,
+          absenceBalanceApplied: true,
         },
         orderBy: { attendanceDate: "asc" },
       }),
       prisma.request.findMany({
         where: {
           userId: user.id,
-          type: "SICK",
+          type: { in: ["SICK", "PERMISSION"] },
+          status: "APPROVED",
           attachmentUrl: { not: null },
         },
         select: {
+          type: true,
           startDate: true,
           endDate: true,
+        },
+      }),
+      prisma.attendanceCorrection.findMany({
+        where: {
+          requestedById: user.id,
+          status: "APPROVED",
+          newStatus: { in: ["SICK", "PERMISSION"] },
+          attachmentUrl: { not: null },
+        },
+        select: {
+          newStatus: true,
+          attendanceRecord: { select: { attendanceDate: true } },
         },
       }),
     ]);
 
     let calculatedWorkdayBalance = 0;
-    let totalLeaveDays = 0;
     const eventLogs: string[] = [];
     const extraWorkdayRecordIdsToMark: string[] = [];
     const extraWorkdayRecordIdsToUnmark: string[] = [];
+    const absenceRecordIdsToMark: string[] = [];
+    const absenceRecordIdsToUnmark: string[] = [];
 
     for (const record of attendanceRecords) {
       const dateStr = record.attendanceDate.toISOString().split("T")[0];
@@ -106,24 +122,33 @@ async function main() {
 
       if (record.status === "ALPHA") {
         calculatedWorkdayBalance -= 1;
+        if (!record.absenceBalanceApplied) absenceRecordIdsToMark.push(record.id);
         eventLogs.push(`  - [${dateStr}] ALPHA: -1 debt`);
-      } else if (record.status === "PERMISSION") {
-        calculatedWorkdayBalance -= 1;
-        eventLogs.push(`  - [${dateStr}] PERMISSION: -1 debt`);
-      } else if (record.status === "SICK") {
-        const hasAttachment = sickRequests.some(
-          (req: { startDate: Date; endDate: Date }) => req.startDate <= record.attendanceDate && req.endDate >= record.attendanceDate
+      } else if (record.status === "PERMISSION" || record.status === "SICK") {
+        if (record.absenceBalanceApplied) absenceRecordIdsToUnmark.push(record.id);
+        const hasRequestAttachment = attachmentRequests.some(
+          (req) =>
+            req.type === record.status &&
+            req.startDate <= record.attendanceDate &&
+            req.endDate >= record.attendanceDate,
         );
+        const hasCorrectionAttachment = attachmentCorrections.some(
+          (correction) =>
+            correction.newStatus === record.status &&
+            correction.attendanceRecord.attendanceDate.getTime() === record.attendanceDate.getTime(),
+        );
+        const hasAttachment = hasRequestAttachment || hasCorrectionAttachment;
         if (hasAttachment) {
-          eventLogs.push(`  - [${dateStr}] SICK (with attachment): 0 debt`);
+          eventLogs.push(`  - [${dateStr}] ${record.status} (with attachment): 0 debt`);
         } else {
           calculatedWorkdayBalance -= 1;
-          eventLogs.push(`  - [${dateStr}] SICK (no attachment): -1 debt`);
+          eventLogs.push(`  - [${dateStr}] ${record.status} (no attachment): -1 debt`);
         }
       } else if (record.status === "LEAVE") {
-        totalLeaveDays += 1;
+        if (record.absenceBalanceApplied) absenceRecordIdsToUnmark.push(record.id);
         eventLogs.push(`  - [${dateStr}] LEAVE: -1 annual leave`);
       } else if (["PRESENT", "ON_TIME", "LATE"].includes(record.status)) {
+        if (record.absenceBalanceApplied) absenceRecordIdsToUnmark.push(record.id);
         if (isExtra && record.checkOutAt) {
           calculatedWorkdayBalance += 1;
           extraWorkdayRecordIdsToMark.push(record.id);
@@ -131,6 +156,15 @@ async function main() {
         } else if (!isExtra && record.extraWorkdayBalanceApplied) {
           extraWorkdayRecordIdsToUnmark.push(record.id);
         }
+      }
+
+      if (
+        !["ALPHA", "PERMISSION", "SICK", "LEAVE", "PRESENT", "ON_TIME", "LATE"].includes(
+          record.status,
+        ) &&
+        record.absenceBalanceApplied
+      ) {
+        absenceRecordIdsToUnmark.push(record.id);
       }
     }
 
@@ -159,6 +193,20 @@ async function main() {
         await prisma.attendanceRecord.updateMany({
           where: { id: { in: extraWorkdayRecordIdsToUnmark } },
           data: { extraWorkdayBalanceApplied: false },
+        });
+      }
+
+      if (absenceRecordIdsToMark.length > 0) {
+        await prisma.attendanceRecord.updateMany({
+          where: { id: { in: absenceRecordIdsToMark } },
+          data: { absenceBalanceApplied: true },
+        });
+      }
+
+      if (absenceRecordIdsToUnmark.length > 0) {
+        await prisma.attendanceRecord.updateMany({
+          where: { id: { in: absenceRecordIdsToUnmark } },
+          data: { absenceBalanceApplied: false },
         });
       }
 

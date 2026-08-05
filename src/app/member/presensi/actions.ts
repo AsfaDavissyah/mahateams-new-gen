@@ -251,8 +251,8 @@ export async function submitWfoAttendanceAction(formData: FormData) {
       (weeklyRule?.isWorkday === false && personalSchedule?.workMode !== "WFO" && !replacementWorkday)) &&
     !isOptionalMondayWfo;
 
-  // WFO override WFH: Block WFO scan only if they already checked in WFH
-  if (existingRecord?.workMode === "WFH" && existingRecord.checkInAt) {
+  // WFO override WFH: Block WFO scan if scheduled for WFH or already checked in WFH
+  if (personalSchedule?.workMode === "WFH" || (existingRecord?.workMode === "WFH" && existingRecord.checkInAt)) {
     redirect("/member/presensi?error=mode");
   }
 
@@ -360,20 +360,29 @@ export async function submitWfoAttendanceAction(formData: FormData) {
 
   if (currentMinutes >= alphaCutoffMinutes) {
     if (!existingRecord) {
-      await prisma.attendanceRecord.createMany({
-        data: {
-          userId: currentUser.id,
-          attendanceDate,
-          ownerStudioId: currentUser.defaultStudioId ?? currentStudioId,
-          locationStudioId: currentStudioId,
-          workMode: "WFO",
-          status: "ALPHA",
-          locationValidationStatus,
-          checkInLatitude: userLat,
-          checkInLongitude: userLng,
-          distanceMeters: distance,
-        },
-        skipDuplicates: true,
+      await prisma.$transaction(async (tx) => {
+        const result = await tx.attendanceRecord.createMany({
+          data: {
+            userId: currentUser.id,
+            attendanceDate,
+            ownerStudioId: currentUser.defaultStudioId ?? currentStudioId,
+            locationStudioId: currentStudioId,
+            workMode: "WFO",
+            status: "ALPHA",
+            locationValidationStatus,
+            checkInLatitude: userLat,
+            checkInLongitude: userLng,
+            distanceMeters: distance,
+            absenceBalanceApplied: true,
+          },
+          skipDuplicates: true,
+        });
+        if (result.count > 0) {
+          await tx.user.update({
+            where: { id: currentUser.id },
+            data: { workDayBalance: { decrement: 1 } },
+          });
+        }
       });
     }
 
@@ -609,7 +618,7 @@ export async function submitWfhAttendanceAction(formData: FormData) {
     });
 
     revalidatePersonalAttendance(currentUser.role);
-    const dashboardPath = currentUser.role === "ADMIN" ? "/admin" : "/member/presensi";
+    const dashboardPath = currentUser.role === "ADMIN" ? "/admin" : "/member";
     redirect(`${dashboardPath}?success=checkout`);
   }
 }

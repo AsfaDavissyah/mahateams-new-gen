@@ -88,11 +88,20 @@ export async function materializeDailyAlpha(now = new Date()) {
           },
         };
 
-    const absentUsers = await prisma.user.findMany({
+    const activePlacementWhere = {
+      studioId: studio.id,
+      status: "ACTIVE" as const,
+      startDate: { lte: attendanceDate },
+      OR: [{ endDate: null }, { endDate: { gte: attendanceDate } }],
+    };
+    const candidateUsers = await prisma.user.findMany({
       where: {
         role: { in: ["ADMIN", "MEMBER"] },
         accountStatus: "ACTIVE",
-        defaultStudioId: studio.id,
+        OR: [
+          { defaultStudioId: studio.id },
+          { placements: { some: activePlacementWhere } },
+        ],
         ...scheduleFilter,
         attendanceRecords: { none: { attendanceDate } },
         requests: {
@@ -104,38 +113,57 @@ export async function materializeDailyAlpha(now = new Date()) {
           },
         },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        defaultStudioId: true,
+        placements: {
+          where: {
+            status: "ACTIVE",
+            startDate: { lte: attendanceDate },
+            OR: [{ endDate: null }, { endDate: { gte: attendanceDate } }],
+          },
+          select: { studioId: true },
+          orderBy: { startDate: "desc" },
+        },
+      },
     });
+    const absentUsers = candidateUsers.filter(
+      (user) => (user.placements[0]?.studioId ?? user.defaultStudioId) === studio.id,
+    );
 
     if (absentUsers.length === 0) {
       processedStudioCount += 1;
       continue;
     }
 
-    const result = await prisma.attendanceRecord.createMany({
-      data: absentUsers.map((user) => ({
-        userId: user.id,
-        attendanceDate,
-        ownerStudioId: studio.id,
-        workMode: "WFO" as const,
-        status: "ALPHA" as const,
-        locationValidationStatus: "NOT_REQUIRED" as const,
-      })),
-      skipDuplicates: true,
-    });
-
-    if (result.count > 0) {
-      await prisma.user.updateMany({
-        where: { id: { in: absentUsers.map((user) => user.id) } },
-        data: {
-          workDayBalance: {
-            decrement: 1,
+    let studioCreatedCount = 0;
+    for (const user of absentUsers) {
+      const created = await prisma.$transaction(async (tx) => {
+        const result = await tx.attendanceRecord.createMany({
+          data: {
+            userId: user.id,
+            attendanceDate,
+            ownerStudioId: user.defaultStudioId ?? studio.id,
+            locationStudioId: studio.id,
+            workMode: "WFO",
+            status: "ALPHA",
+            locationValidationStatus: "NOT_REQUIRED",
+            absenceBalanceApplied: true,
           },
-        },
+          skipDuplicates: true,
+        });
+        if (result.count === 0) return false;
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: { workDayBalance: { decrement: 1 } },
+        });
+        return true;
       });
+      if (created) studioCreatedCount += 1;
     }
 
-    createdCount += result.count;
+    createdCount += studioCreatedCount;
     processedStudioCount += 1;
   }
 

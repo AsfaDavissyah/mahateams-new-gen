@@ -18,8 +18,6 @@ import {
   Link2,
   Minus,
   Palette,
-  Quote,
-  Code,
 } from "lucide-react";
 
 export function RichTextEditor({
@@ -46,12 +44,12 @@ export function RichTextEditor({
     { label: "Gray", value: "#6b7280" },
   ];
 
-  // Sync value to editor once on mount
+  // Keep externally loaded content synchronized without resetting the caret.
   useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== value) {
+    if (editorRef.current && document.activeElement !== editorRef.current && editorRef.current.innerHTML !== value) {
       editorRef.current.innerHTML = value;
     }
-  }, []);
+  }, [value]);
 
   // Handle click outside color picker
   useEffect(() => {
@@ -298,8 +296,9 @@ export function RichTextEditor({
         ref={editorRef}
         contentEditable
         onInput={handleInput}
+        aria-label={placeholder || "Rich text editor"}
+        data-placeholder={placeholder}
         className="p-3 min-h-[160px] focus:outline-none text-xs leading-relaxed max-w-none text-zinc-800 dark:text-zinc-200 rules-rich-editor"
-        {...({ placeholder } as any)}
       />
     </div>
   );

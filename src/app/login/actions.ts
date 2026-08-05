@@ -519,7 +519,16 @@ export async function loginAndAttendWithQrAction(
     });
   }
 
-  // D. Proses WFO Attendance
+  // D. Jika hari ini terjadwal WFH, blokir WFO QR scan
+  if (personalSchedule?.workMode === "WFH") {
+    return completeQrAuthentication({
+      success: true,
+      info: "Today you are scheduled for WFH. Please check in from your Dashboard.",
+      redirectUrl: getDashboardPath(user.role),
+    });
+  }
+
+  // E. Proses WFO Attendance
   if (!existingRecord) {
     // Check-in WFO
     const scheduledMinutes = timeToMinutes(policy?.checkInTime, "08:00");
@@ -528,20 +537,27 @@ export async function loginAndAttendWithQrAction(
     const alphaCutoffMinutes = timeToMinutes(policy?.alphaCutoffTime, "12:00");
 
     if (currentMinutes >= alphaCutoffMinutes) {
-      await prisma.attendanceRecord.create({
-        data: {
-          userId: user.id,
-          attendanceDate,
-          ownerStudioId: user.defaultStudioId ?? currentStudioId,
-          locationStudioId: currentStudioId,
-          workMode: "WFO",
-          status: "ALPHA",
-          locationValidationStatus,
-          checkInLatitude: userLat,
-          checkInLongitude: userLng,
-          distanceMeters: distance,
-          createdById: user.id,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.attendanceRecord.create({
+          data: {
+            userId: user.id,
+            attendanceDate,
+            ownerStudioId: user.defaultStudioId ?? currentStudioId,
+            locationStudioId: currentStudioId,
+            workMode: "WFO",
+            status: "ALPHA",
+            locationValidationStatus,
+            checkInLatitude: userLat,
+            checkInLongitude: userLng,
+            distanceMeters: distance,
+            absenceBalanceApplied: true,
+            createdById: user.id,
+          },
+        });
+        await tx.user.update({
+          where: { id: user.id },
+          data: { workDayBalance: { decrement: 1 } },
+        });
       });
 
       return completeQrAuthentication({

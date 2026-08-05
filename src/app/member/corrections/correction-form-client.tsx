@@ -36,7 +36,7 @@ type Props = {
 const CORRECTION_HELPER_TEXT: Record<string, { title: string; desc: string; variant: "amber" | "violet" | "emerald" | "blue" | "rose" }> = {
   SICK: {
     title: "Sick Leave",
-    desc: "Attachment is optional. Without an attachment, this still requires a replacement workday.",
+    desc: "A supporting document is required. An approved sick correction does not create workday debt.",
     variant: "violet",
   },
   PERMISSION: {
@@ -198,7 +198,9 @@ export function CorrectionFormClient({
         >
           <option value="ON_TIME">On Time</option>
           <option value="LATE">Late</option>
-          <option value="WFH">Work From Home (WFH)</option>
+          {memberStatus !== "INTERN" && (
+            <option value="WFH">Work From Home (WFH)</option>
+          )}
           <option value="PERMISSION">Personal Leave</option>
           <option value="SICK">Sick Leave</option>
           <option value="DISPENSATION">Official Dispensation</option>
@@ -267,7 +269,7 @@ export function CorrectionFormClient({
         <label htmlFor="attachment" className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
           Supporting Document / Attachment{" "}
           <span className="text-xs font-normal text-zinc-500">
-            ({newStatus === "DISPENSATION" ? "required" : "optional"}, max 2MB)
+            ({(newStatus === "DISPENSATION" || newStatus === "SICK") ? "required" : "optional"}, max 2MB)
           </span>
         </label>
         <Input
@@ -275,6 +277,14 @@ export function CorrectionFormClient({
           name="attachment"
           type="file"
           accept="image/*,application/pdf"
+          required={newStatus === "DISPENSATION" || newStatus === "SICK"}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && file.size > 2 * 1024 * 1024) {
+              alert("The file exceeds the 2 MB limit. Please choose a smaller file.");
+              e.target.value = "";
+            }
+          }}
           className="cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-zinc-900 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800"
         />
       </div>

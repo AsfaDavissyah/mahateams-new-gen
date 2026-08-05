@@ -52,11 +52,18 @@ export function LaporanPresensiTabsClient({
 
   const enrichedDetailRecord = useMemo(() => {
     if (!selectedRecordForDetail) return null;
-    const userAttendanceHistory = (selectedRecordForDetail.user as any).attendanceRecords?.length
-      ? (selectedRecordForDetail.user as any).attendanceRecords
+    type UserWithHistory = DetailRecord["user"] & {
+      attendanceRecords?: DetailRecord[];
+      internProfile?: (NonNullable<DetailRecord["user"]["internProfile"]> & {
+        mentor?: { name: string } | null;
+      }) | null;
+    };
+    const detailUser = selectedRecordForDetail.user as UserWithHistory;
+    const userAttendanceHistory = detailUser.attendanceRecords?.length
+      ? detailUser.attendanceRecords
       : records.filter((r) => r.user.id === selectedRecordForDetail.user.id);
 
-    const recentHistory = userAttendanceHistory.map((r: any) => ({
+    const recentHistory = userAttendanceHistory.map((r) => ({
       id: r.id,
       attendanceDate: typeof r.attendanceDate === "string" ? r.attendanceDate : new Date(r.attendanceDate).toISOString().split("T")[0],
       workMode: r.workMode,
@@ -71,7 +78,7 @@ export function LaporanPresensiTabsClient({
       internProfile: selectedRecordForDetail.user.internProfile
         ? {
             ...selectedRecordForDetail.user.internProfile,
-            mentorName: (selectedRecordForDetail.user.internProfile as any).mentor?.name,
+            mentorName: detailUser.internProfile?.mentor?.name ?? detailUser.internProfile?.mentorName,
           }
         : null,
     };

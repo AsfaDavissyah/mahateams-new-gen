@@ -7,7 +7,6 @@ import {
   ArrowUpDown,
   Search,
   ClipboardList,
-  Clock,
   FileText,
   Eye,
   X,
@@ -102,7 +101,7 @@ const requestTypeLabel: Record<string, string> = {
   PERMISSION: "Permission",
   SICK: "Sick",
   DISPENSATION: "Dispensation",
-  LEAVE: "Leave Exchange",
+  LEAVE: "Annual Leave",
   WFH: "WFH",
 };
 
@@ -136,7 +135,7 @@ const statusLabel: Record<string, string> = {
   PERMISSION: "Permission",
   SICK: "Sick",
   DISPENSATION: "Dispensation",
-  LEAVE: "Leave Exchange",
+  LEAVE: "Annual Leave",
   ALPHA: "Alpha",
   HOLIDAY: "Holiday",
   OFF_DAY: "Off Day",

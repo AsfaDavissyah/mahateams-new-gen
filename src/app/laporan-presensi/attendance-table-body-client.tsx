@@ -2,8 +2,6 @@
 
 import { TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Eye } from "lucide-react";
 import { getMood } from "@/lib/moods";
 import type { DetailRecord } from "./attendance-detail-dialog";
 

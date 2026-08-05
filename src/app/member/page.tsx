@@ -362,7 +362,9 @@ export default async function MemberDashboardPage({
   const isBirthday = birthDate &&
     birthDate.getUTCDate() === currentDate.getDate() &&
     birthDate.getUTCMonth() === currentDate.getMonth();
-  const isWfhMode = data.todaySchedule?.workMode === "WFH" || data.todayRecord?.workMode === "WFH";
+  const isWfhMode = data.todayRecord
+    ? data.todayRecord.workMode === "WFH"
+    : data.todaySchedule?.workMode === "WFH";
   const checkoutEligibility = data.todayRecord?.checkInAt && !data.todayRecord.checkOutAt
     ? getCheckoutEligibility({
         checkInAt: data.todayRecord.checkInAt,

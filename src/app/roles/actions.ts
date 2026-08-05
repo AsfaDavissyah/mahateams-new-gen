@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { requireAnyRole, hashPassword, hashPin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { dateOnly } from "@/lib/calendar";
-import { getCurrentAnnualLeaveYear } from "@/lib/annual-leave";
 
 const ACCOUNT_STATUSES = ["ACTIVE", "INACTIVE", "ARCHIVED"] as const;
 

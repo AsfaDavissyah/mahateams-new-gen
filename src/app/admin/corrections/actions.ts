@@ -2,9 +2,16 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { AttendanceStatus, Prisma } from "@/generated/prisma/client";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getCorrectionBalanceImpact, checkSickAttachment } from "@/lib/workday-balance";
+import { getCorrectionBalanceImpact, isExtraWorkday } from "@/lib/workday-balance";
+
+type Reviewer = {
+  id: string;
+  role: "SUPER_ADMIN" | "ADMIN" | "MEMBER";
+  defaultStudioId: string | null;
+};
 
 function jakartaTimeOnDate(date: Date, time: string) {
   const [hours, minutes] = time.split(":").map(Number);
@@ -13,462 +20,393 @@ function jakartaTimeOnDate(date: Date, time: string) {
   return result;
 }
 
-// ─── Review Correction (Redirecting Action) ─────────────────────────────────
+async function hasAttachmentEvidence(
+  tx: Prisma.TransactionClient,
+  userId: string,
+  attendanceDate: Date,
+  status: AttendanceStatus | null,
+  excludedCorrectionId?: string,
+) {
+  if (status !== "SICK" && status !== "PERMISSION") return false;
+
+  const [request, correction] = await Promise.all([
+    tx.request.findFirst({
+      where: {
+        userId,
+        type: status,
+        status: "APPROVED",
+        startDate: { lte: attendanceDate },
+        endDate: { gte: attendanceDate },
+        attachmentUrl: { not: null },
+      },
+      select: { id: true },
+    }),
+    tx.attendanceCorrection.findFirst({
+      where: {
+        id: excludedCorrectionId ? { not: excludedCorrectionId } : undefined,
+        requestedById: userId,
+        status: "APPROVED",
+        newStatus: status,
+        attachmentUrl: { not: null },
+        attendanceRecord: { attendanceDate },
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  return Boolean(request || correction);
+}
+
+async function reviewCorrectionCore(
+  correctionId: string,
+  approve: boolean,
+  reviewer: Reviewer,
+) {
+  const correction = await prisma.attendanceCorrection.findUnique({
+    where: { id: correctionId },
+    include: {
+      attendanceRecord: {
+        include: {
+          user: {
+            select: {
+              role: true,
+              memberStatus: true,
+              placements: {
+                where: { status: "ACTIVE" },
+                select: { studioId: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!correction) throw new Error("Attendance correction not found.");
+  if (correction.status !== "PENDING") {
+    throw new Error("This correction has already been reviewed.");
+  }
+
+  const record = correction.attendanceRecord;
+  const isPlacedAtReviewerStudio = record.user.placements.some(
+    (placement) => placement.studioId === reviewer.defaultStudioId,
+  );
+  const isAuthorized =
+    record.ownerStudioId === reviewer.defaultStudioId ||
+    record.locationStudioId === reviewer.defaultStudioId ||
+    isPlacedAtReviewerStudio;
+
+  if (reviewer.role === "ADMIN" && !isAuthorized) {
+    throw new Error("You do not have access to corrections from this studio.");
+  }
+  if (
+    reviewer.role === "ADMIN" &&
+    (record.user.role === "ADMIN" || record.user.role === "SUPER_ADMIN")
+  ) {
+    throw new Error("Admins cannot review another administrator's correction.");
+  }
+  if (
+    approve &&
+    record.user.memberStatus === "INTERN" &&
+    (correction.newStatus === "WFH" || correction.newStatus === "LEAVE")
+  ) {
+    throw new Error("Interns cannot correct attendance to WFH or Annual Leave.");
+  }
+  if (
+    approve &&
+    (correction.newStatus === "SICK" || correction.newStatus === "DISPENSATION") &&
+    !correction.attachmentUrl
+  ) {
+    throw new Error("A supporting document is required for this correction.");
+  }
+
+  const correctionDateIsExtraWorkday = approve
+    ? await isExtraWorkday(record.attendanceDate, record.ownerStudioId)
+    : false;
+
+  await prisma.$transaction(async (tx) => {
+    let workdayDelta = 0;
+    let annualLeaveDelta = 0;
+    const reviewedAt = new Date();
+
+    if (approve && correction.newStatus) {
+      const previousHasAttachment = await hasAttachmentEvidence(
+        tx,
+        correction.requestedById,
+        record.attendanceDate,
+        correction.previousStatus,
+        correction.id,
+      );
+      const newHasAttachment =
+        Boolean(correction.attachmentUrl) ||
+        (await hasAttachmentEvidence(
+          tx,
+          correction.requestedById,
+          record.attendanceDate,
+          correction.newStatus,
+          correction.id,
+        ));
+      const isPhysical = correction.newStatus === "ON_TIME" || correction.newStatus === "LATE";
+      let checkInAt: Date | null = null;
+      let checkOutAt: Date | null = null;
+      let lateMinutes = 0;
+
+      if (isPhysical) {
+        if (!correction.proposedCheckInTime) {
+          throw new Error("A proposed check-in time is required for physical attendance.");
+        }
+        checkInAt = jakartaTimeOnDate(record.attendanceDate, correction.proposedCheckInTime);
+        checkOutAt = correction.proposedCheckOutTime
+          ? jakartaTimeOnDate(record.attendanceDate, correction.proposedCheckOutTime)
+          : record.checkOutAt;
+
+        if (correction.newStatus === "LATE") {
+          const policy = await tx.attendancePolicy.findFirst({
+            where: { studioId: record.ownerStudioId, isActive: true },
+            orderBy: { createdAt: "desc" },
+            select: { checkInTime: true },
+          });
+          const [actualHour, actualMinute] = correction.proposedCheckInTime
+            .split(":")
+            .map(Number);
+          const [policyHour, policyMinute] = (policy?.checkInTime ?? "08:00")
+            .split(":")
+            .map(Number);
+          lateMinutes = Math.max(
+            0,
+            actualHour * 60 + actualMinute - (policyHour * 60 + policyMinute),
+          );
+        }
+      }
+
+      const newExtraWorkdayApplied = Boolean(
+        isPhysical && correctionDateIsExtraWorkday && checkOutAt,
+      );
+      const impact = getCorrectionBalanceImpact(
+        correction.previousStatus,
+        correction.newStatus,
+        {
+          previousHasAttachment,
+          newHasAttachment,
+          previousExtraWorkdayApplied: record.extraWorkdayBalanceApplied,
+          newExtraWorkdayApplied,
+          previousAbsenceBalanceApplied: record.absenceBalanceApplied,
+        },
+      );
+      workdayDelta = impact.workdayBalanceDelta;
+      annualLeaveDelta = impact.annualLeaveBalanceDelta;
+
+      await tx.attendanceRecord.update({
+        where: { id: record.id },
+        data: {
+          status: correction.newStatus,
+          workMode: correction.newStatus === "WFH" ? "WFH" : "WFO",
+          isManualCorrection: true,
+          checkInAt,
+          checkOutAt,
+          lateMinutes,
+          extraWorkdayBalanceApplied: newExtraWorkdayApplied,
+          absenceBalanceApplied: correction.newStatus === "ALPHA",
+          ...(correction.newStatus === "WFH" && {
+            locationValidationStatus: "NOT_REQUIRED",
+          }),
+          updatedAt: reviewedAt,
+        },
+      });
+
+      if (workdayDelta !== 0 || annualLeaveDelta !== 0) {
+        await tx.user.update({
+          where: { id: correction.requestedById },
+          data: {
+            ...(workdayDelta !== 0 && {
+              workDayBalance: { increment: workdayDelta },
+            }),
+            ...(annualLeaveDelta !== 0 && {
+              annualLeaveBalance: { increment: annualLeaveDelta },
+            }),
+          },
+        });
+      }
+    }
+
+    await tx.attendanceCorrection.update({
+      where: { id: correction.id },
+      data: {
+        status: approve ? "APPROVED" : "REJECTED",
+        approvedById: reviewer.id,
+        previousWorkMode: correction.previousWorkMode ?? record.workMode,
+        previousCheckInAt: correction.previousCheckInAt ?? record.checkInAt,
+        previousCheckOutAt: correction.previousCheckOutAt ?? record.checkOutAt,
+        previousLateMinutes: correction.previousLateMinutes ?? record.lateMinutes,
+        previousExtraWorkdayBalanceApplied:
+          correction.previousExtraWorkdayBalanceApplied ?? record.extraWorkdayBalanceApplied,
+        previousAbsenceBalanceApplied:
+          correction.previousAbsenceBalanceApplied ?? record.absenceBalanceApplied,
+        balanceWorkdayDelta: workdayDelta,
+        balanceAnnualLeaveDelta: annualLeaveDelta,
+        balanceAppliedAt: approve ? reviewedAt : null,
+      },
+    });
+
+    await tx.auditLog.create({
+      data: {
+        actorId: reviewer.id,
+        entity: "AttendanceCorrection",
+        entityId: correction.id,
+        action: approve ? "CORRECTION_APPROVED" : "CORRECTION_REJECTED",
+        metadata: {
+          recordId: record.id,
+          userId: correction.requestedById,
+          previousStatus: correction.previousStatus,
+          newStatus: correction.newStatus,
+          workdayBalanceDelta: workdayDelta,
+          annualLeaveBalanceDelta: annualLeaveDelta,
+        },
+      },
+    });
+  });
+}
+
+function revalidateCorrectionViews() {
+  revalidatePath("/admin");
+  revalidatePath("/admin/requests");
+  revalidatePath("/member");
+  revalidatePath("/member/corrections");
+  revalidatePath("/member/presensi/riwayat");
+  revalidatePath("/laporan-presensi");
+}
 
 export async function reviewCorrectionAction(formData: FormData) {
   const reviewer = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
-
   const correctionId = String(formData.get("correctionId") ?? "");
   const action = String(formData.get("action") ?? "");
-
   if (!correctionId || !["APPROVE", "REJECT"].includes(action)) {
-    redirect("/admin/corrections?error=invalid-action");
+    redirect("/admin/requests?error=invalid-action");
   }
 
-  // Fetch the correction request
-  const correction = await prisma.attendanceCorrection.findUnique({
-    where: { id: correctionId },
-    include: {
-      attendanceRecord: {
-        select: {
-          id: true,
-          attendanceDate: true,
-          ownerStudioId: true,
-          locationStudioId: true,
-          userId: true,
-          user: {
-            select: {
-              role: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!correction) {
-    redirect("/admin/corrections?error=not-found");
+  try {
+    await reviewCorrectionCore(correctionId, action === "APPROVE", reviewer);
+  } catch (error) {
+    console.error("Correction review failed:", error);
+    redirect("/admin/requests?error=review-failed");
   }
 
-  if (correction.status !== "PENDING") {
-    redirect("/admin/corrections?error=already-reviewed");
-  }
-
-  // Scope check: Admin can only review corrections from their own studio or if they have placement active
-  const activePlacement = await prisma.placement.findFirst({
-    where: {
-      userId: correction.requestedById,
-      studioId: reviewer.defaultStudioId ?? "__none__",
-      status: "ACTIVE",
-    },
-    select: { id: true },
-  });
-
-  const isAuthorized =
-    correction.attendanceRecord.ownerStudioId === reviewer.defaultStudioId ||
-    correction.attendanceRecord.locationStudioId === reviewer.defaultStudioId ||
-    !!activePlacement;
-
-  if (reviewer.role === "ADMIN" && !isAuthorized) {
-    redirect("/admin/corrections?error=unauthorized-studio");
-  }
-
-  // Admin cannot review corrections from other Admins or Super Admins
-  if (
-    reviewer.role === "ADMIN" &&
-    (correction.attendanceRecord.user.role === "ADMIN" ||
-      correction.attendanceRecord.user.role === "SUPER_ADMIN")
-  ) {
-    redirect("/admin/corrections?error=unauthorized-admin-review");
-  }
-
-  const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
-
-  await prisma.$transaction(async (tx) => {
-    // 1. Update the correction request
-    await tx.attendanceCorrection.update({
-      where: { id: correctionId },
-      data: {
-        status: newStatus,
-        approvedById: reviewer.id,
-      },
-    });
-
-    // 2. Audit log
-    await tx.auditLog.create({
-      data: {
-        actorId: reviewer.id,
-        entity: "AttendanceCorrection",
-        entityId: correctionId,
-        action: `CORRECTION_${newStatus}`,
-        metadata: {
-          recordId: correction.attendanceRecordId,
-          userId: correction.requestedById,
-          newStatus: correction.newStatus,
-          previousStatus: correction.previousStatus,
-        },
-      },
-    });
-
-    // 3. If approved, update the attendance record status, times, and late minutes
-    if (newStatus === "APPROVED" && correction.newStatus) {
-      let checkInAt: Date | null = null;
-      let checkOutAt: Date | null = null;
-      let lateMinutes = 0;
-
-      const isPhysical = correction.newStatus === "ON_TIME" || correction.newStatus === "LATE";
-      if (isPhysical && correction.proposedCheckInTime) {
-        const [h, m] = correction.proposedCheckInTime.split(":").map(Number);
-        checkInAt = jakartaTimeOnDate(
-          correction.attendanceRecord.attendanceDate,
-          correction.proposedCheckInTime
-        );
-
-        if (correction.newStatus === "LATE") {
-          // Find active policy for this studio
-          const policy = await tx.attendancePolicy.findFirst({
-            where: { studioId: correction.attendanceRecord.ownerStudioId, isActive: true },
-            select: { checkInTime: true },
-          });
-          const policyTime = policy?.checkInTime ?? "08:00";
-          const [pH, pM] = policyTime.split(":").map(Number);
-          
-          const proposedTotalMinutes = h * 60 + m;
-          const policyTotalMinutes = pH * 60 + pM;
-          
-          lateMinutes = Math.max(0, proposedTotalMinutes - policyTotalMinutes);
-        } else {
-          lateMinutes = 0;
-        }
-
-        // Use proposed check-out if provided, otherwise retain existing check-out.
-        const existingRecord = await tx.attendanceRecord.findUnique({
-          where: { id: correction.attendanceRecordId },
-          select: { checkOutAt: true },
-        });
-        checkOutAt = correction.proposedCheckOutTime
-          ? jakartaTimeOnDate(
-              correction.attendanceRecord.attendanceDate,
-              correction.proposedCheckOutTime
-            )
-          : existingRecord?.checkOutAt ?? null;
-      } else {
-        // Non-physical presence reset
-        checkInAt = null;
-        checkOutAt = null;
-        lateMinutes = 0;
-      }
-
-      await tx.attendanceRecord.update({
-        where: { id: correction.attendanceRecordId },
-        data: {
-          status: correction.newStatus,
-          isManualCorrection: true,
-          checkInAt,
-          checkOutAt,
-          lateMinutes,
-          updatedAt: new Date(),
-        },
-      });
-
-      const hasAttachment = (correction.previousStatus === "SICK" || correction.newStatus === "SICK")
-        ? (Boolean(correction.attachmentUrl) || await checkSickAttachment(correction.requestedById, correction.attendanceRecord.attendanceDate))
-        : false;
-
-      const { workdayBalanceDelta, annualLeaveBalanceDelta } = getCorrectionBalanceImpact(
-        correction.previousStatus,
-        correction.newStatus,
-        hasAttachment
-      );
-
-      if (workdayBalanceDelta !== 0 || annualLeaveBalanceDelta !== 0) {
-        await tx.user.update({
-          where: { id: correction.requestedById },
-          data: {
-            ...(workdayBalanceDelta !== 0 && { workDayBalance: { increment: workdayBalanceDelta } }),
-            ...(annualLeaveBalanceDelta !== 0 && { annualLeaveBalance: { increment: annualLeaveBalanceDelta } }),
-          },
-        });
-      }
-    }
-  });
-
-  revalidatePath("/admin/corrections");
-  revalidatePath("/member/corrections");
-  revalidatePath("/member/presensi/riwayat");
-  redirect(`/admin/corrections?success=${action.toLowerCase()}`);
+  revalidateCorrectionViews();
+  redirect(`/admin/requests?success=${action.toLowerCase()}`);
 }
-
-// ─── Async Quick Review Action ──────────────────────────────────────────────
 
 export async function quickReviewCorrectionAction(correctionId: string, approve: boolean) {
   const reviewer = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
-  const action = approve ? "APPROVE" : "REJECT";
-
-  if (!correctionId) {
-    throw new Error("ID Koreksi tidak valid.");
-  }
-
-  // Fetch the correction request
-  const correction = await prisma.attendanceCorrection.findUnique({
-    where: { id: correctionId },
-    include: {
-      attendanceRecord: {
-        select: {
-          id: true,
-          attendanceDate: true,
-          ownerStudioId: true,
-          locationStudioId: true,
-          userId: true,
-          user: {
-            select: {
-              role: true,
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!correction) {
-    throw new Error("Koreksi tidak ditemukan.");
-  }
-
-  if (correction.status !== "PENDING") {
-    throw new Error("Koreksi sudah diproses sebelumnya.");
-  }
-
-  // Scope check: Admin can only review corrections from their own studio or if they have placement active
-  const activePlacement = await prisma.placement.findFirst({
-    where: {
-      userId: correction.requestedById,
-      studioId: reviewer.defaultStudioId ?? "__none__",
-      status: "ACTIVE",
-    },
-    select: { id: true },
-  });
-
-  const isAuthorized =
-    correction.attendanceRecord.ownerStudioId === reviewer.defaultStudioId ||
-    correction.attendanceRecord.locationStudioId === reviewer.defaultStudioId ||
-    !!activePlacement;
-
-  if (reviewer.role === "ADMIN" && !isAuthorized) {
-    throw new Error("Anda tidak memiliki akses ke studio ini.");
-  }
-
-  // Admin cannot review corrections from other Admins or Super Admins
-  if (
-    reviewer.role === "ADMIN" &&
-    (correction.attendanceRecord.user.role === "ADMIN" ||
-      correction.attendanceRecord.user.role === "SUPER_ADMIN")
-  ) {
-    throw new Error("Anda tidak memiliki wewenang memproses koreksi admin lain.");
-  }
-
-  const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
-
-  await prisma.$transaction(async (tx) => {
-    // 1. Update the correction request
-    await tx.attendanceCorrection.update({
-      where: { id: correctionId },
-      data: {
-        status: newStatus,
-        approvedById: reviewer.id,
-      },
-    });
-
-    // 2. Audit log
-    await tx.auditLog.create({
-      data: {
-        actorId: reviewer.id,
-        entity: "AttendanceCorrection",
-        entityId: correctionId,
-        action: `CORRECTION_${newStatus}`,
-        metadata: {
-          recordId: correction.attendanceRecordId,
-          userId: correction.requestedById,
-          newStatus: correction.newStatus,
-          previousStatus: correction.previousStatus,
-        },
-      },
-    });
-
-    // 3. If approved, update the attendance record status, times, and late minutes
-    if (newStatus === "APPROVED" && correction.newStatus) {
-      let checkInAt: Date | null = null;
-      let checkOutAt: Date | null = null;
-      let lateMinutes = 0;
-
-      const isPhysical = correction.newStatus === "ON_TIME" || correction.newStatus === "LATE";
-      if (isPhysical && correction.proposedCheckInTime) {
-        const [h, m] = correction.proposedCheckInTime.split(":").map(Number);
-        checkInAt = jakartaTimeOnDate(
-          correction.attendanceRecord.attendanceDate,
-          correction.proposedCheckInTime
-        );
-
-        if (correction.newStatus === "LATE") {
-          // Find active policy for this studio
-          const policy = await tx.attendancePolicy.findFirst({
-            where: { studioId: correction.attendanceRecord.ownerStudioId, isActive: true },
-            select: { checkInTime: true },
-          });
-          const policyTime = policy?.checkInTime ?? "08:00";
-          const [pH, pM] = policyTime.split(":").map(Number);
-          
-          const proposedTotalMinutes = h * 60 + m;
-          const policyTotalMinutes = pH * 60 + pM;
-          
-          lateMinutes = Math.max(0, proposedTotalMinutes - policyTotalMinutes);
-        } else {
-          lateMinutes = 0;
-        }
-
-        // Use proposed check-out if provided, otherwise retain existing check-out.
-        const existingRecord = await tx.attendanceRecord.findUnique({
-          where: { id: correction.attendanceRecordId },
-          select: { checkOutAt: true },
-        });
-        checkOutAt = correction.proposedCheckOutTime
-          ? jakartaTimeOnDate(
-              correction.attendanceRecord.attendanceDate,
-              correction.proposedCheckOutTime
-            )
-          : existingRecord?.checkOutAt ?? null;
-      } else {
-        // Non-physical presence reset
-        checkInAt = null;
-        checkOutAt = null;
-        lateMinutes = 0;
-      }
-
-      await tx.attendanceRecord.update({
-        where: { id: correction.attendanceRecordId },
-        data: {
-          status: correction.newStatus,
-          isManualCorrection: true,
-          checkInAt,
-          checkOutAt,
-          lateMinutes,
-          updatedAt: new Date(),
-        },
-      });
-
-      const hasAttachment = (correction.previousStatus === "SICK" || correction.newStatus === "SICK")
-        ? (Boolean(correction.attachmentUrl) || await checkSickAttachment(correction.requestedById, correction.attendanceRecord.attendanceDate))
-        : false;
-
-      const { workdayBalanceDelta, annualLeaveBalanceDelta } = getCorrectionBalanceImpact(
-        correction.previousStatus,
-        correction.newStatus,
-        hasAttachment
-      );
-
-      if (workdayBalanceDelta !== 0 || annualLeaveBalanceDelta !== 0) {
-        await tx.user.update({
-          where: { id: correction.requestedById },
-          data: {
-            ...(workdayBalanceDelta !== 0 && { workDayBalance: { increment: workdayBalanceDelta } }),
-            ...(annualLeaveBalanceDelta !== 0 && { annualLeaveBalance: { increment: annualLeaveBalanceDelta } }),
-          },
-        });
-      }
-    }
-  });
-
-  revalidatePath("/admin/corrections");
-  revalidatePath("/member/corrections");
-  revalidatePath("/member/presensi/riwayat");
-  revalidatePath("/admin");
-  return { success: true, message: `Koreksi berhasil ${approve ? "disetujui" : "ditolak"}.` };
+  await reviewCorrectionCore(correctionId, approve, reviewer);
+  revalidateCorrectionViews();
+  return {
+    success: true,
+    message: `Correction ${approve ? "approved" : "rejected"} successfully.`,
+  };
 }
 
 export async function deleteCorrectionAction(formData: FormData) {
   const superAdmin = await requireAnyRole(["SUPER_ADMIN"]);
   const correctionId = String(formData.get("correctionId") ?? "");
-
-  if (!correctionId) {
-    redirect("/admin/requests?error=invalid-action");
-  }
+  if (!correctionId) redirect("/admin/requests?error=invalid-action");
 
   const correction = await prisma.attendanceCorrection.findUnique({
     where: { id: correctionId },
-    include: {
-      attendanceRecord: true,
-    },
+    include: { attendanceRecord: true },
   });
-
-  if (!correction) {
-    redirect("/admin/requests?error=not-found");
-  }
+  if (!correction) redirect("/admin/requests?error=not-found");
 
   await prisma.$transaction(async (tx) => {
-    // If approved, revert the attendance record changes
     if (correction.status === "APPROVED" && correction.previousStatus) {
-      const isPhysical = correction.previousStatus === "ON_TIME" || correction.previousStatus === "LATE";
-      
+      const hasSnapshot = correction.previousWorkMode !== null;
       await tx.attendanceRecord.update({
         where: { id: correction.attendanceRecordId },
         data: {
           status: correction.previousStatus,
+          workMode:
+            correction.previousWorkMode ??
+            (correction.previousStatus === "WFH" ? "WFH" : "WFO"),
           isManualCorrection: false,
-          // If the previous status was not physical, clear check-in/out times
-          ...(!isPhysical ? {
-            checkInAt: null,
-            checkOutAt: null,
-            lateMinutes: 0,
-          } : {}),
+          extraWorkdayBalanceApplied:
+            correction.previousExtraWorkdayBalanceApplied ?? false,
+          absenceBalanceApplied:
+            correction.previousAbsenceBalanceApplied ??
+            (correction.previousStatus === "ALPHA"),
+          ...(hasSnapshot
+            ? {
+                checkInAt: correction.previousCheckInAt,
+                checkOutAt: correction.previousCheckOutAt,
+                lateMinutes: correction.previousLateMinutes ?? 0,
+              }
+            : correction.previousStatus === "ON_TIME" || correction.previousStatus === "LATE"
+              ? {}
+              : { checkInAt: null, checkOutAt: null, lateMinutes: 0 }),
           updatedAt: new Date(),
         },
       });
 
-      const hasAttachment = (correction.previousStatus === "SICK" || correction.newStatus === "SICK")
-        ? (Boolean(correction.attachmentUrl) || await checkSickAttachment(correction.requestedById, correction.attendanceRecord.attendanceDate))
-        : false;
+      let workdayDelta = correction.balanceWorkdayDelta;
+      let annualLeaveDelta = correction.balanceAnnualLeaveDelta;
+      if (!correction.balanceAppliedAt) {
+        const previousHasAttachment = await hasAttachmentEvidence(
+          tx,
+          correction.requestedById,
+          correction.attendanceRecord.attendanceDate,
+          correction.previousStatus,
+          correction.id,
+        );
+        const newHasAttachment =
+          Boolean(correction.attachmentUrl) ||
+          (await hasAttachmentEvidence(
+            tx,
+            correction.requestedById,
+            correction.attendanceRecord.attendanceDate,
+            correction.newStatus,
+            correction.id,
+          ));
+        const legacyImpact = getCorrectionBalanceImpact(
+          correction.previousStatus,
+          correction.newStatus,
+          { previousHasAttachment, newHasAttachment },
+        );
+        workdayDelta = legacyImpact.workdayBalanceDelta;
+        annualLeaveDelta = legacyImpact.annualLeaveBalanceDelta;
+      }
 
-      // Reversing means previous = newStatus, new = previousStatus
-      const { workdayBalanceDelta, annualLeaveBalanceDelta } = getCorrectionBalanceImpact(
-        correction.newStatus,
-        correction.previousStatus,
-        hasAttachment
-      );
-
-      if (workdayBalanceDelta !== 0 || annualLeaveBalanceDelta !== 0) {
+      if (workdayDelta !== 0 || annualLeaveDelta !== 0) {
         await tx.user.update({
           where: { id: correction.requestedById },
           data: {
-            ...(workdayBalanceDelta !== 0 && { workDayBalance: { increment: workdayBalanceDelta } }),
-            ...(annualLeaveBalanceDelta !== 0 && { annualLeaveBalance: { increment: annualLeaveBalanceDelta } }),
+            ...(workdayDelta !== 0 && {
+              workDayBalance: { decrement: workdayDelta },
+            }),
+            ...(annualLeaveDelta !== 0 && {
+              annualLeaveBalance: { decrement: annualLeaveDelta },
+            }),
           },
         });
       }
     }
 
-    // Delete the correction request
-    await tx.attendanceCorrection.delete({
-      where: { id: correctionId },
-    });
-
-    // Audit Log
+    await tx.attendanceCorrection.delete({ where: { id: correction.id } });
     await tx.auditLog.create({
       data: {
         actorId: superAdmin.id,
         entity: "AttendanceCorrection",
-        entityId: correctionId,
+        entityId: correction.id,
         action: "CORRECTION_DELETED",
         metadata: {
           recordId: correction.attendanceRecordId,
           userId: correction.requestedById,
-          status: correction.status,
           previousStatus: correction.previousStatus,
           newStatus: correction.newStatus,
+          revertedWorkdayBalanceDelta: correction.balanceWorkdayDelta,
+          revertedAnnualLeaveBalanceDelta: correction.balanceAnnualLeaveDelta,
         },
       },
     });
   });
 
-  revalidatePath("/admin/requests");
-  revalidatePath("/member/corrections");
+  revalidateCorrectionViews();
   redirect("/admin/requests?success=deleted");
 }

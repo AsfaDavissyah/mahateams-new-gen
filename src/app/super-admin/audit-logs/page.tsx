@@ -1,5 +1,4 @@
-import { Archive, Clock, User, Search, Filter } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Clock } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { requireRole } from "@/lib/auth";

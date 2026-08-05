@@ -86,7 +86,7 @@ const errorMessages: Record<string, string> = {
   "replacement-date": "Replacement date must be after the leave date range.",
   "sick-date": "Sick leave can only be submitted for today's date.",
   "sick-notice": "Sick leave can be submitted on the same day. Please select today's date.",
-  "attachment-required": "An official attachment is required for dispensation.",
+  "attachment-required": "A supporting document is required for Sick Leave and Official Dispensation.",
   "past-date": "The request start date cannot be in the past.",
   "intern-wfh": "Interns are not allowed to request WFH. Only Team members and Admins can request WFH.",
   "intern-leave": "Interns are not allowed to request replacement leaves. Use personal or sick leave as needed.",

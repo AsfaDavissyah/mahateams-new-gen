@@ -327,6 +327,7 @@ model AttendanceRecord {
   earlyCheckoutMinutes     Int                      @default(0)
   isManualCorrection       Boolean                  @default(false)
   extraWorkdayBalanceApplied Boolean                @default(false)
+  absenceBalanceApplied      Boolean                @default(false)
   createdById              String?
   createdBy                User?                    @relation("AttendanceCreator", fields: [createdById], references: [id])
   createdAt                DateTime                 @default(now())
@@ -348,12 +349,21 @@ model AttendanceCorrection {
   approvedById       String?
   approvedBy         User?            @relation("CorrectionApprover", fields: [approvedById], references: [id])
   previousStatus     AttendanceStatus?
+  previousWorkMode   WorkMode?
+  previousCheckInAt  DateTime?
+  previousCheckOutAt DateTime?
+  previousLateMinutes Int?
+  previousExtraWorkdayBalanceApplied Boolean?
+  previousAbsenceBalanceApplied Boolean?
   newStatus          AttendanceStatus?
   proposedCheckInTime String?
   proposedCheckOutTime String?
   reason             String
   attachmentUrl      String?
   status             RequestStatus    @default(PENDING)
+  balanceWorkdayDelta Int              @default(0)
+  balanceAnnualLeaveDelta Int          @default(0)
+  balanceAppliedAt   DateTime?
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @updatedAt
 
@@ -371,6 +381,9 @@ model Request {
   replacementDate DateTime?   @db.Date
   reason        String
   attachmentUrl String?
+  balanceWorkdayDelta Int @default(0)
+  balanceAnnualLeaveDelta Int @default(0)
+  balanceAppliedAt DateTime?
   reviewerId    String?
   reviewer      User?         @relation("RequestReviewer", fields: [reviewerId], references: [id])
   reviewedAt    DateTime?

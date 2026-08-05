@@ -10,7 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { toast } from "sonner";
 import { updateMoodAction, updateProfileAction, updateUserPinAction } from "./actions";
 import { MOODS } from "@/lib/moods";
-import { BackgroundSettingsCard } from "./background-settings-card";
 import { getSecurityPinError } from "@/lib/security-pin";
 import { cn } from "@/lib/utils";
 

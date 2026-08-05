@@ -6,7 +6,6 @@ import {
   Home,
   ShieldAlert,
   ClipboardList,
-  Building,
   Brush,
   ArrowRight,
   Building2,

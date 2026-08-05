@@ -23,11 +23,17 @@ import {
 export const dynamic = "force-dynamic";
 import { getHelpRules } from "@/lib/default-help-rules";
 
+import type { Prisma } from "@/generated/prisma/client";
+
 async function getAdminDashboardData(userId: string, defaultStudioId: string | null, selectedMonthKey?: string) {
   const reportMonth = normalizeReportMonth(selectedMonthKey);
   const { start, endExclusive } = getMonthRange(reportMonth);
-  const studioFilter = defaultStudioId ? { ownerStudioId: defaultStudioId } : {};
-  const userFilter = defaultStudioId ? { defaultStudioId } : {};
+  const studioFilter: Prisma.AttendanceRecordWhereInput = defaultStudioId
+    ? { OR: [{ ownerStudioId: defaultStudioId }, { locationStudioId: defaultStudioId }] }
+    : {};
+  const userFilter: Prisma.UserWhereInput = defaultStudioId
+    ? { OR: [{ defaultStudioId }, { placements: { some: { studioId: defaultStudioId, status: "ACTIVE" as const } } }] }
+    : {};
 
   const month = parseMonthKey(selectedMonthKey);
   const monthStart = dateOnly(new Date(month.year, month.monthIndex, 1));
@@ -222,7 +228,20 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
       where: {
         status: "PENDING",
         attendanceRecord: {
-          ownerStudioId: defaultStudioId ?? "__none__",
+          OR: [
+            { ownerStudioId: defaultStudioId ?? "__none__" },
+            { locationStudioId: defaultStudioId ?? "__none__" },
+            {
+              user: {
+                placements: {
+                  some: {
+                    studioId: defaultStudioId ?? "__none__",
+                    status: "ACTIVE",
+                  },
+                },
+              },
+            },
+          ],
         },
       },
       include: {

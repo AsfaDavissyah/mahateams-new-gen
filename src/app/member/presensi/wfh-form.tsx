@@ -96,15 +96,15 @@ export function WfhForm({
             required
             disabled={loading}
           />
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
             The work plan must be filled in before WFH Check-in.
           </p>
         </div>
       ) : (
         <div className="grid gap-4">
-          <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-            <p className="text-xs font-semibold text-zinc-500">Your Work Plan:</p>
-            <p className="mt-1 text-sm text-zinc-700 whitespace-pre-wrap">{checkInPlan}</p>
+          <div className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 p-3">
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Your Work Plan:</p>
+            <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-200 whitespace-pre-wrap">{checkInPlan}</p>
           </div>
           <div className="flex flex-col gap-2">
             <label htmlFor="wfhReport" className="text-sm font-medium flex items-center justify-between gap-1.5 text-zinc-700 dark:text-zinc-300">
@@ -136,7 +136,7 @@ export function WfhForm({
                   ) : (
                     <div className="rules-rich-editor space-y-2 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
                       <p>Every time you Check-out for WFH (Work From Home) in the afternoon, you must fill in a written report of the results you have achieved today.</p>
-                      <p className="text-[10px] text-zinc-500">This requirement must be met for WFH attendance to be considered valid and approved by management.</p>
+                      <p className="text-[10px] text-zinc-500 dark:text-zinc-400">This requirement must be met for WFH attendance to be considered valid and approved by management.</p>
                     </div>
                   )}
                 </DialogContent>
@@ -153,7 +153,7 @@ export function WfhForm({
               required
               disabled={loading}
             />
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-zinc-500 dark:text-zinc-400">
               The work report must be filled in before WFH Check-out.
             </p>
           </div>

@@ -62,7 +62,7 @@ export async function getTodayBirthdaySignals(user: UserContext): Promise<Birthd
   });
 
   const todayKey = getJakartaDateKey(new Date());
-  const [yearStr, monthStr, dayStr] = todayKey.split("-");
+  const [, monthStr, dayStr] = todayKey.split("-");
   const targetMonth = parseInt(monthStr, 10);
   const targetDay = parseInt(dayStr, 10);
 

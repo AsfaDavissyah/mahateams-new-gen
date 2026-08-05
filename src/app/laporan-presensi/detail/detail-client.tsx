@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -15,11 +15,9 @@ import {
   Printer,
   Search,
   ShieldAlert,
-  Users,
-  Building,
-  Info,
   Calendar,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -120,7 +118,7 @@ type Props = {
 
 const METRIC_CONFIG: Record<
   MetricType,
-  { label: string; icon: any; color: string; bgActive: string }
+  { label: string; icon: LucideIcon; color: string; bgActive: string }
 > = {
   TOTAL: {
     label: "Total Attendance",
@@ -201,7 +199,7 @@ export function DetailStatisticClient({
         "Admin Studio";
 
   // Helper to update URL with new parameters
-  const updateParams = (newParams: Partial<{
+  const updateParams = useCallback((newParams: Partial<{
     metric: MetricType;
     month: string;
     studio: string;
@@ -217,7 +215,7 @@ export function DetailStatisticClient({
     if (qVal) p.set("q", qVal);
 
     router.push(`/laporan-presensi/detail?${p.toString()}`);
-  };
+  }, [memberStatus, metric, month, router, searchQuery, selectedStudio]);
 
   // Debounced auto-update for live search
   useEffect(() => {
@@ -227,7 +225,7 @@ export function DetailStatisticClient({
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [inputSearch, searchQuery]);
+  }, [inputSearch, searchQuery, updateParams]);
 
   // CSV Export Handler
   const handleExportCSV = () => {
@@ -723,7 +721,7 @@ export function DetailStatisticClient({
                             )}
                             {r.moodNote && (
                               <div className="text-muted-foreground italic mt-0.5">
-                                "{r.moodNote}"
+                                &ldquo;{r.moodNote}&rdquo;
                               </div>
                             )}
                             {!r.wfhPlan && !r.wfhReport && !r.moodNote && (

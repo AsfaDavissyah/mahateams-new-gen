@@ -28,7 +28,7 @@ const SYARAT_KETERANGAN: Record<string, { title: string; desc: string; variant: 
   },
   SICK: {
     title: "Sick Leave Terms",
-    desc: "Can be submitted on the same day only. Attachment is optional; without an attachment, it still requires a replacement workday.",
+    desc: "Can be submitted on the same day only. A supporting document is required, and an approved request does not create workday debt.",
     variant: "violet",
   },
   DISPENSATION: {
@@ -108,7 +108,7 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
                 <div className="rules-rich-editor space-y-3 text-xs leading-relaxed text-zinc-650 dark:text-zinc-450">
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">1. Sick Leave (SICK)</h4>
-                    <p className="mt-0.5">Must be submitted on the day of the absence (Today / H-0). Submitting a doctor's certificate is optional; however, requests approved without a doctor's certificate will incur a time debt (-1 day balance).</p>
+                    <p className="mt-0.5">Must be submitted on the day of the absence (Today / H-0) with a supporting document. An approved sick request does not create workday debt.</p>
                   </div>
                   <div>
                     <h4 className="font-bold text-zinc-900 dark:text-zinc-200">2. Annual Leave (LEAVE) & Others</h4>
@@ -232,7 +232,7 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
         <label htmlFor="attachment" className="text-sm font-medium">
           File Attachment{" "}
           <span className="text-xs font-normal text-zinc-500">
-            ({selectedType === "DISPENSATION" ? "required" : "optional"}, max 2MB)
+            ({(selectedType === "DISPENSATION" || selectedType === "SICK") ? "required" : "optional"}, max 2MB)
           </span>
         </label>
         <Input
@@ -240,6 +240,14 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
           name="attachment"
           type="file"
           accept="image/*,application/pdf"
+          required={selectedType === "DISPENSATION" || selectedType === "SICK"}
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file && file.size > 2 * 1024 * 1024) {
+              alert("The file exceeds the 2 MB limit. Please choose a smaller file.");
+              e.target.value = "";
+            }
+          }}
           className="cursor-pointer file:mr-4 file:rounded-md file:border-0 file:bg-zinc-900 file:px-2.5 file:py-1 file:text-xs file:font-semibold file:text-white hover:file:bg-zinc-800"
         />
       </div>

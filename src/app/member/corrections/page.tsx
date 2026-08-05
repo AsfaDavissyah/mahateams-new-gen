@@ -89,7 +89,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   "already-pending": "This attendance record already has a pending correction request.",
   "out-of-range": "Correction requests can only be submitted for dates within the allowed correction window.",
   "already-processed": "The request cannot be cancelled because it has already been reviewed by an Admin.",
-  "attachment-required": "An official support document is required for dispensation.",
+  "attachment-required": "A supporting document is required for Sick Leave and Official Dispensation.",
   "intern-leave": "Interns are not allowed to request annual leave.",
   "file-size": "Attachment file size is too large (maximum 2MB).",
   "upload-failed": "Failed to process the file attachment.",

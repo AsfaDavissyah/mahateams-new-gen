@@ -68,6 +68,9 @@ export function getRequestBalanceImpact(
   }
 
   if (type === "PERMISSION") {
+    if (hasAttachment) {
+      return { workdayBalanceDelta: 0, annualLeaveBalanceDelta: 0 }; // Permission with letter = no debt
+    }
     return { workdayBalanceDelta: -1, annualLeaveBalanceDelta: 0 };
   }
 
@@ -91,22 +94,29 @@ export function getRequestBalanceImpact(
 export function getCorrectionBalanceImpact(
   previousStatus: AttendanceStatus | null,
   newStatus: AttendanceStatus | null,
-  hasAttachment: boolean
+  attachments: {
+    previousHasAttachment: boolean;
+    newHasAttachment: boolean;
+    previousExtraWorkdayApplied?: boolean;
+    newExtraWorkdayApplied?: boolean;
+    previousAbsenceBalanceApplied?: boolean;
+  }
 ): { workdayBalanceDelta: number; annualLeaveBalanceDelta: number } {
   let workdayBalanceDelta = 0;
   let annualLeaveBalanceDelta = 0;
 
   const isOldDebt =
-    previousStatus === "ALPHA" ||
-    previousStatus === "PERMISSION" ||
-    (previousStatus === "SICK" && !hasAttachment);
+    (previousStatus === "ALPHA" &&
+      (attachments.previousAbsenceBalanceApplied ?? true)) ||
+    (previousStatus === "PERMISSION" && !attachments.previousHasAttachment) ||
+    (previousStatus === "SICK" && !attachments.previousHasAttachment);
 
   const isOldLeave = previousStatus === "LEAVE";
 
   const isNewDebt =
     newStatus === "ALPHA" ||
-    newStatus === "PERMISSION" ||
-    (newStatus === "SICK" && !hasAttachment);
+    (newStatus === "PERMISSION" && !attachments.newHasAttachment) ||
+    (newStatus === "SICK" && !attachments.newHasAttachment);
 
   const isNewLeave = newStatus === "LEAVE";
 
@@ -122,6 +132,13 @@ export function getCorrectionBalanceImpact(
     workdayBalanceDelta -= 1; // Deduct debt
   } else if (isNewLeave) {
     annualLeaveBalanceDelta -= 1; // Deduct annual leave
+  }
+
+  if (attachments.previousExtraWorkdayApplied) {
+    workdayBalanceDelta -= 1;
+  }
+  if (attachments.newExtraWorkdayApplied) {
+    workdayBalanceDelta += 1;
   }
 
   return { workdayBalanceDelta, annualLeaveBalanceDelta };
@@ -143,4 +160,3 @@ export async function checkSickAttachment(userId: string, attendanceDate: Date):
   });
   return Boolean(req);
 }
-

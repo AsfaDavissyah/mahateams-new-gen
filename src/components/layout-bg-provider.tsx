@@ -58,19 +58,22 @@ export function LayoutBgProvider({ children }: { children: React.ReactNode }) {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setPreferences({
-          light: { ...DEFAULT_BG_PREFERENCES.light, ...(parsed.light || {}) },
-          dark: { ...DEFAULT_BG_PREFERENCES.dark, ...(parsed.dark || {}) },
-        });
+    const timer = window.setTimeout(() => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setPreferences({
+            light: { ...DEFAULT_BG_PREFERENCES.light, ...(parsed.light || {}) },
+            dark: { ...DEFAULT_BG_PREFERENCES.dark, ...(parsed.dark || {}) },
+          });
+        }
+      } catch {
+        // Ignore JSON parse error
       }
-    } catch {
-      // Ignore JSON parse error
-    }
-    setIsHydrated(true);
+      setIsHydrated(true);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const savePreferences = (newPrefs: LayoutBgPreferences) => {

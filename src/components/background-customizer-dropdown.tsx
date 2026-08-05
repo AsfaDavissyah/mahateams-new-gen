@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { Palette, RotateCcw, Sun, Moon, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   useLayoutBg,
   getBgStyle,
@@ -68,7 +67,6 @@ export function BackgroundCustomizerDropdown() {
     preferences,
     updateModeConfig,
     resetModeConfig,
-    resetAll,
     activeMode,
   } = useLayoutBg();
 

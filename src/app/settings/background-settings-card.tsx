@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Palette, RotateCcw, Sun, Moon, Sparkles } from "lucide-react";
+import { Palette, RotateCcw, Sun, Moon } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLayoutBg, getBgStyle, ModeBgConfig } from "@/components/layout-bg-provider";
@@ -49,7 +49,7 @@ const DARK_SOLID_PRESETS: SolidPresetOption[] = [
 ];
 
 export function BackgroundSettingsCard() {
-  const { preferences, updateModeConfig, resetModeConfig, resetAll, activeMode } = useLayoutBg();
+  const { preferences, updateModeConfig, resetAll, activeMode } = useLayoutBg();
   const [selectedMode, setSelectedMode] = useState<"light" | "dark">(activeMode);
 
   const currentConfig: ModeBgConfig = preferences[selectedMode];

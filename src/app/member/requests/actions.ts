@@ -60,7 +60,7 @@ export async function createRequestAction(formData: FormData) {
 
   // 2. Blokir tanggal di masa lampau
   if (requestedType === "SICK") {
-    // Sick only starts on the current day. Attachment is optional.
+    // Sick leave can only start today; supporting evidence is validated below.
     if (startDateTime.getTime() !== todayDate.getTime()) {
       redirect("/member/requests?error=sick-date");
     }
@@ -128,7 +128,7 @@ export async function createRequestAction(formData: FormData) {
 
   const type = requestedType as "PERMISSION" | "SICK" | "DISPENSATION" | "LEAVE" | "WFH";
 
-  if (requestedType === "DISPENSATION" && !attachmentUrl) {
+  if ((requestedType === "DISPENSATION" || requestedType === "SICK") && !attachmentUrl) {
     redirect("/member/requests?error=attachment-required");
   }
 

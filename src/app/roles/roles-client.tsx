@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Building2, Edit, Eye, Mail, Search, UserCog, UserPlus, Loader2, ArrowUpDown, Cake, Plus, Trash2, BarChart3, Calendar, CheckCircle2, Home, RefreshCw, ChevronLeft, ChevronRight, Briefcase, KeyRound, X } from "lucide-react";
+import { Building2, Edit, Search, UserCog, UserPlus, Loader2, ArrowUpDown, RefreshCw, KeyRound, X } from "lucide-react";
 import { Combobox } from "@/components/ui/combobox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,10 +29,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ROLE_LABEL } from "@/lib/roles";
 import { createUserAction, updateUserAction, resetUserPinAction } from "./actions";
 import { getMood } from "@/lib/moods";
-import { HoverCard, HoverCardTrigger, HoverCardContent } from "@/components/ui/hover-card";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { AttendanceDetailDialog, type DetailRecord } from "@/app/laporan-presensi/attendance-detail-dialog";
@@ -92,25 +90,6 @@ const accountStatusColor: Record<string, string> = {
   ARCHIVED: "bg-zinc-200 text-zinc-700",
 };
 
-function formatDate(date: Date | null | undefined) {
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(date));
-}
-
-function formatTime(date: Date | null | undefined) {
-  if (!date) return "-";
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Jakarta",
-  }).format(new Date(date));
-}
-
 function formatInputDate(date: Date | null | undefined) {
   if (!date) return "";
   const d = new Date(date);
@@ -152,13 +131,10 @@ export function RolesClient({
   const [viewOpen, setViewOpen] = useState(false);
   const [viewUser, setViewUser] = useState<UserWithRelations | null>(null);
   const [page, setPage] = useState(1);
-  const [historyPage, setHistoryPage] = useState(1);
   const pageSize = 10;
-  const historyPageSize = 10;
 
   const handleOpenView = (user: UserWithRelations) => {
     setViewUser(user);
-    setHistoryPage(1);
     setViewOpen(true);
   };
 
@@ -379,9 +355,9 @@ export function RolesClient({
       ownerStudio: {
         name: viewUser.defaultStudio?.name || "Main Studio",
       },
-      locationStudio: (latestAttendance as any)?.locationStudio || null,
-      wfhPlan: (latestAttendance as any)?.wfhPlan || null,
-      wfhReport: (latestAttendance as any)?.wfhReport || null,
+      locationStudio: latestAttendance?.locationStudio || null,
+      wfhPlan: latestAttendance?.wfhPlan || null,
+      wfhReport: latestAttendance?.wfhReport || null,
       recentHistory: allAttendance.map((r) => ({
         id: r.id,
         attendanceDate: formatDateOnlyString(r.attendanceDate),

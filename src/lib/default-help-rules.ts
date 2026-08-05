@@ -17,7 +17,7 @@ export const DEFAULT_RULES_WFO = `<div>
 
 export const DEFAULT_RULES_LEAVE_SICK = `<div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">1. Sick Leave (SICK)</h4>
-  <p class="mt-0.5">Must be submitted on the day of the absence (Today / H-0). Submitting a doctor's certificate is optional; however, requests approved without a doctor's certificate will incur a time debt (-1 day balance).</p>
+  <p class="mt-0.5">Must be submitted on the day of the absence (Today / H-0) with a supporting document. An approved sick request does not create workday debt.</p>
 </div>
 <div>
   <h4 class="font-bold text-zinc-900 dark:text-zinc-200">2. Annual Leave (LEAVE) & Others</h4>

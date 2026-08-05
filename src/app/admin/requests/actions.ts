@@ -2,21 +2,48 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import type { MemberStatus, RequestType } from "@/generated/prisma/client";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getRequestBalanceImpact } from "@/lib/workday-balance";
 
-export async function reviewRequestAction(formData: FormData) {
-  const reviewer = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
+type Reviewer = {
+  id: string;
+  role: "SUPER_ADMIN" | "ADMIN" | "MEMBER";
+  defaultStudioId: string | null;
+};
 
-  const requestId = String(formData.get("requestId") ?? "");
-  const action = String(formData.get("action") ?? "");
+const ATTENDANCE_STATUS_BY_REQUEST = {
+  PERMISSION: "PERMISSION",
+  SICK: "SICK",
+  DISPENSATION: "DISPENSATION",
+  LEAVE: "LEAVE",
+} as const;
 
-  if (!requestId || !["APPROVE", "REJECT"].includes(action)) {
-    redirect("/admin/requests?error=invalid-action");
+function inclusiveDates(startDate: Date, endDate: Date) {
+  const dates: Date[] = [];
+  const current = new Date(startDate);
+  while (current <= endDate) {
+    dates.push(new Date(current));
+    current.setUTCDate(current.getUTCDate() + 1);
   }
+  return dates;
+}
 
-  // Fetch the request with user info
+function requestBalanceForRange(
+  type: RequestType,
+  hasAttachment: boolean,
+  memberStatus: MemberStatus,
+  dayCount: number,
+) {
+  const impact = getRequestBalanceImpact(type, hasAttachment, memberStatus);
+  return {
+    workdayDelta: impact.workdayBalanceDelta * dayCount,
+    annualLeaveDelta: impact.annualLeaveBalanceDelta * dayCount,
+  };
+}
+
+async function reviewRequestCore(requestId: string, approve: boolean, reviewer: Reviewer) {
   const request = await prisma.request.findUnique({
     where: { id: requestId },
     include: {
@@ -26,482 +53,273 @@ export async function reviewRequestAction(formData: FormData) {
           role: true,
           memberStatus: true,
           defaultStudioId: true,
+          placements: {
+            where: { status: "ACTIVE" },
+            select: { studioId: true, startDate: true, endDate: true },
+            orderBy: { startDate: "desc" },
+          },
         },
       },
     },
   });
 
-  if (!request) {
-    redirect("/admin/requests?error=not-found");
-  }
+  if (!request) throw new Error("Request not found.");
+  if (request.status !== "PENDING") throw new Error("This request has already been reviewed.");
 
-  if (request.status !== "PENDING") {
-    redirect("/admin/requests?error=already-reviewed");
-  }
-
-  // Scope check: Admin can only review requests from their own studio or if they are receiving placement
-  const activePlacement = await prisma.placement.findFirst({
-    where: {
-      userId: request.userId,
-      studioId: reviewer.defaultStudioId ?? "__none__",
-      status: "ACTIVE",
-    },
-    select: { id: true },
-  });
-  const isAuthorized = request.user.defaultStudioId === reviewer.defaultStudioId || !!activePlacement;
+  const isPlacedAtReviewerStudio = request.user.placements.some(
+    (placement) => placement.studioId === reviewer.defaultStudioId,
+  );
+  const isAuthorized =
+    request.user.defaultStudioId === reviewer.defaultStudioId || isPlacedAtReviewerStudio;
 
   if (reviewer.role === "ADMIN" && !isAuthorized) {
-    redirect("/admin/requests?error=unauthorized-studio");
+    throw new Error("You do not have access to requests from this studio.");
+  }
+  if (
+    reviewer.role === "ADMIN" &&
+    (request.user.role === "ADMIN" || request.user.role === "SUPER_ADMIN")
+  ) {
+    throw new Error("Admins cannot review another administrator's request.");
   }
 
-  // Admin cannot review requests from other Admins or Super Admins
-  if (reviewer.role === "ADMIN" && (request.user.role === "ADMIN" || request.user.role === "SUPER_ADMIN")) {
-    redirect("/admin/requests?error=unauthorized-admin-review");
-  }
-
-  const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
+  const approvedAt = new Date();
+  const dates = inclusiveDates(request.startDate, request.endDate);
+  const impact = approve
+    ? requestBalanceForRange(
+        request.type,
+        Boolean(request.attachmentUrl),
+        request.user.memberStatus,
+        dates.length,
+      )
+    : { workdayDelta: 0, annualLeaveDelta: 0 };
 
   await prisma.$transaction(async (tx) => {
-    // 1. Update the request status
     await tx.request.update({
-      where: { id: requestId },
+      where: { id: request.id },
       data: {
-        status: newStatus,
+        status: approve ? "APPROVED" : "REJECTED",
         reviewerId: reviewer.id,
-        reviewedAt: new Date(),
+        reviewedAt: approvedAt,
+        balanceWorkdayDelta: impact.workdayDelta,
+        balanceAnnualLeaveDelta: impact.annualLeaveDelta,
+        balanceAppliedAt: approve ? approvedAt : null,
       },
     });
 
-    // 2. Audit log
+    if (approve) {
+      if (impact.workdayDelta !== 0 || impact.annualLeaveDelta !== 0) {
+        await tx.user.update({
+          where: { id: request.userId },
+          data: {
+            ...(impact.workdayDelta !== 0 && {
+              workDayBalance: { increment: impact.workdayDelta },
+            }),
+            ...(impact.annualLeaveDelta !== 0 && {
+              annualLeaveBalance: { increment: impact.annualLeaveDelta },
+            }),
+          },
+        });
+      }
+
+      if (!request.user.defaultStudioId) {
+        throw new Error("The member's default studio is not configured.");
+      }
+
+      for (const attendanceDate of dates) {
+        const placement = request.user.placements.find(
+          (item) =>
+            item.startDate <= attendanceDate &&
+            (!item.endDate || item.endDate >= attendanceDate),
+        );
+        const locationStudioId = placement?.studioId ?? request.user.defaultStudioId;
+
+        if (request.type === "WFH") {
+          await tx.personalWorkSchedule.upsert({
+            where: {
+              userId_workDate: { userId: request.userId, workDate: attendanceDate },
+            },
+            update: { workMode: "WFH", updatedAt: approvedAt },
+            create: { userId: request.userId, workDate: attendanceDate, workMode: "WFH" },
+          });
+          continue;
+        }
+
+        const attendanceStatus =
+          ATTENDANCE_STATUS_BY_REQUEST[
+            request.type as keyof typeof ATTENDANCE_STATUS_BY_REQUEST
+          ];
+        if (!attendanceStatus) continue;
+
+        await tx.attendanceRecord.upsert({
+          where: {
+            userId_attendanceDate: { userId: request.userId, attendanceDate },
+          },
+          update: {
+            status: attendanceStatus,
+            checkInAt: null,
+            checkOutAt: null,
+            workMode: "WFO",
+            ownerStudioId: request.user.defaultStudioId,
+            locationStudioId,
+            locationValidationStatus: "NOT_REQUIRED",
+            lateMinutes: 0,
+            updatedAt: approvedAt,
+          },
+          create: {
+            userId: request.userId,
+            attendanceDate,
+            ownerStudioId: request.user.defaultStudioId,
+            locationStudioId,
+            workMode: "WFO",
+            status: attendanceStatus,
+            locationValidationStatus: "NOT_REQUIRED",
+            lateMinutes: 0,
+            createdById: reviewer.id,
+          },
+        });
+      }
+    }
+
     await tx.auditLog.create({
       data: {
         actorId: reviewer.id,
         entity: "Request",
-        entityId: requestId,
-        action: `REQUEST_${newStatus}`,
+        entityId: request.id,
+        action: approve ? "REQUEST_APPROVED" : "REQUEST_REJECTED",
         metadata: {
           userId: request.userId,
           type: request.type,
           startDate: request.startDate,
           endDate: request.endDate,
+          workdayBalanceDelta: impact.workdayDelta,
+          annualLeaveBalanceDelta: impact.annualLeaveDelta,
         },
       },
     });
-
-    // 3. If approved, materialize attendance records or schedules
-    if (newStatus === "APPROVED") {
-      const start = new Date(request.startDate);
-      const end = new Date(request.endDate);
-
-      // Hitung jumlah hari pengajuan.
-      let daysCount = 0;
-      const countDate = new Date(start);
-      while (countDate <= end) {
-        daysCount++;
-        countDate.setUTCDate(countDate.getUTCDate() + 1);
-      }
-
-      const { workdayBalanceDelta, annualLeaveBalanceDelta } = getRequestBalanceImpact(
-        request.type,
-        Boolean(request.attachmentUrl),
-        request.user.memberStatus
-      );
-
-      const totalWorkdayDelta = workdayBalanceDelta * daysCount;
-      const totalLeaveDelta = annualLeaveBalanceDelta * daysCount;
-
-      if (totalWorkdayDelta !== 0 || totalLeaveDelta !== 0) {
-        await tx.user.update({
-          where: { id: request.userId },
-          data: {
-            ...(totalWorkdayDelta !== 0 && { workDayBalance: { increment: totalWorkdayDelta } }),
-            ...(totalLeaveDelta !== 0 && { annualLeaveBalance: { increment: totalLeaveDelta } }),
-          },
-        });
-      }
-
-      // Loop through all dates in range (inclusive)
-      const current = new Date(start);
-      while (current <= end) {
-        const attendanceDate = new Date(current);
-
-        const studioId = request.user.defaultStudioId;
-        if (!studioId) {
-          throw new Error("User default studio is not configured.");
-        }
-
-        if (request.type === "WFH") {
-          // Materialize PersonalWorkSchedule WFH
-          await tx.personalWorkSchedule.upsert({
-            where: {
-              userId_workDate: {
-                userId: request.userId,
-                workDate: attendanceDate,
-              },
-            },
-            update: {
-              workMode: "WFH",
-              updatedAt: new Date(),
-            },
-            create: {
-              userId: request.userId,
-              workDate: attendanceDate,
-              workMode: "WFH",
-            },
-          });
-        } else {
-          // Materialize AttendanceRecord for SICK, LEAVE, PERMISSION
-          const attendanceStatusMap = {
-            PERMISSION: "PERMISSION" as const,
-            SICK: "SICK" as const,
-            DISPENSATION: "DISPENSATION" as const,
-            LEAVE: "LEAVE" as const,
-            ACCOUNT_ARCHIVE: "PERMISSION" as const,
-            ACCOUNT_DEACTIVATION: "PERMISSION" as const,
-          };
-          const attendanceStatus =
-            attendanceStatusMap[request.type as keyof typeof attendanceStatusMap] || "PERMISSION";
-
-          await tx.attendanceRecord.upsert({
-            where: {
-              userId_attendanceDate: {
-                userId: request.userId,
-                attendanceDate,
-              },
-            },
-            update: {
-              status: attendanceStatus,
-              checkInAt: null,
-              checkOutAt: null,
-              workMode: "WFO",
-              locationValidationStatus: "NOT_REQUIRED",
-              lateMinutes: 0,
-              updatedAt: new Date(),
-            },
-            create: {
-              userId: request.userId,
-              attendanceDate,
-              ownerStudioId: studioId,
-              workMode: "WFO",
-              status: attendanceStatus,
-              locationValidationStatus: "NOT_REQUIRED",
-              lateMinutes: 0,
-              createdById: reviewer.id,
-            },
-          });
-        }
-
-        // Move to next day in UTC
-        current.setUTCDate(current.getUTCDate() + 1);
-      }
-    }
   });
+}
 
+function revalidateRequestViews() {
+  revalidatePath("/admin");
   revalidatePath("/admin/requests");
+  revalidatePath("/member");
   revalidatePath("/member/requests");
+  revalidatePath("/laporan-presensi");
+}
+
+export async function reviewRequestAction(formData: FormData) {
+  const reviewer = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
+  const requestId = String(formData.get("requestId") ?? "");
+  const action = String(formData.get("action") ?? "");
+
+  if (!requestId || !["APPROVE", "REJECT"].includes(action)) {
+    redirect("/admin/requests?error=invalid-action");
+  }
+
+  try {
+    await reviewRequestCore(requestId, action === "APPROVE", reviewer);
+  } catch (error) {
+    console.error("Request review failed:", error);
+    redirect("/admin/requests?error=review-failed");
+  }
+
+  revalidateRequestViews();
   redirect(`/admin/requests?success=${action.toLowerCase()}`);
 }
 
-// ─── Async Quick Review Action ──────────────────────────────────────────────
-
 export async function quickReviewRequestAction(requestId: string, approve: boolean) {
   const reviewer = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
-  const action = approve ? "APPROVE" : "REJECT";
-
-  if (!requestId) {
-    throw new Error("ID Pengajuan tidak valid.");
-  }
-
-  // Fetch the request with user info
-  const request = await prisma.request.findUnique({
-    where: { id: requestId },
-    include: {
-      user: {
-        select: {
-          id: true,
-          role: true,
-          defaultStudioId: true,
-        },
-      },
-    },
-  });
-
-  if (!request) {
-    throw new Error("Pengajuan tidak ditemukan.");
-  }
-
-  if (request.status !== "PENDING") {
-    throw new Error("Pengajuan sudah diproses sebelumnya.");
-  }
-
-  // Scope check: Admin can only review requests from their own studio or if they are receiving placement
-  const activePlacement = await prisma.placement.findFirst({
-    where: {
-      userId: request.userId,
-      studioId: reviewer.defaultStudioId ?? "__none__",
-      status: "ACTIVE",
-    },
-    select: { id: true },
-  });
-  const isAuthorized = request.user.defaultStudioId === reviewer.defaultStudioId || !!activePlacement;
-
-  if (reviewer.role === "ADMIN" && !isAuthorized) {
-    throw new Error("Anda tidak memiliki akses ke studio ini.");
-  }
-
-  // Admin cannot review requests from other Admins or Super Admins
-  if (reviewer.role === "ADMIN" && (request.user.role === "ADMIN" || request.user.role === "SUPER_ADMIN")) {
-    throw new Error("Anda tidak memiliki wewenang memproses pengajuan admin lain.");
-  }
-
-  const newStatus = action === "APPROVE" ? "APPROVED" : "REJECTED";
-
-  await prisma.$transaction(async (tx) => {
-    // 1. Update the request status
-    await tx.request.update({
-      where: { id: requestId },
-      data: {
-        status: newStatus,
-        reviewerId: reviewer.id,
-        reviewedAt: new Date(),
-      },
-    });
-
-    // 2. Audit log
-    await tx.auditLog.create({
-      data: {
-        actorId: reviewer.id,
-        entity: "Request",
-        entityId: requestId,
-        action: `REQUEST_${newStatus}`,
-        metadata: {
-          userId: request.userId,
-          type: request.type,
-          startDate: request.startDate,
-          endDate: request.endDate,
-        },
-      },
-    });
-
-    // 3. If approved, materialize attendance records or schedules
-    if (newStatus === "APPROVED") {
-      const start = new Date(request.startDate);
-      const end = new Date(request.endDate);
-
-      // Hitung jumlah hari pengajuan.
-      let daysCount = 0;
-      const countDate = new Date(start);
-      while (countDate <= end) {
-        daysCount++;
-        countDate.setUTCDate(countDate.getUTCDate() + 1);
-      }
-
-      if (request.type === "PERMISSION") {
-        await tx.user.update({
-          where: { id: request.userId },
-          data: {
-            workDayBalance: {
-              decrement: daysCount,
-            },
-          },
-        });
-      } else if (request.type === "LEAVE") {
-        await tx.user.update({
-          where: { id: request.userId },
-          data: {
-            annualLeaveBalance: {
-              decrement: daysCount,
-            },
-          },
-        });
-      }
-
-      // Loop through all dates in range (inclusive)
-      const current = new Date(start);
-      while (current <= end) {
-        const attendanceDate = new Date(current);
-
-        const studioId = request.user.defaultStudioId;
-        if (!studioId) {
-          throw new Error("Studio asal anggota belum dikonfigurasi.");
-        }
-
-        if (request.type === "WFH") {
-          // Materialize PersonalWorkSchedule WFH
-          await tx.personalWorkSchedule.upsert({
-            where: {
-              userId_workDate: {
-                userId: request.userId,
-                workDate: attendanceDate,
-              },
-            },
-            update: {
-              workMode: "WFH",
-              updatedAt: new Date(),
-            },
-            create: {
-              userId: request.userId,
-              workDate: attendanceDate,
-              workMode: "WFH",
-            },
-          });
-        } else {
-          // Materialize AttendanceRecord for SICK, LEAVE, PERMISSION
-          const attendanceStatusMap = {
-            PERMISSION: "PERMISSION" as const,
-            SICK: "SICK" as const,
-            DISPENSATION: "DISPENSATION" as const,
-            LEAVE: "LEAVE" as const,
-            ACCOUNT_ARCHIVE: "PERMISSION" as const,
-            ACCOUNT_DEACTIVATION: "PERMISSION" as const,
-          };
-          const attendanceStatus =
-            attendanceStatusMap[request.type as keyof typeof attendanceStatusMap] || "PERMISSION";
-
-          await tx.attendanceRecord.upsert({
-            where: {
-              userId_attendanceDate: {
-                userId: request.userId,
-                attendanceDate,
-              },
-            },
-            update: {
-              status: attendanceStatus,
-              checkInAt: null,
-              checkOutAt: null,
-              workMode: "WFO",
-              locationValidationStatus: "NOT_REQUIRED",
-              lateMinutes: 0,
-              updatedAt: new Date(),
-            },
-            create: {
-              userId: request.userId,
-              attendanceDate,
-              ownerStudioId: studioId,
-              workMode: "WFO",
-              status: attendanceStatus,
-              locationValidationStatus: "NOT_REQUIRED",
-              lateMinutes: 0,
-              createdById: reviewer.id,
-            },
-          });
-        }
-
-        // Move to next day in UTC
-        current.setUTCDate(current.getUTCDate() + 1);
-      }
-    }
-  });
-
-  revalidatePath("/admin/requests");
-  revalidatePath("/member/requests");
-  revalidatePath("/admin");
-  return { success: true, message: `Pengajuan berhasil ${approve ? "disetujui" : "ditolak"}.` };
+  await reviewRequestCore(requestId, approve, reviewer);
+  revalidateRequestViews();
+  return {
+    success: true,
+    message: `Request ${approve ? "approved" : "rejected"} successfully.`,
+  };
 }
 
 export async function deleteRequestAction(formData: FormData) {
   const superAdmin = await requireAnyRole(["SUPER_ADMIN"]);
   const requestId = String(formData.get("requestId") ?? "");
-
-  if (!requestId) {
-    redirect("/admin/requests?error=invalid-action");
-  }
+  if (!requestId) redirect("/admin/requests?error=invalid-action");
 
   const request = await prisma.request.findUnique({
     where: { id: requestId },
+    include: { user: { select: { memberStatus: true } } },
   });
-
-  if (!request) {
-    redirect("/admin/requests?error=not-found");
-  }
+  if (!request) redirect("/admin/requests?error=not-found");
 
   await prisma.$transaction(async (tx) => {
-    // If approved, we need to revert side effects
     if (request.status === "APPROVED") {
-      const start = new Date(request.startDate);
-      const end = new Date(request.endDate);
+      const dates = inclusiveDates(request.startDate, request.endDate);
+      const storedImpact = request.balanceAppliedAt
+        ? {
+            workdayDelta: request.balanceWorkdayDelta,
+            annualLeaveDelta: request.balanceAnnualLeaveDelta,
+          }
+        : requestBalanceForRange(
+            request.type,
+            Boolean(request.attachmentUrl),
+            request.user.memberStatus,
+            dates.length,
+          );
 
-      // 1. Revert balance side effects
-      if (request.type === "PERMISSION" || request.type === "LEAVE") {
-        let daysCount = 0;
-        const countDate = new Date(start);
-        while (countDate <= end) {
-          daysCount++;
-          countDate.setUTCDate(countDate.getUTCDate() + 1);
-        }
-        if (request.type === "PERMISSION") {
-          await tx.user.update({
-            where: { id: request.userId },
-            data: {
-              workDayBalance: {
-                increment: daysCount,
-              },
-            },
-          });
-        } else {
-          await tx.user.update({
-            where: { id: request.userId },
-            data: {
-              annualLeaveBalance: {
-                increment: daysCount,
-              },
-            },
-          });
-        }
+      if (storedImpact.workdayDelta !== 0 || storedImpact.annualLeaveDelta !== 0) {
+        await tx.user.update({
+          where: { id: request.userId },
+          data: {
+            ...(storedImpact.workdayDelta !== 0 && {
+              workDayBalance: { decrement: storedImpact.workdayDelta },
+            }),
+            ...(storedImpact.annualLeaveDelta !== 0 && {
+              annualLeaveBalance: { decrement: storedImpact.annualLeaveDelta },
+            }),
+          },
+        });
       }
 
-      // 2. Revert materialized schedules/records
-      const current = new Date(start);
-      while (current <= end) {
-        const dateVal = new Date(current);
+      for (const attendanceDate of dates) {
         if (request.type === "WFH") {
-          // Delete materialized WFH schedule
           await tx.personalWorkSchedule.deleteMany({
-            where: {
-              userId: request.userId,
-              workDate: dateVal,
-            },
+            where: { userId: request.userId, workDate: attendanceDate, workMode: "WFH" },
           });
-        } else {
-          // Delete materialized AttendanceRecord if it has no checkIn/checkOut
-          // (which means it was created by request approval)
-          await tx.attendanceRecord.deleteMany({
-            where: {
-              userId: request.userId,
-              attendanceDate: dateVal,
-              checkInAt: null,
-              checkOutAt: null,
-            },
-          });
+          continue;
         }
-        current.setUTCDate(current.getUTCDate() + 1);
+
+        const expectedStatus =
+          ATTENDANCE_STATUS_BY_REQUEST[
+            request.type as keyof typeof ATTENDANCE_STATUS_BY_REQUEST
+          ];
+        if (!expectedStatus) continue;
+        await tx.attendanceRecord.deleteMany({
+          where: {
+            userId: request.userId,
+            attendanceDate,
+            status: expectedStatus,
+            checkInAt: null,
+            checkOutAt: null,
+          },
+        });
       }
     }
 
-    // 3. Delete the request
-    await tx.request.delete({
-      where: { id: requestId },
-    });
-
-    // 4. Audit Log
+    await tx.request.delete({ where: { id: request.id } });
     await tx.auditLog.create({
       data: {
         actorId: superAdmin.id,
         entity: "Request",
-        entityId: requestId,
+        entityId: request.id,
         action: "REQUEST_DELETED",
         metadata: {
           userId: request.userId,
           type: request.type,
           status: request.status,
-          startDate: request.startDate,
-          endDate: request.endDate,
+          revertedWorkdayBalanceDelta: request.balanceWorkdayDelta,
+          revertedAnnualLeaveBalanceDelta: request.balanceAnnualLeaveDelta,
         },
       },
     });
   });
 
-  revalidatePath("/admin/requests");
-  revalidatePath("/member/requests");
+  revalidateRequestViews();
   redirect("/admin/requests?success=deleted");
 }

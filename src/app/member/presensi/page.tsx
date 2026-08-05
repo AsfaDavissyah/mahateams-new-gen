@@ -21,7 +21,7 @@ const statusLabel: Record<string, string> = {
   PERMISSION: "Permission",
   SICK: "Sick",
   DISPENSATION: "Dispensation",
-  LEAVE: "Leave Exchange",
+  LEAVE: "Annual Leave",
   ALPHA: "Alpha",
 };
 
@@ -64,15 +64,9 @@ const errorMessages: Record<string, string> = {
   "outside-radius": "Tidak bisa presensi karena berada di luar radius studio.",
 };
 
-export default async function MemberPresensiPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ success?: string; error?: string; time?: string; remaining?: string }>;
-}) {
+export default async function MemberPresensiPage() {
   const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
   const dashboardPath = currentUser.role === "ADMIN" ? "/admin" : "/member";
-
-  const params = await searchParams;
 
   const todayKey = getJakartaDateKey();
   const todayDate = dateOnlyFromKey(todayKey);

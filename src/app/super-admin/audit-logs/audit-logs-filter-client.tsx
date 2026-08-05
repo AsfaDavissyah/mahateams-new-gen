@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Archive, User, Search, RotateCcw, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +35,7 @@ export function AuditLogsFilterClient({
   const [entity, setEntity] = useState(initialEntity);
   const [search, setSearch] = useState(initialSearch);
 
-  const updateParams = (newActorId: string, newEntity: string, newSearch: string) => {
+  const updateParams = useCallback((newActorId: string, newEntity: string, newSearch: string) => {
     const params = new URLSearchParams(searchParams.toString());
 
     if (newActorId) params.set("actorId", newActorId);
@@ -48,7 +48,7 @@ export function AuditLogsFilterClient({
     else params.delete("search");
 
     router.push(`/super-admin/audit-logs?${params.toString()}`);
-  };
+  }, [router, searchParams]);
 
   // Live search debounce
   useEffect(() => {
@@ -59,7 +59,7 @@ export function AuditLogsFilterClient({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [actorId, entity, initialSearch, search, updateParams]);
 
   const hasActiveFilters = Boolean(actorId || entity || search);
 
