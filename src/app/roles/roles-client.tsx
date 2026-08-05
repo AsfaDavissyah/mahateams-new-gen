@@ -153,15 +153,11 @@ export function RolesClient({
   const [viewUser, setViewUser] = useState<UserWithRelations | null>(null);
   const [page, setPage] = useState(1);
   const [historyPage, setHistoryPage] = useState(1);
-  const [detailScope, setDetailScope] = useState<"ALL" | "MONTH">("MONTH");
-  const [detailMonth, setDetailMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const pageSize = 10;
   const historyPageSize = 10;
 
   const handleOpenView = (user: UserWithRelations) => {
     setViewUser(user);
-    setDetailScope("MONTH");
-    setDetailMonth(new Date().toISOString().slice(0, 7));
     setHistoryPage(1);
     setViewOpen(true);
   };
@@ -299,31 +295,8 @@ export function RolesClient({
     return filteredUsers.slice((safePage - 1) * pageSize, safePage * pageSize);
   }, [filteredUsers, page, totalPages]);
 
-  const detailRecords = useMemo(() => {
-    const records = viewUser?.attendanceRecords ?? [];
-    if (detailScope === "ALL") return records;
-    return records.filter((record) => {
-      const date = new Date(record.attendanceDate);
-      const monthKey = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-      return monthKey === detailMonth;
-    });
-  }, [detailMonth, detailScope, viewUser]);
-
-  const detailStats = useMemo(() => {
-    return detailRecords.reduce(
-      (acc, record) => {
-        acc.total += 1;
-        if (record.status === "ON_TIME") acc.onTime += 1;
-        if (record.status === "LATE") acc.late += 1;
-        if (record.status === "SICK") acc.sick += 1;
-        if (record.status === "PERMISSION") acc.permission += 1;
-        if (record.status === "ALPHA") acc.alpha += 1;
-        if (record.workMode === "WFH") acc.wfh += 1;
-        return acc;
-      },
-      { total: 0, onTime: 0, late: 0, sick: 0, permission: 0, alpha: 0, wfh: 0 }
-    );
-  }, [detailRecords]);
+  const totalTeam = useMemo(() => filteredUsers.filter(u => u.memberStatus === "TEAM").length, [filteredUsers]);
+  const totalIntern = useMemo(() => filteredUsers.filter(u => u.memberStatus === "INTERN").length, [filteredUsers]);
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -357,13 +330,11 @@ export function RolesClient({
     });
   };
 
-  const totalTeam = useMemo(() => filteredUsers.filter(u => u.memberStatus === "TEAM").length, [filteredUsers]);
-  const totalIntern = useMemo(() => filteredUsers.filter(u => u.memberStatus === "INTERN").length, [filteredUsers]);
-
   const detailRecordForDialog = useMemo<DetailRecord | null>(() => {
     if (!viewUser) return null;
 
-    const latestAttendance = detailRecords[0];
+    const allAttendance = viewUser.attendanceRecords ?? [];
+    const latestAttendance = allAttendance[0];
 
     const formatDateString = (d: Date | string | null | undefined) => {
       if (!d) return null;
@@ -408,11 +379,10 @@ export function RolesClient({
       ownerStudio: {
         name: viewUser.defaultStudio?.name || "Main Studio",
       },
-      locationStudio: latestAttendance?.locationStudio || null,
-      wfhPlan: latestAttendance?.wfhPlan || null,
-      wfhReport: latestAttendance?.wfhReport || null,
-      statsRecap: detailStats,
-      recentHistory: detailRecords.map((r) => ({
+      locationStudio: (latestAttendance as any)?.locationStudio || null,
+      wfhPlan: (latestAttendance as any)?.wfhPlan || null,
+      wfhReport: (latestAttendance as any)?.wfhReport || null,
+      recentHistory: allAttendance.map((r) => ({
         id: r.id,
         attendanceDate: formatDateOnlyString(r.attendanceDate),
         workMode: r.workMode,
@@ -422,7 +392,7 @@ export function RolesClient({
         lateMinutes: r.lateMinutes,
       })),
     };
-  }, [viewUser, detailRecords, detailStats, mentors]);
+  }, [viewUser, mentors]);
 
   return (
     <div className="grid gap-6">
