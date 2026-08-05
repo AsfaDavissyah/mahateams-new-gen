@@ -307,29 +307,29 @@ export default async function AttendanceDetailStatPage({
   const currentStudioObj = studios.find((s) => s.id === selectedStudioId);
   const studioLabel =
     !selectedStudioId || selectedStudioId === "all"
-      ? "Semua Studio"
+      ? "All Studios"
       : currentStudioObj?.name ||
         currentUser.defaultStudio?.name ||
-        "Studio Admin";
+        "Admin Studio";
 
   const metricTitleMap: Record<MetricType, string> = {
-    TOTAL: "Total Presensi",
-    ON_TIME: "Tepat Waktu",
-    LATE: "Terlambat",
-    SICK: "Sakit",
+    TOTAL: "Total Attendance",
+    ON_TIME: "On Time",
+    LATE: "Late",
+    SICK: "Sick",
     ALPHA: "Alpha",
     WFH: "WFH",
-    LEAVE: "Cuti / Izin",
-    MINUS_WORKDAYS: "Hutang Hari Kerja",
+    LEAVE: "Leave / Permission",
+    MINUS_WORKDAYS: "Workday Debt",
   };
 
   return (
     <DashboardShell
       user={currentUser}
       currentPath="/laporan-presensi"
-      badge="Detail Statistik Filter"
-      title="Detail & Filter Statistik"
-      description={`Menampilkan data ${metricTitleMap[metric] || metric} untuk bulan ${formatMonthLabel(month)} (${studioLabel}).`}
+      badge="Filtered Statistics Details"
+      title="Detail & Filtered Statistics"
+      description={`Displaying data for ${metricTitleMap[metric] || metric} for ${formatMonthLabel(month)} (${studioLabel}).`}
     >
       <DetailStatisticClient
         currentUser={{

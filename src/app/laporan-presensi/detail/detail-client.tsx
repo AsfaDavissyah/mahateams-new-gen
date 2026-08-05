@@ -123,31 +123,31 @@ const METRIC_CONFIG: Record<
   { label: string; icon: any; color: string; bgActive: string }
 > = {
   TOTAL: {
-    label: "Total Presensi",
+    label: "Total Attendance",
     icon: ClipboardCheck,
     color: "text-blue-600 dark:text-blue-400",
     bgActive: "border-blue-500 bg-blue-50/60 dark:bg-blue-950/40",
   },
   SICK: {
-    label: "Sakit",
+    label: "Sick",
     icon: HeartPulse,
     color: "text-violet-600 dark:text-violet-400",
     bgActive: "border-violet-500 bg-violet-50/60 dark:bg-violet-950/40",
   },
   LATE: {
-    label: "Terlambat",
+    label: "Late",
     icon: Clock3,
     color: "text-orange-600 dark:text-orange-400",
     bgActive: "border-orange-500 bg-orange-50/60 dark:bg-orange-950/40",
   },
   ON_TIME: {
-    label: "Tepat Waktu",
+    label: "On Time",
     icon: CheckCircle2,
     color: "text-emerald-600 dark:text-emerald-400",
     bgActive: "border-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/40",
   },
   ALPHA: {
-    label: "Alpha (Tidak Hadir)",
+    label: "Alpha",
     icon: AlertTriangle,
     color: "text-red-600 dark:text-red-400",
     bgActive: "border-red-500 bg-red-50/60 dark:bg-red-950/40",
@@ -159,13 +159,13 @@ const METRIC_CONFIG: Record<
     bgActive: "border-sky-500 bg-sky-50/60 dark:bg-sky-950/40",
   },
   LEAVE: {
-    label: "Cuti / Izin",
+    label: "Leave / Permission",
     icon: Calendar,
     color: "text-amber-600 dark:text-amber-400",
     bgActive: "border-amber-500 bg-amber-50/60 dark:bg-amber-950/40",
   },
   MINUS_WORKDAYS: {
-    label: "Hutang Hari Kerja",
+    label: "Workday Debt",
     icon: ShieldAlert,
     color: "text-rose-600 dark:text-rose-400",
     bgActive: "border-rose-500 bg-rose-50/60 dark:bg-rose-950/40",
@@ -195,10 +195,10 @@ export function DetailStatisticClient({
   const currentStudioObj = studios.find((s) => s.id === selectedStudio);
   const studioLabel =
     selectedStudio === "all"
-      ? "Semua Studio"
+      ? "All Studios"
       : currentStudioObj?.name ||
         currentUser.defaultStudioName ||
-        "Studio Admin";
+        "Admin Studio";
 
   // Helper to update URL with new parameters
   const updateParams = (newParams: Partial<{
@@ -397,7 +397,7 @@ export function DetailStatisticClient({
               {metric !== "MINUS_WORKDAYS" && (
                 <div className="grid gap-1.5">
                   <label htmlFor="filter-month" className="text-xs font-medium text-muted-foreground">
-                    Bulan
+                    Month
                   </label>
                   <input
                     id="filter-month"
@@ -412,7 +412,7 @@ export function DetailStatisticClient({
               {/* Studio Selector */}
               <div className="grid gap-1.5">
                 <label htmlFor="filter-studio" className="text-xs font-medium text-muted-foreground">
-                  Cakupan Studio
+                  Studio Scope
                 </label>
                 <select
                   id="filter-studio"
@@ -421,14 +421,14 @@ export function DetailStatisticClient({
                   onChange={(e) => updateParams({ studio: e.target.value })}
                   className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-75"
                 >
-                  {isSuperAdmin && <option value="all">Semua Studio (Mahative & Kipa)</option>}
+                  {isSuperAdmin && <option value="all">All Studios (Mahative & Kipa)</option>}
                   {studios.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
                   ))}
                   {!isSuperAdmin && !studios.some(s => s.id === selectedStudio) && (
-                    <option value={selectedStudio}>{currentUser.defaultStudioName || "Studio Saya"}</option>
+                    <option value={selectedStudio}>{currentUser.defaultStudioName || "My Studio"}</option>
                   )}
                 </select>
               </div>
@@ -436,7 +436,7 @@ export function DetailStatisticClient({
               {/* Member Status Filter */}
               <div className="grid gap-1.5">
                 <label htmlFor="filter-member-status" className="text-xs font-medium text-muted-foreground">
-                  Status Anggota
+                  Member Type
                 </label>
                 <select
                   id="filter-member-status"
@@ -448,23 +448,23 @@ export function DetailStatisticClient({
                   }
                   className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 >
-                  <option value="ALL">Semua Tipe (Team & Intern)</option>
-                  <option value="TEAM">Khusus Team</option>
-                  <option value="INTERN">Khusus Intern</option>
+                  <option value="ALL">All Types (Team & Intern)</option>
+                  <option value="TEAM">Team Only</option>
+                  <option value="INTERN">Intern Only</option>
                 </select>
               </div>
 
               {/* Search Field */}
               <div className="grid gap-1.5">
                 <label htmlFor="filter-search" className="text-xs font-medium text-muted-foreground">
-                  Cari Nama / Email
+                  Search Name / Email
                 </label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
                   <input
                     id="filter-search"
                     type="text"
-                    placeholder="Cari anggota..."
+                    placeholder="Search member..."
                     value={inputSearch}
                     onChange={(e) => setInputSearch(e.target.value)}
                     className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 pl-8 pr-8 text-sm focus:outline-none focus:ring-1 focus:ring-ring w-48 sm:w-64"
@@ -515,14 +515,14 @@ export function DetailStatisticClient({
                   <span>{activeConfig.label}</span>
                   <Badge variant="outline" className="font-normal text-xs">
                     {metric === "MINUS_WORKDAYS"
-                      ? `${minusWorkdayUsers.length} Anggota`
-                      : `${attendanceRecords.length} Catatan`}
+                      ? `${minusWorkdayUsers.length} Members`
+                      : `${attendanceRecords.length} Records`}
                   </Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">
                   {metric === "MINUS_WORKDAYS"
-                    ? "Daftar anggota dengan hutang saldo hari kerja (< 0)."
-                    : `Data presensi bulan ${formatMonthLabel(month)} untuk ${studioLabel}.`}
+                    ? "List of members with workday debt (< 0)."
+                    : `Attendance data for ${formatMonthLabel(month)} for ${studioLabel}.`}
                 </CardDescription>
               </div>
             </div>

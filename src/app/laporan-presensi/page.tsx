@@ -18,6 +18,7 @@ import {
 import { DashboardShell } from "@/components/dashboard-shell";
 import { AttendanceReportExportClient } from "./export-client";
 import { LaporanPresensiTabsClient } from "./laporan-presensi-tabs-client";
+import { LaporanPresensiFilterClient } from "./laporan-presensi-filter-client";
 import {
   ATTENDANCE_STATUS_COLOR,
   ATTENDANCE_STATUS_LABEL,
@@ -294,43 +295,11 @@ export default async function AttendanceReportPage({
       <div className="flex flex-col gap-4">
         <Card className="shadow-none">
           <CardContent className="p-4 flex flex-wrap items-end justify-between gap-4">
-            <form method="GET" className="flex flex-wrap items-end gap-3 flex-1">
-              <div className="grid gap-1.5">
-                <label htmlFor="report-month" className="text-sm font-medium">
-                  Month
-                </label>
-                <input
-                  id="report-month"
-                  name="month"
-                  type="month"
-                  defaultValue={month}
-                  className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                />
-              </div>
-
-              <div className="grid gap-1.5">
-                <label htmlFor="report-status" className="text-sm font-medium">
-                  Detail Status
-                </label>
-                <select
-                  id="report-status"
-                  name="status"
-                  defaultValue={status}
-                  className="h-9 rounded-md border border-input bg-white dark:bg-zinc-950 text-zinc-950 dark:text-zinc-50 px-3 text-sm focus:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                >
-                  <option value="ALL">All Statuses</option>
-                  {FILTERABLE_STATUSES.map((item) => (
-                    <option key={item} value={item}>
-                      {ATTENDANCE_STATUS_LABEL[item]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid gap-1.5">
-                <div className="h-5" />
-                <Button type="submit" className="h-9">Apply Filter</Button>
-              </div>
-            </form>
+            <LaporanPresensiFilterClient
+              initialMonth={month}
+              initialStatus={status}
+              filterableStatuses={FILTERABLE_STATUSES}
+            />
 
             <div className="grid gap-1.5 justify-self-end">
               <div className="h-5" />

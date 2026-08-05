@@ -1,17 +1,17 @@
 import { dateOnlyFromKey, getJakartaDateKey } from "@/lib/attendance-time";
 
 export const ATTENDANCE_STATUS_LABEL: Record<string, string> = {
-  PRESENT: "Hadir",
-  ON_TIME: "Tepat Waktu",
-  LATE: "Terlambat",
+  PRESENT: "Present",
+  ON_TIME: "On Time",
+  LATE: "Late",
   WFH: "WFH",
-  PERMISSION: "Izin",
-  SICK: "Sakit",
-  DISPENSATION: "Dispensasi",
-  LEAVE: "Cuti",
+  PERMISSION: "Permission",
+  SICK: "Sick",
+  DISPENSATION: "Dispensation",
+  LEAVE: "Leave",
   ALPHA: "Alpha",
-  HOLIDAY: "Hari Libur",
-  OFF_DAY: "Hari Libur",
+  HOLIDAY: "Holiday",
+  OFF_DAY: "Off Day",
 };
 
 export const ATTENDANCE_STATUS_COLOR: Record<string, string> = {
