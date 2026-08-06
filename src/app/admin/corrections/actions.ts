@@ -88,16 +88,12 @@ async function reviewCorrectionCore(
   }
 
   const record = correction.attendanceRecord;
-  const isPlacedAtReviewerStudio = record.user.placements.some(
-    (placement) => placement.studioId === reviewer.defaultStudioId,
-  );
-  const isAuthorized =
-    record.ownerStudioId === reviewer.defaultStudioId ||
-    record.locationStudioId === reviewer.defaultStudioId ||
-    isPlacedAtReviewerStudio;
+  const activePlacement = record.user.placements[0];
+  const activeStudioId = activePlacement?.studioId ?? record.ownerStudioId;
+  const isAuthorized = activeStudioId === reviewer.defaultStudioId;
 
   if (reviewer.role === "ADMIN" && !isAuthorized) {
-    throw new Error("You do not have access to corrections from this studio.");
+    throw new Error("Only the admin of the member's current active studio can review this correction.");
   }
   if (
     reviewer.role === "ADMIN" &&

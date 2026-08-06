@@ -32,7 +32,13 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     ? { OR: [{ ownerStudioId: defaultStudioId }, { locationStudioId: defaultStudioId }] }
     : {};
   const userFilter: Prisma.UserWhereInput = defaultStudioId
-    ? { OR: [{ defaultStudioId }, { placements: { some: { studioId: defaultStudioId, status: "ACTIVE" as const } } }] }
+    ? {
+        role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
+        OR: [
+          { placements: { some: { studioId: defaultStudioId, status: "ACTIVE" as const } } },
+          { defaultStudioId, placements: { none: { status: "ACTIVE" as const } } },
+        ],
+      }
     : {};
 
   const month = parseMonthKey(selectedMonthKey);
@@ -228,20 +234,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
       where: {
         status: "PENDING",
         attendanceRecord: {
-          OR: [
-            { ownerStudioId: defaultStudioId ?? "__none__" },
-            { locationStudioId: defaultStudioId ?? "__none__" },
-            {
-              user: {
-                placements: {
-                  some: {
-                    studioId: defaultStudioId ?? "__none__",
-                    status: "ACTIVE",
-                  },
-                },
-              },
-            },
-          ],
+          user: userFilter,
         },
       },
       include: {

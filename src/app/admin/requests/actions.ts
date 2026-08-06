@@ -66,14 +66,12 @@ async function reviewRequestCore(requestId: string, approve: boolean, reviewer: 
   if (!request) throw new Error("Request not found.");
   if (request.status !== "PENDING") throw new Error("This request has already been reviewed.");
 
-  const isPlacedAtReviewerStudio = request.user.placements.some(
-    (placement) => placement.studioId === reviewer.defaultStudioId,
-  );
-  const isAuthorized =
-    request.user.defaultStudioId === reviewer.defaultStudioId || isPlacedAtReviewerStudio;
+  const activePlacement = request.user.placements[0];
+  const activeStudioId = activePlacement?.studioId ?? request.user.defaultStudioId;
+  const isAuthorized = activeStudioId === reviewer.defaultStudioId;
 
   if (reviewer.role === "ADMIN" && !isAuthorized) {
-    throw new Error("You do not have access to requests from this studio.");
+    throw new Error("Only the admin of the member's current active studio can review this request.");
   }
   if (
     reviewer.role === "ADMIN" &&

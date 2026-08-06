@@ -21,21 +21,25 @@ export default async function AdminApprovalsPage({
   const currentUser = await requireAnyRole(["SUPER_ADMIN", "ADMIN"]);
   const params = await searchParams;
 
+  const adminStudioId = currentUser.defaultStudioId ?? "__NO_STUDIO__";
+  const userActiveStudioFilter: Prisma.UserWhereInput = {
+    role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
+    OR: [
+      { placements: { some: { studioId: adminStudioId, status: "ACTIVE" as const } } },
+      {
+        defaultStudioId: currentUser.defaultStudioId,
+        placements: { none: { status: "ACTIVE" as const } },
+      },
+    ],
+  };
+
   const scopedWhereRequests: Prisma.RequestWhereInput =
     currentUser.role === "SUPER_ADMIN"
       ? { status: "PENDING", type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] } }
       : {
           status: "PENDING",
           type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] },
-          user: {
-            role: {
-              notIn: ["ADMIN", "SUPER_ADMIN"],
-            },
-            OR: [
-              { defaultStudioId: currentUser.defaultStudioId },
-              { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } },
-            ],
-          },
+          user: userActiveStudioFilter,
         };
 
   const scopedWhereCorrections: Prisma.AttendanceCorrectionWhereInput =
@@ -44,16 +48,7 @@ export default async function AdminApprovalsPage({
       : {
           status: "PENDING",
           attendanceRecord: {
-            user: {
-              role: {
-                notIn: ["ADMIN", "SUPER_ADMIN"],
-              },
-            },
-            OR: [
-              { ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
-              { locationStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
-              { user: { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } } },
-            ],
+            user: userActiveStudioFilter,
           },
         };
 
@@ -63,15 +58,7 @@ export default async function AdminApprovalsPage({
       : {
           status: { in: ["APPROVED", "REJECTED", "CANCELLED"] },
           type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] },
-          user: {
-            role: {
-              notIn: ["ADMIN", "SUPER_ADMIN"],
-            },
-            OR: [
-              { defaultStudioId: currentUser.defaultStudioId },
-              { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } },
-            ],
-          },
+          user: userActiveStudioFilter,
         };
 
   const scopedWhereHistoryCorrections: Prisma.AttendanceCorrectionWhereInput =
@@ -80,16 +67,7 @@ export default async function AdminApprovalsPage({
       : {
           status: { in: ["APPROVED", "REJECTED"] },
           attendanceRecord: {
-            user: {
-              role: {
-                notIn: ["ADMIN", "SUPER_ADMIN"],
-              },
-            },
-            OR: [
-              { ownerStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
-              { locationStudioId: currentUser.defaultStudioId ?? "__NO_STUDIO__" },
-              { user: { placements: { some: { studioId: currentUser.defaultStudioId ?? "__NO_STUDIO__", status: "ACTIVE" as const } } } },
-            ],
+            user: userActiveStudioFilter,
           },
         };
 
