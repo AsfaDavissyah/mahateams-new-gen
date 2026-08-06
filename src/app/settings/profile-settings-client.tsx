@@ -42,15 +42,19 @@ export function ProfileSettingsClient({ initialUser }: Props) {
 
     const formData = new FormData(event.currentTarget);
     try {
-      await updateProfileAction(formData);
-      toast.success("Your profile was updated successfully!");
-      const form = event.target as HTMLFormElement;
-      const newPwdInput = form.elements.namedItem("newPassword") as HTMLInputElement;
-      const confirmPwdInput = form.elements.namedItem("confirmNewPassword") as HTMLInputElement;
-      if (newPwdInput) newPwdInput.value = "";
-      if (confirmPwdInput) confirmPwdInput.value = "";
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to update profile.");
+      const result = await updateProfileAction(formData);
+      if (!result.success) {
+        toast.error(result.error ?? "Failed to update profile.");
+      } else {
+        toast.success("Your profile was updated successfully!");
+        const form = event.target as HTMLFormElement;
+        const newPwdInput = form.elements.namedItem("newPassword") as HTMLInputElement;
+        const confirmPwdInput = form.elements.namedItem("confirmNewPassword") as HTMLInputElement;
+        if (newPwdInput) newPwdInput.value = "";
+        if (confirmPwdInput) confirmPwdInput.value = "";
+      }
+    } catch {
+      toast.error("Failed to update profile.");
     } finally {
       setLoading(false);
     }
@@ -75,12 +79,16 @@ export function ProfileSettingsClient({ initialUser }: Props) {
 
     setPinLoading(true);
     try {
-      await updateUserPinAction(formData);
-      toast.success("Security PIN updated successfully!");
-      const form = event.target as HTMLFormElement;
-      form.reset();
-    } catch (error: unknown) {
-      toast.error(error instanceof Error ? error.message : "Failed to update PIN.");
+      const result = await updateUserPinAction(formData);
+      if (!result.success) {
+        toast.error(result.error ?? "Failed to update PIN.");
+      } else {
+        toast.success("Security PIN updated successfully!");
+        const form = event.target as HTMLFormElement;
+        form.reset();
+      }
+    } catch {
+      toast.error("Failed to update PIN.");
     } finally {
       setPinLoading(false);
     }

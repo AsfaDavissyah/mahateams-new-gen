@@ -69,7 +69,7 @@ export async function updateStudioWeekStartAction(studioId: string, weekStartDay
 
 // ─── Self-Service Profile Update ─────────────────────────────────────────────
 
-export async function updateProfileAction(formData: FormData) {
+export async function updateProfileAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const actor = await requireUser();
 
   const name = String(formData.get("name") ?? "").trim();
@@ -81,14 +81,12 @@ export async function updateProfileAction(formData: FormData) {
   const phoneNumber = formData.get("phoneNumber") ? String(formData.get("phoneNumber")).trim() : null;
   const address = formData.get("address") ? String(formData.get("address")).trim() : null;
   if (!name || !email) {
-    throw new Error("Nama dan Email wajib diisi.");
+    return { success: false, error: "Nama dan Email wajib diisi." };
   }
 
   // Validate username format
   if (username && !/^[a-z0-9._-]{3,30}$/.test(username)) {
-    throw new Error(
-      "Username harus 3-30 karakter and hanya boleh berisi huruf kecil, angka, titik, garis bawah, atau tanda hubung."
-    );
+    return { success: false, error: "Username harus 3-30 karakter and hanya boleh berisi huruf kecil, angka, titik, garis bawah, atau tanda hubung." };
   }
 
   // Fetch full user including username to compare
@@ -98,7 +96,7 @@ export async function updateProfileAction(formData: FormData) {
   });
 
   if (!fullUser) {
-    throw new Error("User tidak ditemukan.");
+    return { success: false, error: "User tidak ditemukan." };
   }
 
   // Validate unique email
@@ -108,7 +106,7 @@ export async function updateProfileAction(formData: FormData) {
       select: { id: true },
     });
     if (existingEmail) {
-      throw new Error("Email sudah terdaftar.");
+      return { success: false, error: "Email sudah terdaftar." };
     }
   }
 
@@ -119,7 +117,7 @@ export async function updateProfileAction(formData: FormData) {
       select: { id: true },
     });
     if (existingUsername) {
-      throw new Error("Username sudah digunakan.");
+      return { success: false, error: "Username sudah digunakan." };
     }
   }
 
@@ -127,10 +125,10 @@ export async function updateProfileAction(formData: FormData) {
   let passwordHash: string | undefined = undefined;
   if (newPassword) {
     if (newPassword.length < 6) {
-      throw new Error("Password baru minimal 6 karakter.");
+      return { success: false, error: "Password baru minimal 6 karakter." };
     }
     if (newPassword !== confirmNewPassword) {
-      throw new Error("New password confirmation does not match.");
+      return { success: false, error: "New password confirmation does not match." };
     }
     passwordHash = hashPassword(newPassword);
   }
@@ -139,7 +137,7 @@ export async function updateProfileAction(formData: FormData) {
   if (birthDateStr) {
     birthDate = new Date(birthDateStr);
     if (isNaN(birthDate.getTime())) {
-      throw new Error("Format tanggal lahir tidak valid.");
+      return { success: false, error: "Format tanggal lahir tidak valid." };
     }
   }
 
@@ -158,6 +156,7 @@ export async function updateProfileAction(formData: FormData) {
   });
 
   revalidatePath("/settings");
+  return { success: true };
 }
 
 export async function updateMoodAction(formData: FormData) {
@@ -167,7 +166,7 @@ export async function updateMoodAction(formData: FormData) {
 
 // ─── Update Security PIN ─────────────────────────────────────────────────────
 
-export async function updateUserPinAction(formData: FormData) {
+export async function updateUserPinAction(formData: FormData): Promise<{ success: boolean; error?: string }> {
   const actor = await requireUser();
   const { hashPin, verifyPin, verifyPassword } = await import("@/lib/auth");
 
@@ -177,11 +176,11 @@ export async function updateUserPinAction(formData: FormData) {
 
   const pinError = getSecurityPinError(newPin);
   if (pinError) {
-    throw new Error(pinError);
+    return { success: false, error: pinError };
   }
 
   if (newPin !== confirmNewPin) {
-    throw new Error("PIN confirmation does not match.");
+    return { success: false, error: "PIN confirmation does not match." };
   }
 
   const fullUser = await prisma.user.findUnique({
@@ -190,14 +189,14 @@ export async function updateUserPinAction(formData: FormData) {
   });
 
   if (!fullUser) {
-    throw new Error("User was not found.");
+    return { success: false, error: "User was not found." };
   }
 
   const isPasswordValid = verifyPassword(currentVerification, fullUser.passwordHash);
   const isPinValid = verifyPin(currentVerification, fullUser.pinHash);
 
   if (!isPasswordValid && !isPinValid) {
-    throw new Error("Your current password or PIN is incorrect.");
+    return { success: false, error: "Your current password or PIN is incorrect." };
   }
 
   const pinHash = hashPin(newPin);
@@ -211,6 +210,7 @@ export async function updateUserPinAction(formData: FormData) {
   });
 
   revalidatePath("/settings");
+  return { success: true };
 }
 
 // ─── Update Studio Attendance Policy ─────────────────────────────────────────
