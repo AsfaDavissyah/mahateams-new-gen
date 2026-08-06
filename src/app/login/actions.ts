@@ -27,7 +27,7 @@ type QrAttendanceInput = {
   longitude?: number;
 };
 
-const QR_PIN_MAX_ATTEMPTS = 5;
+const QR_PIN_MAX_ATTEMPTS = 10;
 const QR_PIN_WINDOW_MINUTES = 15;
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
