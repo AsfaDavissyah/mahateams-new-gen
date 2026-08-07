@@ -7,6 +7,7 @@ export type UserContext = {
   id: string;
   role: AppRole;
   defaultStudioId?: string | null;
+  activeStudioId?: string | null;
 };
 
 export type BirthdaySignal = {
@@ -38,13 +39,17 @@ export type DailySignals = {
 };
 
 export async function getTodayBirthdaySignals(user: UserContext): Promise<BirthdaySignal[]> {
+  const targetStudioId = user.activeStudioId ?? user.defaultStudioId;
   const whereClause: Prisma.UserWhereInput = {
     accountStatus: "ACTIVE",
     birthDate: { not: null },
   };
 
-  if (user.role !== "SUPER_ADMIN" && user.defaultStudioId) {
-    whereClause.defaultStudioId = user.defaultStudioId;
+  if (user.role !== "SUPER_ADMIN" && targetStudioId) {
+    whereClause.OR = [
+      { defaultStudioId: targetStudioId },
+      { placements: { some: { studioId: targetStudioId, status: "ACTIVE" as const } } },
+    ];
   }
 
   const activeUsers = await prisma.user.findMany({
@@ -83,13 +88,18 @@ export async function getTodayBirthdaySignals(user: UserContext): Promise<Birthd
 export async function getTodayMoodSignals(user: UserContext): Promise<MoodSignalSummary> {
   const todayKey = getJakartaDateKey(new Date());
   const todayDate = dateOnlyFromKey(todayKey);
+  const targetStudioId = user.activeStudioId ?? user.defaultStudioId;
 
   const whereClause: Prisma.AttendanceRecordWhereInput = {
     attendanceDate: todayDate,
   };
 
-  if (user.role !== "SUPER_ADMIN" && user.defaultStudioId) {
-    whereClause.ownerStudioId = user.defaultStudioId;
+  if (user.role !== "SUPER_ADMIN" && targetStudioId) {
+    whereClause.OR = [
+      { locationStudioId: targetStudioId },
+      { ownerStudioId: targetStudioId, locationStudioId: null },
+      { user: { placements: { some: { studioId: targetStudioId, status: "ACTIVE" as const } } } },
+    ];
   }
 
   const records = await prisma.attendanceRecord.findMany({
@@ -131,6 +141,7 @@ export async function getTodayMoodSignals(user: UserContext): Promise<MoodSignal
 export async function getTodayEventSignals(user: UserContext): Promise<EventSignal[]> {
   const todayKey = getJakartaDateKey(new Date());
   const todayDate = dateOnlyFromKey(todayKey);
+  const targetStudioId = user.activeStudioId ?? user.defaultStudioId;
 
   const whereClause: Prisma.CalendarEventWhereInput = {
     startDate: { lte: todayDate },
@@ -140,7 +151,7 @@ export async function getTodayEventSignals(user: UserContext): Promise<EventSign
   if (user.role !== "SUPER_ADMIN") {
     whereClause.OR = [
       { studioId: null },
-      { studioId: user.defaultStudioId ?? "__none__" },
+      { studioId: targetStudioId ?? "__none__" },
     ];
   }
 

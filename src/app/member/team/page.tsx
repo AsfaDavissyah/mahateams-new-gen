@@ -15,16 +15,32 @@ export const dynamic = "force-dynamic";
 export default async function TeamMoodPage() {
   const currentUser = await requireUser();
 
+  const fullUser = await prisma.user.findUnique({
+    where: { id: currentUser.id },
+    select: {
+      placements: {
+        where: { status: "ACTIVE" as const },
+        select: { studioId: true, studio: { select: { name: true } } },
+      },
+    },
+  });
+
+  const activePlacement = fullUser?.placements?.[0];
+  const targetStudioId = activePlacement?.studioId ?? currentUser.defaultStudioId;
+
   const todayKey = getJakartaDateKey(new Date());
   const todayDate = dateOnlyFromKey(todayKey);
 
   const whereClause: Prisma.UserWhereInput = {
     accountStatus: "ACTIVE",
-    role: { not: "SUPER_ADMIN" },
+    role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
   };
 
-  if (currentUser.role !== "SUPER_ADMIN" && currentUser.defaultStudioId) {
-    whereClause.defaultStudioId = currentUser.defaultStudioId;
+  if (currentUser.role !== "SUPER_ADMIN" && targetStudioId) {
+    whereClause.OR = [
+      { placements: { some: { studioId: targetStudioId, status: "ACTIVE" as const } } },
+      { defaultStudioId: targetStudioId, placements: { none: { status: "ACTIVE" as const } } },
+    ];
   }
 
   const users = await prisma.user.findMany({
@@ -37,6 +53,14 @@ export default async function TeamMoodPage() {
       role: true,
       defaultStudio: {
         select: { name: true },
+      },
+      placements: {
+        where: { status: "ACTIVE" as const },
+        select: {
+          studio: {
+            select: { name: true },
+          },
+        },
       },
       attendanceRecords: {
         where: {
@@ -91,6 +115,7 @@ export default async function TeamMoodPage() {
     id: currentUser.id,
     role: currentUser.role,
     defaultStudioId: currentUser.defaultStudioId,
+    activeStudioId: targetStudioId,
   });
 
   return (
@@ -164,6 +189,11 @@ export default async function TeamMoodPage() {
                         <p className="text-[10px] text-zinc-500 truncate">
                           {u.defaultStudio?.name ?? "No studio assigned"}
                         </p>
+                        {u.placements?.[0]?.studio?.name && (
+                          <Badge variant="outline" className="text-[9px] bg-amber-50/80 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/50 mt-0.5">
+                            Placed at {u.placements[0].studio.name}
+                          </Badge>
+                        )}
                       </div>
                     </CardHeader>
                     <CardContent className="p-4 pt-0 flex-grow flex flex-col justify-between">

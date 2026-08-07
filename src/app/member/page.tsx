@@ -110,11 +110,27 @@ async function getMemberDashboardData(userId: string, selectedMonthKey?: string)
 
   const userObj = await prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, role: true, defaultStudioId: true, workDayBalance: true, picketDay: true, annualLeaveBalance: true, memberStatus: true, notes: true }
+    select: {
+      id: true,
+      role: true,
+      defaultStudioId: true,
+      workDayBalance: true,
+      picketDay: true,
+      annualLeaveBalance: true,
+      memberStatus: true,
+      notes: true,
+      placements: {
+        where: { status: "ACTIVE" as const },
+        select: { studioId: true },
+      },
+    },
   });
 
+  const activePlacement = userObj?.placements?.[0];
+  const activeStudioId = activePlacement?.studioId ?? userObj?.defaultStudioId;
+
   const dailySignals = userObj
-    ? await getDailySignals({ id: userId, role: userObj.role, defaultStudioId: userObj.defaultStudioId })
+    ? await getDailySignals({ id: userId, role: userObj.role, defaultStudioId: userObj.defaultStudioId, activeStudioId })
     : { birthdays: [], moodSummary: { totalCheckedIn: 0, sharedMoodCount: 0, mostCommonMood: null }, events: [] };
 
   const [

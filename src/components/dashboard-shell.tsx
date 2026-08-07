@@ -157,8 +157,8 @@ export async function DashboardShell({
         </header>
 
         {/* Main Content Area */}
-        <div className="flex-1 p-6 lg:p-8">
-          <div className="mx-auto w-full max-w-[1440px]">
+        <div className="flex-1 min-w-0 w-full max-w-full p-4 sm:p-6 lg:p-8">
+          <div className="mx-auto w-full max-w-[1440px] min-w-0">
             {/* Page Header */}
             <div className="mb-6">
               <Badge variant="outline" className="mb-2 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm text-zinc-800 dark:text-zinc-200 border-zinc-200 dark:border-zinc-800">

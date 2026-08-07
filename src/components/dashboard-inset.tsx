@@ -11,7 +11,7 @@ export function DashboardInset({ children }: { children: React.ReactNode }) {
   return (
     <SidebarInset
       style={bgStyle}
-      className="flex flex-col bg-white/70 dark:bg-background/70 backdrop-blur-md border border-zinc-300 dark:border-zinc-700/80 rounded-xl overflow-clip shadow-xs m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 text-zinc-950 dark:text-zinc-50 transition-all duration-300"
+      className="flex flex-col min-w-0 w-full max-w-full bg-white/70 dark:bg-background/70 backdrop-blur-md border border-zinc-300 dark:border-zinc-700/80 rounded-xl overflow-x-clip shadow-xs m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 text-zinc-950 dark:text-zinc-50 transition-all duration-300"
     >
       {children}
     </SidebarInset>

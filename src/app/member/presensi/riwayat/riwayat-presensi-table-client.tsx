@@ -196,10 +196,10 @@ export function RiwayatPresensiTableClient({ records, maxCorrectionDays = 14 }: 
   }, [records, searchQuery, statusFilter, modeFilter, sortField, sortAsc]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 min-w-0 w-full max-w-full">
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 min-w-0 w-full">
+        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-2.5 min-w-0 w-full">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
             <Input
@@ -210,7 +210,7 @@ export function RiwayatPresensiTableClient({ records, maxCorrectionDays = 14 }: 
             />
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "ALL")}>
               <SelectTrigger className="h-9 text-xs min-w-[130px] bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
                 <SelectValue placeholder="All Statuses" />
@@ -253,7 +253,7 @@ export function RiwayatPresensiTableClient({ records, maxCorrectionDays = 14 }: 
         </div>
       </div>
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950">
+      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 overflow-hidden bg-white dark:bg-zinc-950 min-w-0 w-full max-w-full">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>

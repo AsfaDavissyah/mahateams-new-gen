@@ -217,7 +217,7 @@ export function LaporanPresensiTabsClient({
             </TabsTrigger>
             <TabsTrigger value="journals" className="flex items-center gap-1.5">
               <Home className="size-4" />
-              Work Journal (WFO & WFH)
+              Work Journal
             </TabsTrigger>
           </TabsList>
           <div className="w-full sm:max-w-xs relative">
@@ -261,7 +261,8 @@ export function LaporanPresensiTabsClient({
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
+              <div className="overflow-x-auto min-w-0 w-full max-w-full">
+                <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>
@@ -315,34 +316,36 @@ export function LaporanPresensiTabsClient({
                   onSelectRecord={openDetailModal}
                 />
               </Table>
-            </CardContent>
-            {sortedRecords.length > attendancePageSize && (
-              <div className="flex flex-col gap-2 border-t border-zinc-100 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
-                <span>
-                  Showing {(attendancePage - 1) * attendancePageSize + 1}-{Math.min(attendancePage * attendancePageSize, sortedRecords.length)} of {sortedRecords.length} records
-                </span>
-                <div className="flex items-center gap-2">
-                  <button type="button" disabled={attendancePage <= 1} onClick={() => setAttendancePage((prev) => Math.max(1, prev - 1))} className="rounded-md border border-zinc-200 px-2 py-1 disabled:opacity-50 dark:border-zinc-800">Previous</button>
-                  <span className="font-medium text-zinc-700 dark:text-zinc-300">Page {attendancePage} / {attendanceTotalPages}</span>
-                  <button type="button" disabled={attendancePage >= attendanceTotalPages} onClick={() => setAttendancePage((prev) => Math.min(attendanceTotalPages, prev + 1))} className="rounded-md border border-zinc-200 px-2 py-1 disabled:opacity-50 dark:border-zinc-800">Next</button>
-                </div>
+            </div>
+          </CardContent>
+          {sortedRecords.length > attendancePageSize && (
+            <div className="flex flex-col gap-2 border-t border-zinc-100 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Showing {(attendancePage - 1) * attendancePageSize + 1}-{Math.min(attendancePage * attendancePageSize, sortedRecords.length)} of {sortedRecords.length} records
+              </span>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={attendancePage <= 1} onClick={() => setAttendancePage((prev) => Math.max(1, prev - 1))} className="rounded-md border border-zinc-200 px-2 py-1 disabled:opacity-50 dark:border-zinc-800">Previous</button>
+                <span className="font-medium text-zinc-700 dark:text-zinc-300">Page {attendancePage} / {attendanceTotalPages}</span>
+                <button type="button" disabled={attendancePage >= attendanceTotalPages} onClick={() => setAttendancePage((prev) => Math.min(attendanceTotalPages, prev + 1))} className="rounded-md border border-zinc-200 px-2 py-1 disabled:opacity-50 dark:border-zinc-800">Next</button>
               </div>
-            )}
-          </Card>
-        </TabsContent>
+            </div>
+          )}
+        </Card>
+      </TabsContent>
 
-        <TabsContent value="journals">
-          <Card className="shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
-                <Home className="size-5 text-sky-700 dark:text-sky-400" />
-                Daily Work Journal (WFO & WFH)
-              </CardTitle>
-              <CardDescription className="text-zinc-500 dark:text-zinc-400">
-                Manage morning work plans and end-of-day reports of team members (Team & Intern).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
+      <TabsContent value="journals">
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-zinc-900 dark:text-zinc-50">
+              <Home className="size-5 text-sky-700 dark:text-sky-400" />
+              Daily Work Journal (WFO & WFH)
+            </CardTitle>
+            <CardDescription className="text-zinc-500 dark:text-zinc-400">
+              Manage morning work plans and end-of-day reports of team members (Team & Intern).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto min-w-0 w-full max-w-full">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -401,7 +404,8 @@ export function LaporanPresensiTabsClient({
                   )}
                 </TableBody>
               </Table>
-            </CardContent>
+            </div>
+          </CardContent>
             {journalRecords.length > journalPageSize && (
               <div className="flex flex-col gap-2 border-t border-zinc-100 px-4 py-3 text-xs text-zinc-500 dark:border-zinc-800 dark:text-zinc-400 sm:flex-row sm:items-center sm:justify-between">
                 <span>

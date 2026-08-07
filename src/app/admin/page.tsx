@@ -377,6 +377,7 @@ async function getAdminDashboardData(userId: string, defaultStudioId: string | n
     id: userId,
     role: "ADMIN",
     defaultStudioId,
+    activeStudioId: defaultStudioId,
   });
 
   return {

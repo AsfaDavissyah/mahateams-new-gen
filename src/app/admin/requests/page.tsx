@@ -22,14 +22,11 @@ export default async function AdminApprovalsPage({
   const params = await searchParams;
 
   const adminStudioId = currentUser.defaultStudioId ?? "__NO_STUDIO__";
-  const userActiveStudioFilter: Prisma.UserWhereInput = {
+  const userDualStudioFilter: Prisma.UserWhereInput = {
     role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
     OR: [
+      { defaultStudioId: currentUser.defaultStudioId },
       { placements: { some: { studioId: adminStudioId, status: "ACTIVE" as const } } },
-      {
-        defaultStudioId: currentUser.defaultStudioId,
-        placements: { none: { status: "ACTIVE" as const } },
-      },
     ],
   };
 
@@ -39,7 +36,7 @@ export default async function AdminApprovalsPage({
       : {
           status: "PENDING",
           type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] },
-          user: userActiveStudioFilter,
+          user: userDualStudioFilter,
         };
 
   const scopedWhereCorrections: Prisma.AttendanceCorrectionWhereInput =
@@ -48,7 +45,7 @@ export default async function AdminApprovalsPage({
       : {
           status: "PENDING",
           attendanceRecord: {
-            user: userActiveStudioFilter,
+            user: userDualStudioFilter,
           },
         };
 
@@ -58,7 +55,7 @@ export default async function AdminApprovalsPage({
       : {
           status: { in: ["APPROVED", "REJECTED", "CANCELLED"] },
           type: { in: ["PERMISSION", "SICK", "DISPENSATION", "LEAVE", "WFH"] },
-          user: userActiveStudioFilter,
+          user: userDualStudioFilter,
         };
 
   const scopedWhereHistoryCorrections: Prisma.AttendanceCorrectionWhereInput =
@@ -67,9 +64,20 @@ export default async function AdminApprovalsPage({
       : {
           status: { in: ["APPROVED", "REJECTED"] },
           attendanceRecord: {
-            user: userActiveStudioFilter,
+            user: userDualStudioFilter,
           },
         };
+
+  const userSelectFields = {
+    name: true,
+    email: true,
+    defaultStudioId: true,
+    defaultStudio: { select: { name: true } },
+    placements: {
+      where: { status: "ACTIVE" as const },
+      select: { studioId: true, studio: { select: { name: true } } },
+    },
+  };
 
   const [requests, corrections, historyRequests, historyCorrections] = await Promise.all([
     prisma.request.findMany({
@@ -89,11 +97,7 @@ export default async function AdminApprovalsPage({
         createdAt: true,
         updatedAt: true,
         user: {
-          select: {
-            name: true,
-            email: true,
-            defaultStudio: { select: { name: true } },
-          },
+          select: userSelectFields,
         },
         reviewer: {
           select: { name: true },
@@ -105,11 +109,7 @@ export default async function AdminApprovalsPage({
       orderBy: { createdAt: "desc" },
       include: {
         requestedBy: {
-          select: {
-            name: true,
-            email: true,
-            defaultStudio: { select: { name: true } },
-          },
+          select: userSelectFields,
         },
         attendanceRecord: {
           select: {
@@ -139,11 +139,7 @@ export default async function AdminApprovalsPage({
         createdAt: true,
         updatedAt: true,
         user: {
-          select: {
-            name: true,
-            email: true,
-            defaultStudio: { select: { name: true } },
-          },
+          select: userSelectFields,
         },
         reviewer: {
           select: { name: true },
@@ -156,11 +152,7 @@ export default async function AdminApprovalsPage({
       take: 50,
       include: {
         requestedBy: {
-          select: {
-            name: true,
-            email: true,
-            defaultStudio: { select: { name: true } },
-          },
+          select: userSelectFields,
         },
         attendanceRecord: {
           select: {
