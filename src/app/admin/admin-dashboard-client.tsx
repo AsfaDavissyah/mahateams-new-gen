@@ -521,74 +521,60 @@ export function AdminDashboardClient({
                 Daily summary of pending member leave/sick requests and attendance corrections.
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-4">
+            <CardContent className="p-4">
               {((data.pendingRequestList?.length || 0) > 0 || (data.pendingCorrectionList?.length || 0) > 0) ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {/* 1. Member Requests Card */}
-                  <div className={cn(
-                    "rounded-xl border p-4 flex flex-col justify-between gap-3 transition-all",
-                    (data.pendingRequestList?.length || 0) > 0
-                      ? "border-amber-500/60 dark:border-amber-400/60 bg-white dark:bg-zinc-950 shadow-sm"
-                      : "border-zinc-300 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-950/90 shadow-xs"
-                  )}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-9 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0">
-                          <FileText className="size-4.5 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Member Requests & Sick Leave</h4>
-                          <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Leave, Sick & Dispensation requests</p>
-                        </div>
+                <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+                  {/* Item 1: Member Requests */}
+                  <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 p-4 flex flex-col justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 transition-all">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="size-10 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 flex items-center justify-center font-bold shrink-0 mt-0.5">
+                        <FileText className="size-5 text-amber-600 dark:text-amber-400" />
                       </div>
-                      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
-                        <Badge className={cn("text-xs font-extrabold px-2.5 py-0.5 shadow-xs shrink-0", (data.pendingRequestList?.length || 0) > 0 ? "bg-amber-500 text-zinc-950" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-0")}>
-                          {(data.pendingRequestList?.length || 0) > 0 ? `${data.pendingRequestList?.length} Pending` : "0 Pending"}
-                        </Badge>
-                        <Link
-                          href="/admin/requests"
-                          className={cn(
-                            buttonVariants({ variant: (data.pendingRequestList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
-                            "h-7 text-xs font-bold px-3 cursor-pointer w-auto text-center " + ((data.pendingRequestList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200")
-                          )}
-                        >
-                          Requests Page &rarr;
-                        </Link>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Member Requests & Sick Leave</h4>
+                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">Leave, Sick & Dispensation requests awaiting your review</p>
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-zinc-200/60 dark:border-zinc-800/80">
+                      <Badge className={cn("text-[10px] font-extrabold px-2.5 py-0.5 shadow-xs shrink-0 whitespace-nowrap", (data.pendingRequestList?.length || 0) > 0 ? "bg-amber-500 text-zinc-950" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-0")}>
+                        {(data.pendingRequestList?.length || 0) > 0 ? `${data.pendingRequestList?.length} Pending` : "0 Pending"}
+                      </Badge>
+                      <Link
+                        href="/admin/requests"
+                        className={cn(
+                          buttonVariants({ variant: (data.pendingRequestList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
+                          "h-8 text-xs font-bold px-3.5 cursor-pointer shrink-0 inline-flex items-center justify-center " + ((data.pendingRequestList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200")
+                        )}
+                      >
+                        Review Requests &rarr;
+                      </Link>
                     </div>
                   </div>
 
-                  {/* 2. Attendance Corrections Card */}
-                  <div className={cn(
-                    "rounded-xl border p-4 flex flex-col justify-between gap-3 transition-all",
-                    (data.pendingCorrectionList?.length || 0) > 0
-                      ? "border-indigo-500/60 dark:border-indigo-400/60 bg-white dark:bg-zinc-950 shadow-sm"
-                      : "border-zinc-300 dark:border-zinc-700/80 bg-white/90 dark:bg-zinc-950/90 shadow-xs"
-                  )}>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5">
-                        <div className="size-9 rounded-lg bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold shrink-0">
-                          <ClipboardCheck className="size-4.5 text-indigo-600 dark:text-indigo-400" />
-                        </div>
-                        <div>
-                          <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Attendance Corrections</h4>
-                          <p className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Attendance correction submissions</p>
-                        </div>
+                  {/* Item 2: Attendance Corrections */}
+                  <div className="rounded-xl border border-zinc-200/80 dark:border-zinc-800 p-4 flex flex-col justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/50 hover:bg-zinc-100/60 dark:hover:bg-zinc-800/60 transition-all">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="size-10 rounded-lg bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 flex items-center justify-center font-bold shrink-0 mt-0.5">
+                        <ClipboardCheck className="size-5 text-indigo-600 dark:text-indigo-400" />
                       </div>
-                      <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0">
-                        <Badge className={cn("text-xs font-extrabold px-2.5 py-0.5 shadow-xs shrink-0", (data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 text-white" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-0")}>
-                          {(data.pendingCorrectionList?.length || 0) > 0 ? `${data.pendingCorrectionList?.length} Pending` : "0 Pending"}
-                        </Badge>
-                        <Link
-                          href="/admin/corrections"
-                          className={cn(
-                            buttonVariants({ variant: (data.pendingCorrectionList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
-                            "h-7 text-xs font-bold px-3 cursor-pointer w-auto text-center " + ((data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200")
-                          )}
-                        >
-                          Corrections Page &rarr;
-                        </Link>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Attendance Corrections</h4>
+                        <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">Check-in and check-out time adjustment submissions</p>
                       </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-3 border-t border-zinc-200/60 dark:border-zinc-800/80">
+                      <Badge className={cn("text-[10px] font-extrabold px-2.5 py-0.5 shadow-xs shrink-0 whitespace-nowrap", (data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 text-white" : "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-0")}>
+                        {(data.pendingCorrectionList?.length || 0) > 0 ? `${data.pendingCorrectionList?.length} Pending` : "0 Pending"}
+                      </Badge>
+                      <Link
+                        href="/admin/corrections"
+                        className={cn(
+                          buttonVariants({ variant: (data.pendingCorrectionList?.length || 0) > 0 ? "default" : "outline", size: "sm" }),
+                          "h-8 text-xs font-bold px-3.5 cursor-pointer shrink-0 inline-flex items-center justify-center " + ((data.pendingCorrectionList?.length || 0) > 0 ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs" : "border-zinc-300 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200")
+                        )}
+                      >
+                        Review Corrections &rarr;
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -968,21 +954,16 @@ export function AdminDashboardClient({
           {/* High-Contrast Pending Action Alert Banner */}
           {((data.pendingRequestList && data.pendingRequestList.length > 0) ||
             (data.pendingCorrectionList && data.pendingCorrectionList.length > 0)) && (
-            <div className="rounded-xl border border-amber-500/50 dark:border-amber-400/50 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 p-4 shadow-lg backdrop-blur-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 text-zinc-950 dark:text-zinc-50">
-              <div className="flex items-start gap-3">
-                <div className="size-10 rounded-lg bg-amber-500 text-zinc-950 flex items-center justify-center shrink-0 font-bold shadow-md">
+            <div className="rounded-xl border border-amber-500/50 dark:border-amber-400/50 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 dark:from-amber-950/40 dark:via-orange-950/30 dark:to-amber-950/40 p-4 shadow-lg backdrop-blur-md flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 min-w-0 w-full text-zinc-950 dark:text-zinc-50">
+              <div className="flex items-start gap-3 min-w-0 flex-1">
+                <div className="size-10 rounded-lg bg-amber-500 text-zinc-950 flex items-center justify-center shrink-0 font-bold shadow-md mt-0.5">
                   <ShieldCheck className="size-6 text-zinc-950" />
                 </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 tracking-tight">
-                      Attention Required: Approvals Pending Review
-                    </h3>
-                    <Badge className="bg-amber-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider hover:bg-amber-400">
-                      {((data.pendingRequestList?.length || 0) + (data.pendingCorrectionList?.length || 0))} Pending Item(s)
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 font-medium">
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-bold text-sm text-zinc-900 dark:text-zinc-50 tracking-tight">
+                    Attention Required: Approvals Pending Review
+                  </h3>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-300 mt-1 font-medium leading-normal">
                     {data.pendingRequestList && data.pendingRequestList.length > 0
                       ? `${data.pendingRequestList.length} leave/sick request(s)`
                       : ""}
@@ -995,17 +976,22 @@ export function AdminDashboardClient({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 self-end md:self-center">
-                {data.pendingRequestList && data.pendingRequestList.length > 0 && (
-                  <Button size="sm" render={<Link href="/admin/requests" />} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shadow-sm">
-                    Review Requests ({data.pendingRequestList.length})
-                  </Button>
-                )}
-                {data.pendingCorrectionList && data.pendingCorrectionList.length > 0 && (
-                  <Button size="sm" variant="outline" render={<Link href="/admin/corrections" />} className="border-amber-500/50 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 text-xs font-semibold">
-                    Review Corrections ({data.pendingCorrectionList.length})
-                  </Button>
-                )}
+              <div className="flex flex-col items-start lg:items-end justify-center gap-2 shrink-0 w-full lg:w-auto pt-3 lg:pt-0 border-t lg:border-0 border-amber-500/20">
+                <Badge className="bg-amber-500 text-zinc-950 font-extrabold text-[10px] uppercase tracking-wider hover:bg-amber-400 shrink-0">
+                  {((data.pendingRequestList?.length || 0) + (data.pendingCorrectionList?.length || 0))} Pending Item(s)
+                </Badge>
+                <div className="flex flex-wrap items-center gap-2">
+                  {data.pendingRequestList && data.pendingRequestList.length > 0 && (
+                    <Button size="sm" render={<Link href="/admin/requests" />} className="bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs h-8 shadow-xs cursor-pointer">
+                      Review Requests ({data.pendingRequestList.length})
+                    </Button>
+                  )}
+                  {data.pendingCorrectionList && data.pendingCorrectionList.length > 0 && (
+                    <Button size="sm" variant="outline" render={<Link href="/admin/corrections" />} className="border-amber-500/50 text-amber-700 dark:text-amber-300 hover:bg-amber-500/20 text-xs font-semibold h-8 cursor-pointer">
+                      Review Corrections ({data.pendingCorrectionList.length})
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           )}

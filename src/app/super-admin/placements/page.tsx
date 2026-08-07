@@ -21,7 +21,19 @@ export default async function PlacementsPage() {
         accountStatus: "ACTIVE",
         role: { in: ["MEMBER", "ADMIN"] },
       },
-      select: { id: true, name: true, email: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        defaultStudioId: true,
+        defaultStudio: {
+          select: { id: true, name: true },
+        },
+        placements: {
+          where: { status: "ACTIVE" as const },
+          select: { studioId: true, studio: { select: { name: true } } },
+        },
+      },
       orderBy: { name: "asc" },
     }),
     prisma.studio.findMany({
