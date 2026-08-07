@@ -305,6 +305,8 @@ export async function updateHelpRulesAction(rules: {
   rules_wfh_plan: string;
   rules_wfh_report: string;
   max_correction_days?: number;
+  qr_pin_max_attempts?: number;
+  qr_pin_window_minutes?: number;
 }) {
   await requireRole("SUPER_ADMIN");
 
@@ -346,9 +348,32 @@ export async function updateHelpRulesAction(rules: {
     );
   }
 
+  if (typeof rules.qr_pin_max_attempts === "number") {
+    const clampedAttempts = Math.min(Math.max(rules.qr_pin_max_attempts, 3), 20);
+    ops.push(
+      prisma.systemSetting.upsert({
+        where: { key: "qr_pin_max_attempts" },
+        create: { key: "qr_pin_max_attempts", value: String(clampedAttempts) },
+        update: { value: String(clampedAttempts) },
+      })
+    );
+  }
+
+  if (typeof rules.qr_pin_window_minutes === "number") {
+    const clampedWindow = Math.min(Math.max(rules.qr_pin_window_minutes, 5), 60);
+    ops.push(
+      prisma.systemSetting.upsert({
+        where: { key: "qr_pin_window_minutes" },
+        create: { key: "qr_pin_window_minutes", value: String(clampedWindow) },
+        update: { value: String(clampedWindow) },
+      })
+    );
+  }
+
   await prisma.$transaction(ops);
 
   revalidatePath("/settings");
+  revalidatePath("/login");
   revalidatePath("/member");
   revalidatePath("/member/requests");
   revalidatePath("/member/corrections");

@@ -52,6 +52,8 @@ export const DEFAULT_RULES_WFH_REPORT = `<p>Every time you Check-out for WFH (Wo
 <p class="text-[10px] text-zinc-500">This requirement must be met for WFH attendance to be considered valid and approved by management.</p>`;
 
 export const DEFAULT_MAX_CORRECTION_DAYS = 14;
+export const DEFAULT_QR_PIN_MAX_ATTEMPTS = 10;
+export const DEFAULT_QR_PIN_WINDOW_MINUTES = 15;
 
 export async function getMaxCorrectionDays(): Promise<number> {
   const { prisma } = await import("./prisma");
@@ -69,9 +71,36 @@ export async function getMaxCorrectionDays(): Promise<number> {
   return DEFAULT_MAX_CORRECTION_DAYS;
 }
 
+export async function getQrPinConfig(): Promise<{ maxAttempts: number; windowMinutes: number }> {
+  const { prisma } = await import("./prisma");
+  const [attemptsSetting, windowSetting] = await Promise.all([
+    prisma.systemSetting.findUnique({ where: { key: "qr_pin_max_attempts" } }),
+    prisma.systemSetting.findUnique({ where: { key: "qr_pin_window_minutes" } }),
+  ]);
+
+  let maxAttempts = DEFAULT_QR_PIN_MAX_ATTEMPTS;
+  if (attemptsSetting?.value) {
+    const parsed = parseInt(attemptsSetting.value, 10);
+    if (!isNaN(parsed)) {
+      maxAttempts = Math.min(Math.max(parsed, 3), 20);
+    }
+  }
+
+  let windowMinutes = DEFAULT_QR_PIN_WINDOW_MINUTES;
+  if (windowSetting?.value) {
+    const parsed = parseInt(windowSetting.value, 10);
+    if (!isNaN(parsed)) {
+      windowMinutes = Math.min(Math.max(parsed, 5), 60);
+    }
+  }
+
+  return { maxAttempts, windowMinutes };
+}
+
 export async function getHelpRules() {
   const { prisma } = await import("./prisma");
   const maxCorrectionDays = await getMaxCorrectionDays();
+  const qrPinConfig = await getQrPinConfig();
   const settings = await prisma.systemSetting.findMany();
   
   const rules = {
@@ -88,6 +117,8 @@ export async function getHelpRules() {
     rules_wfh_plan: DEFAULT_RULES_WFH_PLAN,
     rules_wfh_report: DEFAULT_RULES_WFH_REPORT,
     max_correction_days: maxCorrectionDays,
+    qr_pin_max_attempts: qrPinConfig.maxAttempts,
+    qr_pin_window_minutes: qrPinConfig.windowMinutes,
   };
 
   settings.forEach((s: { key: string; value: string }) => {

@@ -21,14 +21,13 @@ import { prisma } from "@/lib/prisma";
 import { getSecurityPinError } from "@/lib/security-pin";
 import { isExtraWorkday } from "@/lib/workday-balance";
 
+import { getQrPinConfig } from "@/lib/default-help-rules";
+
 type QrAttendanceInput = {
   action?: string;
   latitude?: number;
   longitude?: number;
 };
-
-const QR_PIN_MAX_ATTEMPTS = 10;
-const QR_PIN_WINDOW_MINUTES = 15;
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const earthRadiusMeters = 6371e3;
@@ -256,8 +255,10 @@ export async function loginAndAttendWithQrAction(
       };
     }
 
+    const { maxAttempts, windowMinutes } = await getQrPinConfig();
+
     const pinWindowStart = new Date(
-      Date.now() - QR_PIN_WINDOW_MINUTES * 60 * 1000
+      Date.now() - windowMinutes * 60 * 1000
     );
     const latestPinVerification = await prisma.auditLog.findFirst({
       where: {
@@ -281,10 +282,10 @@ export async function loginAndAttendWithQrAction(
       },
     });
 
-    if (recentFailedAttempts >= QR_PIN_MAX_ATTEMPTS) {
+    if (recentFailedAttempts >= maxAttempts) {
       return {
         success: false,
-        error: `Too many incorrect PIN attempts. Try again in ${QR_PIN_WINDOW_MINUTES} minutes.`,
+        error: `Too many incorrect PIN attempts. Try again in ${windowMinutes} minutes.`,
       };
     }
 
@@ -296,7 +297,7 @@ export async function loginAndAttendWithQrAction(
           action: "PIN_FAILED",
           metadata: {
             attempt: recentFailedAttempts + 1,
-            maxAttempts: QR_PIN_MAX_ATTEMPTS,
+            maxAttempts,
           },
         },
       });
