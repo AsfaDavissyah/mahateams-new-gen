@@ -54,9 +54,13 @@ export function CalendarPresetsDatePicker({
     }
   });
 
+  // Track whether the user has clicked start date and is currently picking end date
+  const [isSelectingRange, setIsSelectingRange] = React.useState(false);
+
   // Sync rangeState with prop changes when popover opens
   React.useEffect(() => {
     if (open) {
+      setIsSelectingRange(false);
       if (startDate) {
         try {
           const from = parseISO(startDate);
@@ -68,6 +72,8 @@ export function CalendarPresetsDatePicker({
       } else {
         setRangeState(undefined);
       }
+    } else {
+      setIsSelectingRange(false);
     }
   }, [open, startDate, endDate]);
 
@@ -82,15 +88,15 @@ export function CalendarPresetsDatePicker({
   }, [rangeState, startDate]);
 
   const selectedToDate = React.useMemo(() => {
+    if (isSelectingRange) return undefined;
     if (rangeState?.to) return rangeState.to;
-    if (rangeState?.from) return undefined;
     if (!endDate) return selectedFromDate;
     try {
       return parseISO(endDate);
     } catch {
       return selectedFromDate;
     }
-  }, [rangeState, endDate, selectedFromDate]);
+  }, [rangeState, isSelectingRange, endDate, selectedFromDate]);
 
   // Determine if 'Today' preset is disabled for the chosen request type
   const isTodayDisabled = React.useMemo(() => {
@@ -136,12 +142,14 @@ export function CalendarPresetsDatePicker({
   const handleClear = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setRangeState(undefined);
+    setIsSelectingRange(false);
     onRangeChange?.({ startDate: "", endDate: "" });
   };
 
   const handleSelectPreset = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
     setRangeState({ from: date, to: date });
+    setIsSelectingRange(false);
     onRangeChange?.({ startDate: dateStr, endDate: dateStr });
     setOpen(false);
   };
@@ -149,6 +157,7 @@ export function CalendarPresetsDatePicker({
   const handleRangeSelect = (range: DateRange | undefined) => {
     if (!range || !range.from) {
       setRangeState(undefined);
+      setIsSelectingRange(false);
       onRangeChange?.({ startDate: "", endDate: "" });
       return;
     }
@@ -157,20 +166,39 @@ export function CalendarPresetsDatePicker({
     if (requestType === "SICK") {
       const todayStr = format(today, "yyyy-MM-dd");
       setRangeState({ from: today, to: today });
+      setIsSelectingRange(false);
       onRangeChange?.({ startDate: todayStr, endDate: todayStr });
       setOpen(false);
       return;
     }
 
-    setRangeState(range);
+    if (!isSelectingRange) {
+      // 1st click: Start date selected!
+      const clickedFrom = range.from;
+      setRangeState({ from: clickedFrom, to: undefined });
+      setIsSelectingRange(true);
 
-    const fromStr = format(range.from, "yyyy-MM-dd");
-    const toStr = range.to ? format(range.to, "yyyy-MM-dd") : fromStr;
+      const fromStr = format(clickedFrom, "yyyy-MM-dd");
+      onRangeChange?.({ startDate: fromStr, endDate: fromStr });
+      // Keep popover open!
+    } else {
+      // 2nd click: End date selected!
+      const startD = rangeState?.from || range.from;
+      const endD = range.to || range.from;
 
-    onRangeChange?.({ startDate: fromStr, endDate: toStr });
+      let finalFrom = startD;
+      let finalTo = endD;
+      if (finalFrom > finalTo) {
+        finalFrom = endD;
+        finalTo = startD;
+      }
 
-    // ONLY close popover when both from and to dates are explicitly selected (2nd click)
-    if (range.from && range.to) {
+      setRangeState({ from: finalFrom, to: finalTo });
+      setIsSelectingRange(false);
+
+      const fromStr = format(finalFrom, "yyyy-MM-dd");
+      const toStr = format(finalTo, "yyyy-MM-dd");
+      onRangeChange?.({ startDate: fromStr, endDate: toStr });
       setOpen(false);
     }
   };
