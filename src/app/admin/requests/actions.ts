@@ -80,6 +80,68 @@ async function reviewRequestCore(requestId: string, approve: boolean, reviewer: 
     throw new Error("Admins cannot review another administrator's request.");
   }
 
+  let offDaysOfWeek = [0, 1];
+  if (activeStudioId) {
+    const weeklyRules = await prisma.weeklyWorkRule.findMany({
+      where: { studioId: activeStudioId },
+      select: { dayOfWeek: true, isWorkday: true, isOptional: true },
+    });
+    if (weeklyRules.length > 0) {
+      offDaysOfWeek = weeklyRules
+        .filter((r) => !r.isWorkday || r.isOptional)
+        .map((r) => (r.dayOfWeek === 7 ? 0 : r.dayOfWeek));
+    }
+  }
+
+  const calendarEvents = await prisma.calendarEvent.findMany({
+    where: {
+      OR: [
+        { studioId: null },
+        ...(activeStudioId ? [{ studioId: activeStudioId }] : []),
+      ],
+      type: {
+        in: [
+          "NATIONAL_HOLIDAY",
+          "COMPANY_LEAVE",
+          "REGULAR_OFF_DAY",
+          "REPLACEMENT_WORKDAY",
+        ],
+      },
+    },
+    select: { startDate: true, endDate: true, type: true },
+  });
+
+  const holidayDates: string[] = [];
+  const replacementDates: string[] = [];
+  for (const evt of calendarEvents) {
+    const cur = new Date(evt.startDate);
+    const endE = new Date(evt.endDate);
+    while (cur <= endE) {
+      const year = cur.getUTCFullYear();
+      const month = String(cur.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(cur.getUTCDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
+
+      if (evt.type === "REPLACEMENT_WORKDAY") {
+        replacementDates.push(dateStr);
+      } else {
+        holidayDates.push(dateStr);
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+  }
+
+  const { calculateEffectiveWorkdays } = await import("@/lib/workday-calc");
+  const startDateStr = request.startDate.toISOString().split("T")[0];
+  const endDateStr = request.endDate.toISOString().split("T")[0];
+  const { workingDays } = calculateEffectiveWorkdays({
+    startDateStr,
+    endDateStr,
+    offDaysOfWeek,
+    holidayDates,
+    replacementDates,
+  });
+
   const approvedAt = new Date();
   const dates = inclusiveDates(request.startDate, request.endDate);
   const impact = approve
@@ -87,7 +149,7 @@ async function reviewRequestCore(requestId: string, approve: boolean, reviewer: 
         request.type,
         Boolean(request.attachmentUrl),
         request.user.memberStatus,
-        dates.length,
+        workingDays,
       )
     : { workdayDelta: 0, annualLeaveDelta: 0 };
 

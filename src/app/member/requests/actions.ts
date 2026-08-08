@@ -97,11 +97,11 @@ export async function createRequestAction(formData: FormData) {
   if (targetStudioId) {
     const weeklyRules = await prisma.weeklyWorkRule.findMany({
       where: { studioId: targetStudioId },
-      select: { dayOfWeek: true, isWorkday: true },
+      select: { dayOfWeek: true, isWorkday: true, isOptional: true },
     });
     if (weeklyRules.length > 0) {
       offDaysOfWeek = weeklyRules
-        .filter((r) => !r.isWorkday)
+        .filter((r) => !r.isWorkday || r.isOptional)
         .map((r) => (r.dayOfWeek === 7 ? 0 : r.dayOfWeek));
     }
   }
