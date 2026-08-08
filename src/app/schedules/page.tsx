@@ -104,7 +104,7 @@ async function getScheduleData({
   });
   const selectedUser =
     users.find((user) => user.id === selectedUserId) ?? users[0] ?? null;
-  const [schedules, wfhCount, calendarEvents] = selectedUser
+  const [schedules, wfhCount, calendarEvents, attendanceRecords] = selectedUser
     ? await Promise.all([
         prisma.personalWorkSchedule.findMany({
           where: {
@@ -158,8 +158,22 @@ async function getScheduleData({
             endDate: true,
           },
         }),
+        prisma.attendanceRecord.findMany({
+          where: {
+            userId: selectedUser.id,
+            attendanceDate: {
+              gte: monthStart,
+              lte: monthEnd,
+            },
+          },
+          select: {
+            attendanceDate: true,
+            status: true,
+            workMode: true,
+          },
+        }),
       ])
-    : [[], 0, []];
+    : [[], 0, [], []];
 
   return {
     users,
@@ -167,6 +181,7 @@ async function getScheduleData({
     schedules,
     wfhCount,
     calendarEvents,
+    attendanceRecords,
   };
 }
 
@@ -235,8 +250,15 @@ export default async function WorkSchedulesPage({
       schedule,
     ])
   );
+
+  const attendanceMap = new Map<string, { status: string; workMode: string }>();
+  for (const att of data.attendanceRecords) {
+    const key = formatDateKey(new Date(att.attendanceDate));
+    attendanceMap.set(key, { status: att.status, workMode: att.workMode });
+  }
+
   const todayKey = formatDateKey(dateOnly());
-  const wfoCount = days.length - data.wfhCount;
+  const wfoCount = Math.max(0, days.length - data.wfhCount);
 
   // Build holiday map: dateKey → list of events
   const holidayMap = new Map<string, { title: string; type: string }[]>();
@@ -391,8 +413,10 @@ export default async function WorkSchedulesPage({
             ))}
             {days.map((day) => {
               const schedule = scheduleByDate.get(day.dateKey);
+              const attendance = attendanceMap.get(day.dateKey);
               const isWfh = schedule?.workMode === "WFH";
               const isToday = day.dateKey === todayKey;
+              const isPastDay = day.dateKey < todayKey;
 
               const dayHolidays = holidayMap.get(day.dateKey) ?? [];
               const hasHoliday = dayHolidays.some(h => 
@@ -427,6 +451,44 @@ export default async function WorkSchedulesPage({
                         >
                           Holiday
                         </Badge>
+                      ) : isPastDay && attendance ? (
+                        attendance.status === "PRESENT" || attendance.status === "ON_TIME" ? (
+                          <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 font-semibold">
+                            ON TIME
+                          </Badge>
+                        ) : attendance.status === "LATE" ? (
+                          <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900 font-semibold">
+                            LATE
+                          </Badge>
+                        ) : attendance.status === "ALPHA" ? (
+                          <Badge variant="secondary" className="bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900 font-semibold">
+                            ALPHA
+                          </Badge>
+                        ) : attendance.status === "SICK" ? (
+                          <Badge variant="secondary" className="bg-violet-100 dark:bg-violet-950/40 text-violet-800 dark:text-violet-300 border-violet-200 dark:border-violet-900 font-semibold">
+                            SICK
+                          </Badge>
+                        ) : attendance.status === "PERMISSION" ? (
+                          <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-900 font-semibold">
+                            PERMISSION
+                          </Badge>
+                        ) : attendance.status === "LEAVE" ? (
+                          <Badge variant="secondary" className="bg-blue-100 dark:bg-blue-950/40 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-900 font-semibold">
+                            LEAVE
+                          </Badge>
+                        ) : attendance.status === "DISPENSATION" ? (
+                          <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900 font-semibold">
+                            DISPENSATION
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="bg-indigo-100 dark:bg-indigo-950/40 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-900 font-semibold">
+                            {attendance.status}
+                          </Badge>
+                        )
+                      ) : isPastDay && !isSundayOrMonday ? (
+                        <Badge variant="secondary" className="bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900 font-semibold">
+                          ALPHA
+                        </Badge>
                       ) : isWfh ? (
                         <Badge
                           variant="secondary"
@@ -447,6 +509,10 @@ export default async function WorkSchedulesPage({
                     <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
                       {isRealHoliday ? (
                         "Holiday"
+                      ) : isPastDay && attendance ? (
+                        `Status: ${attendance.status}`
+                      ) : isPastDay && !isSundayOrMonday ? (
+                        "No attendance record (Alpha)"
                       ) : isWfh ? (
                         (schedule?.note ?? "WFH from monthly schedule").replace("WFH diatur oleh Super Admin", "WFH set by Super Admin")
                       ) : hasReplacement ? (
@@ -470,7 +536,7 @@ export default async function WorkSchedulesPage({
                     ))}
                   </div>
 
-                  {!isRealHoliday && canManage && data.selectedUser ? (
+                  {!isRealHoliday && !isPastDay && canManage && data.selectedUser ? (
                     <div className="mt-3">
                       <ToggleScheduleButton
                         userId={data.selectedUser.id}
