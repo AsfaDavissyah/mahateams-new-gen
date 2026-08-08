@@ -33,7 +33,7 @@ export default async function TeamMoodPage() {
 
   const whereClause: Prisma.UserWhereInput = {
     accountStatus: "ACTIVE",
-    role: { notIn: ["ADMIN", "SUPER_ADMIN"] },
+    role: { notIn: ["SUPER_ADMIN"] },
   };
 
   if (currentUser.role !== "SUPER_ADMIN" && targetStudioId) {
@@ -183,14 +183,21 @@ export default async function TeamMoodPage() {
                         {mood.emoji}
                       </div>
                       <div className="min-w-0">
-                        <h4 className="font-bold text-sm text-zinc-950 dark:text-zinc-50 truncate" title={u.name}>
-                          {u.name}
-                        </h4>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <h4 className="font-bold text-sm text-zinc-950 dark:text-zinc-50 truncate" title={u.name}>
+                            {u.name}
+                          </h4>
+                          {u.role === "ADMIN" && (
+                            <Badge variant="secondary" className="text-[10px] font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-0 shrink-0">
+                              Admin
+                            </Badge>
+                          )}
+                        </div>
                         <p className="text-[10px] text-zinc-500 truncate">
                           {u.defaultStudio?.name ?? "No studio assigned"}
                         </p>
                         {u.placements?.[0]?.studio?.name && (
-                          <Badge variant="outline" className="text-[9px] bg-amber-50/80 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/50 mt-0.5">
+                          <Badge variant="outline" className="text-[9px] font-medium px-2 py-0.5 bg-amber-50/70 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200 dark:border-amber-900/60 shadow-xs mt-0.5">
                             Placed at {u.placements[0].studio.name}
                           </Badge>
                         )}
@@ -205,7 +212,7 @@ export default async function TeamMoodPage() {
                               {mood.label}
                             </span>
                           </div>
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0">
+                          <Badge variant="secondary" className="text-[10px] font-semibold px-2 py-0.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 border-0">
                             {u.todayAttendance?.workMode}
                           </Badge>
                         </div>
@@ -236,9 +243,16 @@ export default async function TeamMoodPage() {
                       👤
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-bold text-sm text-zinc-950 dark:text-zinc-50 truncate" title={u.name}>
-                        {u.name}
-                      </h4>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-bold text-sm text-zinc-950 dark:text-zinc-50 truncate" title={u.name}>
+                          {u.name}
+                        </h4>
+                        {u.role === "ADMIN" && (
+                          <Badge variant="secondary" className="text-[10px] font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-0 shrink-0">
+                            Admin
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-[10px] text-zinc-500 truncate">
                         {u.defaultStudio?.name ?? "No studio assigned"}
                       </p>
@@ -264,7 +278,14 @@ export default async function TeamMoodPage() {
               {notCheckedInUsers.map((u) => (
                 <div key={u.id} className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-900/20 flex items-center justify-between">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">{u.name}</p>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-semibold text-zinc-700 dark:text-zinc-300 truncate">{u.name}</p>
+                      {u.role === "ADMIN" && (
+                        <Badge variant="secondary" className="text-[10px] font-semibold px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border-0 shrink-0">
+                          Admin
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-[10px] text-zinc-400 truncate">{u.defaultStudio?.name}</p>
                   </div>
                   <Badge variant="outline" className="text-[9px] text-zinc-400 border-zinc-200 dark:border-zinc-800">
