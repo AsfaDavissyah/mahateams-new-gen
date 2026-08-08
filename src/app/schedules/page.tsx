@@ -252,6 +252,11 @@ export default async function WorkSchedulesPage({
   );
 
   const attendanceMap = new Map<string, { status: string; workMode: string }>();
+  for (const att of data.attendanceRecords) {
+    const key = att.attendanceDate.toISOString().split("T")[0];
+    attendanceMap.set(key, { status: att.status, workMode: att.workMode });
+  }
+
   const todayKey = formatDateKey(dateOnly());
   const wfoCount = Math.max(0, days.length - data.wfhCount);
 
@@ -412,8 +417,6 @@ export default async function WorkSchedulesPage({
               const isWfh = schedule?.workMode === "WFH";
               const isToday = day.dateKey === todayKey;
               const isPastDay = day.dateKey < todayKey;
-              const SYSTEM_START_DATE = "2026-07-14";
-              const isBeforeSystemStart = day.dateKey < SYSTEM_START_DATE;
 
               const dayHolidays = holidayMap.get(day.dateKey) ?? [];
               const hasHoliday = dayHolidays.some(h => 
@@ -423,7 +426,6 @@ export default async function WorkSchedulesPage({
               );
               const hasReplacement = dayHolidays.some(h => h.type === "REPLACEMENT_WORKDAY");
               const isRealHoliday = hasHoliday && !hasReplacement;
-              const isSundayOrMonday = day.date.getDay() === 0 || day.date.getDay() === 1;
 
               return (
                 <div
@@ -482,10 +484,6 @@ export default async function WorkSchedulesPage({
                             {attendance.status}
                           </Badge>
                         )
-                      ) : isPastDay && !isBeforeSystemStart && !isSundayOrMonday ? (
-                        <Badge variant="secondary" className="bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900 font-semibold">
-                          ALPHA
-                        </Badge>
                       ) : isWfh ? (
                         <Badge
                           variant="secondary"
@@ -493,7 +491,7 @@ export default async function WorkSchedulesPage({
                         >
                           WFH
                         </Badge>
-                      ) : isSundayOrMonday ? null : (
+                      ) : (
                         <Badge
                           variant="secondary"
                           className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800"
@@ -508,13 +506,11 @@ export default async function WorkSchedulesPage({
                         "Holiday"
                       ) : isPastDay && attendance ? (
                         `Status: ${attendance.status}`
-                      ) : isPastDay && !isBeforeSystemStart && !isSundayOrMonday ? (
-                        "No attendance record (Alpha)"
                       ) : isWfh ? (
                         (schedule?.note ?? "WFH from monthly schedule").replace("WFH diatur oleh Super Admin", "WFH set by Super Admin")
                       ) : hasReplacement ? (
                         "Replacement Day (WFO)"
-                      ) : isSundayOrMonday ? null : (
+                      ) : (
                         "Default WFO"
                       )}
                     </p>
