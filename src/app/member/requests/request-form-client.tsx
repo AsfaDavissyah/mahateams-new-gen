@@ -17,10 +17,13 @@ import {
 
 import { format, addDays, startOfDay, parseISO } from "date-fns";
 import { CalendarPresetsDatePicker, RequestType } from "@/components/ui/calendar-presets";
+import { getDurationLabel } from "@/lib/workday-calc";
 
 type Props = {
   canRequestReplacementDay: boolean;
   rulesContent?: string;
+  offDaysOfWeek?: number[];
+  holidayDates?: string[];
 };
 
 const SYARAT_KETERANGAN: Record<string, { title: string; desc: string; variant: "blue" | "emerald" | "violet" | "amber" | "rose" }> = {
@@ -51,7 +54,12 @@ const SYARAT_KETERANGAN: Record<string, { title: string; desc: string; variant: 
   },
 };
 
-export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Props) {
+export function RequestFormClient({
+  canRequestReplacementDay,
+  rulesContent,
+  offDaysOfWeek = [0, 1],
+  holidayDates = [],
+}: Props) {
   const [selectedType, setSelectedType] = useState<RequestType>("PERMISSION");
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
@@ -78,7 +86,12 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
   };
 
   const guide = SYARAT_KETERANGAN[selectedType];
-  const durationLabel = getDurationLabel(startDate, endDate);
+  const durationLabel = getDurationLabel({
+    startDateStr: startDate,
+    endDateStr: endDate,
+    offDaysOfWeek,
+    holidayDates,
+  });
 
   return (
     <form
@@ -211,6 +224,8 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
           }}
           requestType={selectedType}
           placeholder="Select date or date range"
+          offDaysOfWeek={offDaysOfWeek}
+          holidayDates={holidayDates}
         />
       </div>
 
@@ -269,22 +284,4 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
       </Button>
     </form>
   );
-}
-
-function getDurationLabel(startDate: string, endDate: string) {
-  if (!startDate) {
-    return "";
-  }
-
-  const start = new Date(`${startDate}T00:00:00.000Z`);
-  const end = new Date(`${endDate || startDate}T00:00:00.000Z`);
-
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
-    return "Invalid date range";
-  }
-
-  const days =
-    Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1;
-
-  return `${days} ${days === 1 ? "Day" : "Days"}`;
 }

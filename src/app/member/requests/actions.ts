@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireAnyRole } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getJakartaDateKey } from "@/lib/attendance-time";
+import { calculateEffectiveWorkdays } from "@/lib/workday-calc";
 
 export async function createRequestAction(formData: FormData) {
   const currentUser = await requireAnyRole(["ADMIN", "MEMBER"]);
@@ -76,7 +77,7 @@ export async function createRequestAction(formData: FormData) {
     redirect("/member/requests?error=leave-notice");
   }
 
-  // 5. Validasi WFH: Status Intern tidak boleh mengajukan WFH
+  // 4. Validasi WFH & LEAVE untuk Intern
   if (requestedType === "WFH" && currentUser.memberStatus === "INTERN") {
     redirect("/member/requests?error=intern-wfh");
   }
@@ -85,15 +86,54 @@ export async function createRequestAction(formData: FormData) {
     redirect("/member/requests?error=intern-leave");
   }
 
-  if (requestedType === "LEAVE") {
-    const start = new Date(startDateStr);
-    const end = new Date(endDateStr);
-    let daysCount = 0;
-    const countDate = new Date(start);
-    while (countDate <= end) {
-      daysCount++;
-      countDate.setUTCDate(countDate.getUTCDate() + 1);
+  // Find user placement/studio to calculate studio off-days and holidays
+  const activePlacement = await prisma.placement.findFirst({
+    where: { userId: currentUser.id, status: "ACTIVE" },
+    select: { studioId: true },
+  });
+  const targetStudioId = activePlacement?.studioId || currentUser.defaultStudioId;
+
+  let offDaysOfWeek = [0, 1]; // Default: Sunday (0) and Monday (1)
+  if (targetStudioId) {
+    const weeklyRules = await prisma.weeklyWorkRule.findMany({
+      where: { studioId: targetStudioId },
+      select: { dayOfWeek: true, isWorkday: true },
+    });
+    if (weeklyRules.length > 0) {
+      offDaysOfWeek = weeklyRules
+        .filter((r) => !r.isWorkday)
+        .map((r) => r.dayOfWeek);
     }
+  }
+
+  const calendarEvents = await prisma.calendarEvent.findMany({
+    where: {
+      OR: [
+        { studioId: null },
+        ...(targetStudioId ? [{ studioId: targetStudioId }] : []),
+      ],
+      type: { in: ["NATIONAL_HOLIDAY", "COMPANY_LEAVE", "REGULAR_OFF_DAY"] },
+    },
+    select: { startDate: true, endDate: true },
+  });
+
+  const holidayDates: string[] = [];
+  for (const evt of calendarEvents) {
+    const cur = new Date(evt.startDate);
+    const endE = new Date(evt.endDate);
+    while (cur <= endE) {
+      holidayDates.push(cur.toISOString().split("T")[0]);
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
+  if (requestedType === "LEAVE") {
+    const { workingDays } = calculateEffectiveWorkdays({
+      startDateStr,
+      endDateStr,
+      offDaysOfWeek,
+      holidayDates,
+    });
 
     const userObj = await prisma.user.findUnique({
       where: { id: currentUser.id },
@@ -101,7 +141,7 @@ export async function createRequestAction(formData: FormData) {
     });
 
     const leaveBalance = userObj?.annualLeaveBalance ?? 0;
-    if (leaveBalance < daysCount) {
+    if (leaveBalance < workingDays) {
       redirect("/member/requests?error=insufficient-leave");
     }
   }
@@ -144,13 +184,6 @@ export async function createRequestAction(formData: FormData) {
       attachmentUrl,
     },
   });
-
-  // Trigger non-blocking email notification to studio
-  const activePlacement = await prisma.placement.findFirst({
-    where: { userId: currentUser.id, status: "ACTIVE" },
-    select: { studioId: true },
-  });
-  const targetStudioId = activePlacement?.studioId || currentUser.defaultStudioId;
 
   if (targetStudioId) {
     const { sendStudioRequestNotification } = await import("@/lib/studio-notification-email");

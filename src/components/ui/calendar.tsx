@@ -208,13 +208,19 @@ function CalendarDayButton({
       data-range-start={modifiers.range_start}
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
+      data-studio-off={modifiers.studioOffDay}
       className={cn(
-        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-end=true]:bg-blue-600 data-[range-end=true]:text-white data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-blue-100 dark:data-[range-middle=true]:bg-blue-950/60 data-[range-middle=true]:text-blue-950 dark:data-[range-middle=true]:text-blue-100 data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[range-start=true]:bg-blue-600 data-[range-start=true]:text-white data-[selected-single=true]:bg-blue-600 data-[selected-single=true]:text-white dark:hover:text-foreground [&>span]:text-xs [&>span]:opacity-70",
+        "relative isolate z-10 flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-0.5 border-0 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-[3px] group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:rounded-(--cell-radius) data-[range-end=true]:rounded-r-(--cell-radius) data-[range-end=true]:bg-blue-600 data-[range-end=true]:text-white data-[range-middle=true]:rounded-none data-[range-middle=true]:bg-blue-100 dark:data-[range-middle=true]:bg-blue-950/60 data-[range-middle=true]:text-blue-950 dark:data-[range-middle=true]:text-blue-100 data-[range-start=true]:rounded-(--cell-radius) data-[range-start=true]:rounded-l-(--cell-radius) data-[range-start=true]:bg-blue-600 data-[range-start=true]:text-white data-[selected-single=true]:bg-blue-600 data-[selected-single=true]:text-white data-[studio-off=true]:text-zinc-400 dark:data-[studio-off=true]:text-zinc-500 dark:hover:text-foreground [&>span]:text-xs [&>span]:opacity-70",
         defaultClassNames.day,
         className
       )}
       {...props}
-    />
+    >
+      {props.children}
+      {modifiers.studioOffDay && !modifiers.selected && !modifiers.range_middle && (
+        <span className="size-1 rounded-full bg-amber-500/80 dark:bg-amber-400/80 -mt-1" title="Studio Off-day" />
+      )}
+    </Button>
   )
 }
 

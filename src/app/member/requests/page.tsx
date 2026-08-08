@@ -132,6 +132,46 @@ export default async function MemberRequestsPage() {
     },
   });
 
+  const activePlacement = await prisma.placement.findFirst({
+    where: { userId: currentUser.id, status: "ACTIVE" },
+    select: { studioId: true },
+  });
+  const targetStudioId = activePlacement?.studioId || currentUser.defaultStudioId;
+
+  let offDaysOfWeek = [0, 1]; // Default fallback: Sunday (0) and Monday (1)
+  if (targetStudioId) {
+    const weeklyRules = await prisma.weeklyWorkRule.findMany({
+      where: { studioId: targetStudioId },
+      select: { dayOfWeek: true, isWorkday: true },
+    });
+    if (weeklyRules.length > 0) {
+      offDaysOfWeek = weeklyRules
+        .filter((r) => !r.isWorkday)
+        .map((r) => r.dayOfWeek);
+    }
+  }
+
+  const calendarEvents = await prisma.calendarEvent.findMany({
+    where: {
+      OR: [
+        { studioId: null },
+        ...(targetStudioId ? [{ studioId: targetStudioId }] : []),
+      ],
+      type: { in: ["NATIONAL_HOLIDAY", "COMPANY_LEAVE", "REGULAR_OFF_DAY"] },
+    },
+    select: { startDate: true, endDate: true },
+  });
+
+  const holidayDates: string[] = [];
+  for (const evt of calendarEvents) {
+    const cur = new Date(evt.startDate);
+    const endE = new Date(evt.endDate);
+    while (cur <= endE) {
+      holidayDates.push(cur.toISOString().split("T")[0]);
+      cur.setDate(cur.getDate() + 1);
+    }
+  }
+
   return (
     <DashboardShell
       user={currentUser}
@@ -168,7 +208,12 @@ export default async function MemberRequestsPage() {
                 </p>
               </div>
             )}
-            <RequestFormClient canRequestReplacementDay={canRequestReplacementDay} rulesContent={helpRules.rules_leave_sick} />
+            <RequestFormClient
+              canRequestReplacementDay={canRequestReplacementDay}
+              rulesContent={helpRules.rules_leave_sick}
+              offDaysOfWeek={offDaysOfWeek}
+              holidayDates={holidayDates}
+            />
           </CardContent>
         </Card>
 

@@ -24,6 +24,8 @@ interface CalendarPresetsDatePickerProps {
   placeholder?: string;
   minDate?: Date;
   disabled?: boolean;
+  offDaysOfWeek?: number[];
+  holidayDates?: string[];
 }
 
 export function CalendarPresetsDatePicker({
@@ -35,6 +37,8 @@ export function CalendarPresetsDatePicker({
   placeholder = "Select date or date range",
   minDate,
   disabled = false,
+  offDaysOfWeek = [0, 1], // Default Sunday & Monday off
+  holidayDates = [],
 }: CalendarPresetsDatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -236,6 +240,15 @@ export function CalendarPresetsDatePicker({
     }
   }, [startDate, endDate, placeholder]);
 
+  const isStudioOffDay = React.useCallback(
+    (date: Date) => {
+      const dayOfWeek = date.getDay(); // 0-6
+      const dateStr = format(date, "yyyy-MM-dd");
+      return offDaysOfWeek.includes(dayOfWeek) || holidayDates.includes(dateStr);
+    },
+    [offDaysOfWeek, holidayDates]
+  );
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <input type="hidden" id={id ? `${id}-start` : "startDate"} name="startDate" value={startDate} />
@@ -265,8 +278,8 @@ export function CalendarPresetsDatePicker({
           </div>
         </div>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0 overflow-hidden w-full min-w-full sm:min-w-[400px] z-50">
-        <div className="flex flex-col sm:flex-row border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl shadow-2xl w-full">
+      <PopoverContent align="start" className="p-0 overflow-hidden w-auto z-50">
+        <div className="flex flex-col sm:flex-row border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl shadow-2xl">
           {/* Preset Sidebar - Only Today and Tomorrow */}
           <div className="flex flex-col justify-between gap-3 p-3 border-b sm:border-b-0 sm:border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 shrink-0 min-w-[130px] sm:w-[140px]">
             <div className="flex flex-col gap-3">
@@ -338,7 +351,7 @@ export function CalendarPresetsDatePicker({
           </div>
 
           {/* Calendar Range View */}
-          <div className="p-2 flex-1 flex justify-center items-center">
+          <div className="p-2">
             <Calendar
               mode="range"
               selected={
@@ -351,7 +364,7 @@ export function CalendarPresetsDatePicker({
               }
               onSelect={handleRangeSelect}
               disabled={isDateDisabled}
-              className="w-full flex justify-center"
+              modifiers={{ studioOffDay: isStudioOffDay }}
             />
           </div>
         </div>

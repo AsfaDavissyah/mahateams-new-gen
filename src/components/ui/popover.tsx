@@ -164,7 +164,6 @@ export function PopoverContent({
         position: "absolute",
         top: `${coords.top}px`,
         left: `${coords.left}px`,
-        minWidth: `${coords.width}px`,
       }}
       className={cn(
         "z-[9999] rounded-xl bg-popover text-popover-foreground shadow-2xl ring-1 ring-zinc-200 dark:ring-zinc-800 outline-none animate-in fade-in-0 zoom-in-95 duration-150",
