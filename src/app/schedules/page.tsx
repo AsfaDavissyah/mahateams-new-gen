@@ -252,11 +252,6 @@ export default async function WorkSchedulesPage({
   );
 
   const attendanceMap = new Map<string, { status: string; workMode: string }>();
-  for (const att of data.attendanceRecords) {
-    const key = formatDateKey(new Date(att.attendanceDate));
-    attendanceMap.set(key, { status: att.status, workMode: att.workMode });
-  }
-
   const todayKey = formatDateKey(dateOnly());
   const wfoCount = Math.max(0, days.length - data.wfhCount);
 
@@ -417,6 +412,8 @@ export default async function WorkSchedulesPage({
               const isWfh = schedule?.workMode === "WFH";
               const isToday = day.dateKey === todayKey;
               const isPastDay = day.dateKey < todayKey;
+              const SYSTEM_START_DATE = "2026-07-14";
+              const isBeforeSystemStart = day.dateKey < SYSTEM_START_DATE;
 
               const dayHolidays = holidayMap.get(day.dateKey) ?? [];
               const hasHoliday = dayHolidays.some(h => 
@@ -485,7 +482,7 @@ export default async function WorkSchedulesPage({
                             {attendance.status}
                           </Badge>
                         )
-                      ) : isPastDay && !isSundayOrMonday ? (
+                      ) : isPastDay && !isBeforeSystemStart && !isSundayOrMonday ? (
                         <Badge variant="secondary" className="bg-red-100 dark:bg-red-950/40 text-red-800 dark:text-red-300 border-red-200 dark:border-red-900 font-semibold">
                           ALPHA
                         </Badge>
@@ -511,7 +508,7 @@ export default async function WorkSchedulesPage({
                         "Holiday"
                       ) : isPastDay && attendance ? (
                         `Status: ${attendance.status}`
-                      ) : isPastDay && !isSundayOrMonday ? (
+                      ) : isPastDay && !isBeforeSystemStart && !isSundayOrMonday ? (
                         "No attendance record (Alpha)"
                       ) : isWfh ? (
                         (schedule?.note ?? "WFH from monthly schedule").replace("WFH diatur oleh Super Admin", "WFH set by Super Admin")
