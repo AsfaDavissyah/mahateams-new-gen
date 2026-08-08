@@ -197,41 +197,21 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
         <span>If you cannot attend, please contact your mentor or lead first.</span>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="start-date" className="text-sm font-medium">
-            Start Date <span className="text-red-500">*</span>
-          </label>
-          <CalendarPresetsDatePicker
-            id="start-date"
-            name="startDate"
-            value={startDate}
-            onChange={(val) => {
-              setStartDate(val);
-              if (endDate && val > endDate) {
-                setEndDate(val);
-              }
-            }}
-            requestType={selectedType}
-            placeholder="Select start date"
-          />
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="end-date" className="text-sm font-medium">
-            End Date <span className="text-xs font-normal text-zinc-500">(optional)</span>
-          </label>
-          <CalendarPresetsDatePicker
-            id="end-date"
-            name="endDate"
-            value={endDate}
-            onChange={(val) => setEndDate(val)}
-            requestType={selectedType}
-            placeholder="Select end date"
-            isEndDate
-            startDateValue={startDate}
-            minDate={startDate ? parseISO(startDate) : undefined}
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor="request-date-range" className="text-sm font-medium">
+          Date / Period <span className="text-red-500">*</span>
+        </label>
+        <CalendarPresetsDatePicker
+          id="request-date-range"
+          startDate={startDate}
+          endDate={endDate}
+          onRangeChange={({ startDate: s, endDate: e }) => {
+            setStartDate(s);
+            setEndDate(e);
+          }}
+          requestType={selectedType}
+          placeholder="Select date or date range"
+        />
       </div>
 
       {durationLabel ? (

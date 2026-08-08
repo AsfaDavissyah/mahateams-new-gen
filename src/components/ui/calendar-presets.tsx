@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { format, addDays, isSameDay, parseISO, startOfDay } from "date-fns";
+import { format, addDays, isSameDay, parseISO, startOfDay, differenceInCalendarDays } from "date-fns";
 import { Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -11,73 +11,70 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import type { DateRange } from "react-day-picker";
 
 export type RequestType = "PERMISSION" | "SICK" | "DISPENSATION" | "LEAVE" | "WFH";
 
 interface CalendarPresetsDatePickerProps {
   id?: string;
-  name?: string;
-  value?: string; // YYYY-MM-DD
-  onChange?: (dateStr: string) => void;
+  startDate?: string; // YYYY-MM-DD
+  endDate?: string; // YYYY-MM-DD
+  onRangeChange?: (range: { startDate: string; endDate: string }) => void;
   requestType?: RequestType;
   placeholder?: string;
   minDate?: Date;
-  isEndDate?: boolean;
-  startDateValue?: string;
   disabled?: boolean;
 }
 
 export function CalendarPresetsDatePicker({
   id,
-  name,
-  value,
-  onChange,
+  startDate = "",
+  endDate = "",
+  onRangeChange,
   requestType = "PERMISSION",
-  placeholder = "Select date",
+  placeholder = "Select date or date range",
   minDate,
-  isEndDate = false,
-  startDateValue,
   disabled = false,
 }: CalendarPresetsDatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
-  // Parse today and tomorrow in UTC/local start of day
+  // Parse today and tomorrow
   const today = React.useMemo(() => startOfDay(new Date()), []);
   const tomorrow = React.useMemo(() => addDays(today, 1), [today]);
-  const next7Days = React.useMemo(() => addDays(today, 6), [today]);
 
-  const selectedDate = React.useMemo(() => {
-    if (!value) return undefined;
+  const selectedFromDate = React.useMemo(() => {
+    if (!startDate) return undefined;
     try {
-      return parseISO(value);
+      return parseISO(startDate);
     } catch {
       return undefined;
     }
-  }, [value]);
+  }, [startDate]);
+
+  const selectedToDate = React.useMemo(() => {
+    if (!endDate) return selectedFromDate;
+    try {
+      return parseISO(endDate);
+    } catch {
+      return selectedFromDate;
+    }
+  }, [endDate, selectedFromDate]);
 
   // Determine if 'Today' preset is disabled for the chosen request type
   const isTodayDisabled = React.useMemo(() => {
-    if (isEndDate && startDateValue) {
-      const start = parseISO(startDateValue);
-      if (today < startOfDay(start)) return true;
-    }
     if (requestType === "PERMISSION" || requestType === "LEAVE") {
       return true; // Minimum H-1 required
     }
     return false;
-  }, [requestType, isEndDate, startDateValue, today]);
+  }, [requestType]);
 
   // Determine if 'Tomorrow' preset is disabled
   const isTomorrowDisabled = React.useMemo(() => {
     if (requestType === "SICK") {
       return true; // Sick leave can only be requested for Today
     }
-    if (isEndDate && startDateValue) {
-      const start = parseISO(startDateValue);
-      if (tomorrow < startOfDay(start)) return true;
-    }
     return false;
-  }, [requestType, isEndDate, startDateValue, tomorrow]);
+  }, [requestType]);
 
   // Custom function to disable dates in the Calendar grid
   const isDateDisabled = React.useCallback(
@@ -104,42 +101,76 @@ export function CalendarPresetsDatePicker({
     [requestType, today, tomorrow, minDate]
   );
 
-  const handleSelectDate = (date: Date | undefined) => {
-    if (!date) {
-      onChange?.("");
-      setOpen(false);
-      return;
-    }
+  const handleSelectPreset = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    onChange?.(dateStr);
+    onRangeChange?.({ startDate: dateStr, endDate: dateStr });
     setOpen(false);
   };
 
-  const isTodaySelected = selectedDate && isSameDay(selectedDate, today);
-  const isTomorrowSelected = selectedDate && isSameDay(selectedDate, tomorrow);
+  const handleRangeSelect = (range: DateRange | undefined) => {
+    if (!range || !range.from) {
+      onRangeChange?.({ startDate: "", endDate: "" });
+      return;
+    }
+
+    const fromStr = format(range.from, "yyyy-MM-dd");
+    const toStr = range.to ? format(range.to, "yyyy-MM-dd") : fromStr;
+
+    onRangeChange?.({ startDate: fromStr, endDate: toStr });
+
+    // Auto-close popover when both start and end date are selected
+    if (range.from && range.to) {
+      setOpen(false);
+    }
+  };
+
+  const isTodaySelected =
+    selectedFromDate &&
+    selectedToDate &&
+    isSameDay(selectedFromDate, today) &&
+    isSameDay(selectedToDate, today);
+
+  const isTomorrowSelected =
+    selectedFromDate &&
+    selectedToDate &&
+    isSameDay(selectedFromDate, tomorrow) &&
+    isSameDay(selectedToDate, tomorrow);
+
+  // Compute trigger button display label
+  const displayLabel = React.useMemo(() => {
+    if (!selectedFromDate) return placeholder;
+
+    const fromText = format(selectedFromDate, "EEE, dd MMM yyyy");
+    if (!selectedToDate || isSameDay(selectedFromDate, selectedToDate)) {
+      return `${fromText} (1 Day)`;
+    }
+
+    const toText = format(selectedToDate, "EEE, dd MMM yyyy");
+    const daysCount = differenceInCalendarDays(selectedToDate, selectedFromDate) + 1;
+    return `${fromText} – ${toText} (${daysCount} Days)`;
+  }, [selectedFromDate, selectedToDate, placeholder]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <input type="hidden" id={id} name={name} value={value || ""} />
+      <input type="hidden" id={id ? `${id}-start` : "startDate"} name="startDate" value={startDate} />
+      <input type="hidden" id={id ? `${id}-end` : "endDate"} name="endDate" value={endDate || startDate} />
       <PopoverTrigger asChild>
         <button
           type="button"
           disabled={disabled}
           className={cn(
             "flex h-9 w-full items-center justify-between rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-3 py-1 text-sm shadow-xs transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
-            !value && "text-zinc-500 dark:text-zinc-400"
+            !startDate && "text-zinc-500 dark:text-zinc-400"
           )}
         >
-          <span className="truncate font-normal">
-            {selectedDate ? format(selectedDate, "EEE, dd MMM yyyy") : placeholder}
-          </span>
+          <span className="truncate font-normal">{displayLabel}</span>
           <CalendarIcon className="ml-2 size-4 shrink-0 text-zinc-500 dark:text-zinc-400" />
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="p-0 overflow-hidden w-auto">
         <div className="flex flex-col sm:flex-row border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl shadow-xl">
-          {/* Preset Sidebar - Inspired by @shadcn-space/calendar-14 */}
-          <div className="flex flex-col gap-3 p-3 border-b sm:border-b-0 sm:border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 min-w-[140px]">
+          {/* Preset Sidebar - Only Today and Tomorrow */}
+          <div className="flex flex-col gap-3 p-3 border-b sm:border-b-0 sm:border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 min-w-[130px]">
             <div>
               <div className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase mb-1.5 px-2">
                 DAYS
@@ -150,7 +181,7 @@ export function CalendarPresetsDatePicker({
                   variant="outline"
                   size="sm"
                   disabled={isTodayDisabled}
-                  onClick={() => handleSelectDate(today)}
+                  onClick={() => handleSelectPreset(today)}
                   className={cn(
                     "justify-start text-xs h-8 px-2.5 font-normal rounded-md border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer",
                     isTodaySelected &&
@@ -165,7 +196,7 @@ export function CalendarPresetsDatePicker({
                   variant="outline"
                   size="sm"
                   disabled={isTomorrowDisabled}
-                  onClick={() => handleSelectDate(tomorrow)}
+                  onClick={() => handleSelectPreset(tomorrow)}
                   className={cn(
                     "justify-start text-xs h-8 px-2.5 font-normal rounded-md border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 cursor-pointer",
                     isTomorrowSelected &&
@@ -177,23 +208,6 @@ export function CalendarPresetsDatePicker({
                 </Button>
               </div>
             </div>
-
-            {requestType !== "SICK" && (
-              <div>
-                <div className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase mb-1.5 px-2">
-                  QUICK PICK
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleSelectDate(next7Days)}
-                  className="justify-start text-xs h-8 px-2.5 font-normal rounded-md border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-none hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 cursor-pointer"
-                >
-                  Next 7 days
-                </Button>
-              </div>
-            )}
 
             {isTodayDisabled && (
               <div className="mt-auto pt-2 border-t border-zinc-200 dark:border-zinc-800/80 text-[10px] text-amber-600 dark:text-amber-400 flex items-start gap-1">
@@ -209,12 +223,19 @@ export function CalendarPresetsDatePicker({
             )}
           </div>
 
-          {/* Calendar View */}
+          {/* Calendar Range View */}
           <div className="p-2">
             <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleSelectDate}
+              mode="range"
+              selected={
+                selectedFromDate
+                  ? {
+                      from: selectedFromDate,
+                      to: selectedToDate,
+                    }
+                  : undefined
+              }
+              onSelect={handleRangeSelect}
               disabled={isDateDisabled}
             />
           </div>
@@ -223,3 +244,4 @@ export function CalendarPresetsDatePicker({
     </Popover>
   );
 }
+
