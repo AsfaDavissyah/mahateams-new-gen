@@ -435,7 +435,8 @@ export default async function WorkSchedulesPage({
 
               const dayOfWeek = day.date.getDay();
               const offDays = data.offDaysOfWeek ?? [0, 1];
-              const isStudioOffDay = offDays.includes(dayOfWeek) || (dayOfWeek === 0 && offDays.includes(7));
+              const isSundayOrMonday = dayOfWeek === 0 || dayOfWeek === 1;
+              const isStudioOffDay = isSundayOrMonday || offDays.includes(dayOfWeek) || (dayOfWeek === 0 && offDays.includes(7));
 
               const dayHolidays = holidayMap.get(day.dateKey) ?? [];
               const hasHoliday = dayHolidays.some(h => 
