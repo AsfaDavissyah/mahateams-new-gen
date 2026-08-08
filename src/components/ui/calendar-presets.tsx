@@ -177,14 +177,14 @@ export function CalendarPresetsDatePicker({
     }
 
     if (!isSelectingRange) {
-      // 1st click: Start date selected!
+      // 1st click: Sets start date AND end date to the clicked date (1-day selection) immediately!
       const clickedFrom = range.from;
-      setRangeState({ from: clickedFrom, to: undefined });
+      setRangeState({ from: clickedFrom, to: clickedFrom });
       setIsSelectingRange(true);
 
       const fromStr = format(clickedFrom, "yyyy-MM-dd");
       onRangeChange?.({ startDate: fromStr, endDate: fromStr });
-      // Keep popover open!
+      // Keep popover open so user can pick a 2nd date for a range if desired!
     } else {
       // 2nd click: End date selected!
       const startD = rangeState?.from || range.from;
@@ -278,8 +278,8 @@ export function CalendarPresetsDatePicker({
           </div>
         </div>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0 overflow-hidden w-auto z-50">
-        <div className="flex flex-col sm:flex-row border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl shadow-2xl">
+      <PopoverContent align="start" className="p-0 overflow-hidden w-full z-50">
+        <div className="flex flex-col sm:flex-row border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 rounded-xl shadow-2xl w-full">
           {/* Preset Sidebar - Only Today and Tomorrow */}
           <div className="flex flex-col justify-between gap-3 p-3 border-b sm:border-b-0 sm:border-r border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 shrink-0 min-w-[130px] sm:w-[140px]">
             <div className="flex flex-col gap-3">
@@ -351,7 +351,7 @@ export function CalendarPresetsDatePicker({
           </div>
 
           {/* Calendar Range View */}
-          <div className="p-2">
+          <div className="p-2 flex-1 flex justify-center items-center">
             <Calendar
               mode="range"
               selected={
@@ -365,6 +365,7 @@ export function CalendarPresetsDatePicker({
               onSelect={handleRangeSelect}
               disabled={isDateDisabled}
               modifiers={{ studioOffDay: isStudioOffDay }}
+              className="w-full flex justify-center"
             />
           </div>
         </div>
@@ -372,5 +373,3 @@ export function CalendarPresetsDatePicker({
     </Popover>
   );
 }
-
-
