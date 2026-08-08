@@ -15,6 +15,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+import { format, addDays, startOfDay, parseISO } from "date-fns";
+import { CalendarPresetsDatePicker, RequestType } from "@/components/ui/calendar-presets";
+
 type Props = {
   canRequestReplacementDay: boolean;
   rulesContent?: string;
@@ -28,7 +31,7 @@ const SYARAT_KETERANGAN: Record<string, { title: string; desc: string; variant: 
   },
   SICK: {
     title: "Sick Leave Terms",
-    desc: "Can be submitted on the same day only. A supporting document is required, and an approved request does not create workday debt.",
+    desc: "Can be submitted on the same day only (Today). A supporting document is required, and an approved request does not create workday debt.",
     variant: "violet",
   },
   DISPENSATION: {
@@ -49,10 +52,30 @@ const SYARAT_KETERANGAN: Record<string, { title: string; desc: string; variant: 
 };
 
 export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Props) {
-  const [selectedType, setSelectedType] = useState<string>("PERMISSION");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [selectedType, setSelectedType] = useState<RequestType>("PERMISSION");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
   const [loading, setLoading] = useState(false);
+
+  // Auto-adjust date defaults when request type changes
+  const handleTypeChange = (newType: RequestType) => {
+    setSelectedType(newType);
+
+    const todayStr = format(startOfDay(new Date()), "yyyy-MM-dd");
+    const tomorrowStr = format(addDays(startOfDay(new Date()), 1), "yyyy-MM-dd");
+
+    if (newType === "SICK") {
+      setStartDate(todayStr);
+      setEndDate(todayStr);
+    } else if (newType === "PERMISSION" || newType === "LEAVE") {
+      if (!startDate || startDate <= todayStr) {
+        setStartDate(tomorrowStr);
+      }
+      if (endDate && endDate < tomorrowStr) {
+        setEndDate(tomorrowStr);
+      }
+    }
+  };
 
   const guide = SYARAT_KETERANGAN[selectedType];
   const durationLabel = getDurationLabel(startDate, endDate);
@@ -135,7 +158,7 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
           id="request-type"
           name="type"
           value={selectedType}
-          onChange={(e) => setSelectedType(e.target.value)}
+          onChange={(e) => handleTypeChange(e.target.value as RequestType)}
           className="h-9 w-full rounded-md border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 px-3 text-sm outline-none focus:border-zinc-950 dark:focus:border-zinc-300 focus:ring-1 focus:ring-zinc-950 dark:focus:ring-zinc-300"
           required
         >
@@ -179,26 +202,34 @@ export function RequestFormClient({ canRequestReplacementDay, rulesContent }: Pr
           <label htmlFor="start-date" className="text-sm font-medium">
             Start Date <span className="text-red-500">*</span>
           </label>
-          <Input
+          <CalendarPresetsDatePicker
             id="start-date"
             name="startDate"
-            type="date"
             value={startDate}
-            onChange={(event) => setStartDate(event.target.value)}
-            required
+            onChange={(val) => {
+              setStartDate(val);
+              if (endDate && val > endDate) {
+                setEndDate(val);
+              }
+            }}
+            requestType={selectedType}
+            placeholder="Select start date"
           />
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="end-date" className="text-sm font-medium">
             End Date <span className="text-xs font-normal text-zinc-500">(optional)</span>
           </label>
-          <Input
+          <CalendarPresetsDatePicker
             id="end-date"
             name="endDate"
-            type="date"
             value={endDate}
-            onChange={(event) => setEndDate(event.target.value)}
-            min={startDate || undefined}
+            onChange={(val) => setEndDate(val)}
+            requestType={selectedType}
+            placeholder="Select end date"
+            isEndDate
+            startDateValue={startDate}
+            minDate={startDate ? parseISO(startDate) : undefined}
           />
         </div>
       </div>
