@@ -412,14 +412,21 @@ export default async function WorkSchedulesPage({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 overflow-hidden rounded-md border border-zinc-200 dark:border-zinc-800 bg-card">
-            {dayLabels.map((label) => (
-              <div
-                key={label}
-                className="border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 px-2 py-2 text-center text-xs font-medium text-zinc-600 dark:text-zinc-400"
-              >
-                {label}
-              </div>
-            ))}
+            {dayLabels.map((label) => {
+              const isOffColumn = label === "Mon" || label === "Sun";
+              return (
+                <div
+                  key={label}
+                  className={`border-b border-zinc-200 dark:border-zinc-800 px-2 py-2 text-center text-xs font-semibold ${
+                    isOffColumn
+                      ? "bg-zinc-100/70 text-zinc-500 dark:bg-zinc-900/80 dark:text-zinc-500"
+                      : "bg-zinc-50 text-zinc-700 dark:bg-zinc-900/50 dark:text-zinc-300"
+                  }`}
+                >
+                  {label}
+                </div>
+              );
+            })}
             {Array.from({ length: leadingBlankDays }, (_, index) => (
               <div
                 key={`blank-${index}`}
@@ -450,7 +457,11 @@ export default async function WorkSchedulesPage({
               return (
                 <div
                   key={day.dateKey}
-                  className="min-h-32 border-b border-r border-zinc-100 dark:border-zinc-800 p-2 bg-transparent flex flex-col justify-between"
+                  className={`min-h-32 border-b border-r border-zinc-100 dark:border-zinc-800 p-2 flex flex-col justify-between transition-colors ${
+                    isStudioOffDay
+                      ? "bg-zinc-50/70 dark:bg-zinc-900/30"
+                      : "bg-transparent"
+                  }`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
