@@ -13,10 +13,12 @@ const PopoverContext = React.createContext<PopoverContextType | null>(null);
 export function Popover({
   open: controlledOpen,
   onOpenChange,
+  className,
   children,
 }: {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  className?: string;
   children: React.ReactNode;
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false);
@@ -33,7 +35,7 @@ export function Popover({
 
   return (
     <PopoverContext.Provider value={{ open, setOpen }}>
-      <div className="relative inline-block text-left">{children}</div>
+      <div className={cn("relative w-full text-left", className)}>{children}</div>
     </PopoverContext.Provider>
   );
 }
