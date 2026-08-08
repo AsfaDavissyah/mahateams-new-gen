@@ -79,6 +79,7 @@ async function getScheduleData({
       email: true,
       role: true,
       memberStatus: true,
+      defaultStudioId: true,
       defaultStudio: {
         select: {
           name: true,
@@ -175,6 +176,20 @@ async function getScheduleData({
       ])
     : [[], 0, [], []];
 
+  const targetStudioId = selectedUser?.defaultStudioId ?? (filterStudioId !== "all" ? filterStudioId : null);
+  let offDaysOfWeek = [0, 1]; // Default: Sunday (0) and Monday (1)
+  if (targetStudioId) {
+    const weeklyRules = await prisma.weeklyWorkRule.findMany({
+      where: { studioId: targetStudioId },
+      select: { dayOfWeek: true, isWorkday: true, isOptional: true },
+    });
+    if (weeklyRules.length > 0) {
+      offDaysOfWeek = weeklyRules
+        .filter((r) => !r.isWorkday || r.isOptional)
+        .map((r) => (r.dayOfWeek === 7 ? 0 : r.dayOfWeek));
+    }
+  }
+
   return {
     users,
     selectedUser,
@@ -182,6 +197,7 @@ async function getScheduleData({
     wfhCount,
     calendarEvents,
     attendanceRecords,
+    offDaysOfWeek,
   };
 }
 
@@ -199,7 +215,6 @@ export default async function WorkSchedulesPage({
     month.year,
     month.monthIndex
   );
-  
   const isSuperAdmin = currentUser.role === "SUPER_ADMIN";
 
   const studios = await prisma.studio.findMany({
@@ -418,6 +433,10 @@ export default async function WorkSchedulesPage({
               const isToday = day.dateKey === todayKey;
               const isPastDay = day.dateKey < todayKey;
 
+              const dayOfWeek = day.date.getDay();
+              const offDays = data.offDaysOfWeek ?? [0, 1];
+              const isStudioOffDay = offDays.includes(dayOfWeek) || (dayOfWeek === 0 && offDays.includes(7));
+
               const dayHolidays = holidayMap.get(day.dateKey) ?? [];
               const hasHoliday = dayHolidays.some(h => 
                 h.type === "NATIONAL_HOLIDAY" || 
@@ -491,7 +510,7 @@ export default async function WorkSchedulesPage({
                         >
                           WFH
                         </Badge>
-                      ) : (
+                      ) : isStudioOffDay ? null : (
                         <Badge
                           variant="secondary"
                           className="bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800"
@@ -510,7 +529,7 @@ export default async function WorkSchedulesPage({
                         (schedule?.note ?? "WFH from monthly schedule").replace("WFH diatur oleh Super Admin", "WFH set by Super Admin")
                       ) : hasReplacement ? (
                         "Replacement Day (WFO)"
-                      ) : (
+                      ) : isStudioOffDay ? null : (
                         "Default WFO"
                       )}
                     </p>
@@ -529,7 +548,7 @@ export default async function WorkSchedulesPage({
                     ))}
                   </div>
 
-                  {!isRealHoliday && !isPastDay && canManage && data.selectedUser ? (
+                  {!isRealHoliday && !isStudioOffDay && !isPastDay && canManage && data.selectedUser ? (
                     <div className="mt-3">
                       <ToggleScheduleButton
                         userId={data.selectedUser.id}
