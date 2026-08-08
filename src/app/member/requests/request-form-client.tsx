@@ -24,6 +24,7 @@ type Props = {
   rulesContent?: string;
   offDaysOfWeek?: number[];
   holidayDates?: string[];
+  replacementDates?: string[];
 };
 
 const SYARAT_KETERANGAN: Record<string, { title: string; desc: string; variant: "blue" | "emerald" | "violet" | "amber" | "rose" }> = {
@@ -59,6 +60,7 @@ export function RequestFormClient({
   rulesContent,
   offDaysOfWeek = [0, 1],
   holidayDates = [],
+  replacementDates = [],
 }: Props) {
   const [selectedType, setSelectedType] = useState<RequestType>("PERMISSION");
   const [startDate, setStartDate] = useState<string>("");
@@ -91,6 +93,7 @@ export function RequestFormClient({
     endDateStr: endDate,
     offDaysOfWeek,
     holidayDates,
+    replacementDates,
   });
 
   return (
@@ -226,6 +229,7 @@ export function RequestFormClient({
           placeholder="Select date or date range"
           offDaysOfWeek={offDaysOfWeek}
           holidayDates={holidayDates}
+          replacementDates={replacementDates}
         />
       </div>
 

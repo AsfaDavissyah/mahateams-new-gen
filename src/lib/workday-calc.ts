@@ -7,19 +7,59 @@ export interface EffectiveWorkdaysResult {
 }
 
 /**
+ * Determines whether a given date is an effective off-day for a studio.
+ * Priority:
+ * 1. REPLACEMENT_WORKDAY -> Forced working day (isOff = false)
+ * 2. NATIONAL_HOLIDAY / COMPANY_LEAVE / REGULAR_OFF_DAY -> Off day (isOff = true)
+ * 3. Studio weekly rules (offDaysOfWeek, 0=Sun, 1=Mon, ..., 6=Sat)
+ */
+export function isEffectiveOffDay({
+  date,
+  offDaysOfWeek = [0, 1],
+  holidayDates = [],
+  replacementDates = [],
+}: {
+  date: Date;
+  offDaysOfWeek?: number[];
+  holidayDates?: string[];
+  replacementDates?: string[];
+}): boolean {
+  const dateStr = format(date, "yyyy-MM-dd");
+
+  // 1. Replacement workday overrides everything to be a working day
+  if (replacementDates.includes(dateStr)) {
+    return false;
+  }
+
+  // 2. National holiday or company leave is an off day
+  if (holidayDates.includes(dateStr)) {
+    return true;
+  }
+
+  // 3. Studio weekly off days
+  const dayOfWeek = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const isStudioOff =
+    offDaysOfWeek.includes(dayOfWeek) || (dayOfWeek === 0 && offDaysOfWeek.includes(7));
+
+  return isStudioOff;
+}
+
+/**
  * Calculates effective working days between startDateStr and endDateStr (inclusive),
- * excluding studio weekly off-days (e.g. Sunday=0, Monday=1) and national holidays.
+ * considering studio weekly off-days, national holidays, and replacement workdays.
  */
 export function calculateEffectiveWorkdays({
   startDateStr,
   endDateStr,
-  offDaysOfWeek = [0, 1], // Default: Sunday (0) and Monday (1)
+  offDaysOfWeek = [0, 1],
   holidayDates = [],
+  replacementDates = [],
 }: {
   startDateStr: string;
   endDateStr?: string;
   offDaysOfWeek?: number[];
   holidayDates?: string[];
+  replacementDates?: string[];
 }): EffectiveWorkdaysResult {
   if (!startDateStr) {
     return { workingDays: 0, offDays: 0, totalDays: 0 };
@@ -44,13 +84,14 @@ export function calculateEffectiveWorkdays({
 
   const current = new Date(start);
   while (current <= end) {
-    const dayOfWeek = current.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
-    const dateStr = format(current, "yyyy-MM-dd");
+    const isOff = isEffectiveOffDay({
+      date: current,
+      offDaysOfWeek,
+      holidayDates,
+      replacementDates,
+    });
 
-    const isStudioOff = offDaysOfWeek.includes(dayOfWeek);
-    const isHoliday = holidayDates.includes(dateStr);
-
-    if (isStudioOff || isHoliday) {
+    if (isOff) {
       offDays++;
     } else {
       workingDays++;
@@ -68,18 +109,20 @@ export function calculateEffectiveWorkdays({
 
 /**
  * Returns a human-readable duration label for the request form.
- * e.g. "2 Working Days (2 Studio Off-days excluded)"
+ * e.g. "2 Working Days (3 Studio Off-days excluded)"
  */
 export function getDurationLabel({
   startDateStr,
   endDateStr,
   offDaysOfWeek = [0, 1],
   holidayDates = [],
+  replacementDates = [],
 }: {
   startDateStr: string;
   endDateStr?: string;
   offDaysOfWeek?: number[];
   holidayDates?: string[];
+  replacementDates?: string[];
 }): string {
   if (!startDateStr) return "";
 
@@ -88,6 +131,7 @@ export function getDurationLabel({
     endDateStr,
     offDaysOfWeek,
     holidayDates,
+    replacementDates,
   });
 
   if (totalDays === 0) return "Invalid date range";

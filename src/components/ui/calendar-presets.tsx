@@ -12,6 +12,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import type { DateRange } from "react-day-picker";
+import { isEffectiveOffDay } from "@/lib/workday-calc";
 
 export type RequestType = "PERMISSION" | "SICK" | "DISPENSATION" | "LEAVE" | "WFH";
 
@@ -26,6 +27,7 @@ interface CalendarPresetsDatePickerProps {
   disabled?: boolean;
   offDaysOfWeek?: number[];
   holidayDates?: string[];
+  replacementDates?: string[];
 }
 
 export function CalendarPresetsDatePicker({
@@ -39,6 +41,7 @@ export function CalendarPresetsDatePicker({
   disabled = false,
   offDaysOfWeek = [0, 1], // Default Sunday & Monday off
   holidayDates = [],
+  replacementDates = [],
 }: CalendarPresetsDatePickerProps) {
   const [open, setOpen] = React.useState(false);
 
@@ -242,11 +245,14 @@ export function CalendarPresetsDatePicker({
 
   const isStudioOffDay = React.useCallback(
     (date: Date) => {
-      const dayOfWeek = date.getDay(); // 0-6
-      const dateStr = format(date, "yyyy-MM-dd");
-      return offDaysOfWeek.includes(dayOfWeek) || holidayDates.includes(dateStr);
+      return isEffectiveOffDay({
+        date,
+        offDaysOfWeek,
+        holidayDates,
+        replacementDates,
+      });
     },
-    [offDaysOfWeek, holidayDates]
+    [offDaysOfWeek, holidayDates, replacementDates]
   );
 
   return (

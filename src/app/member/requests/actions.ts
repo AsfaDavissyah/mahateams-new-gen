@@ -102,7 +102,7 @@ export async function createRequestAction(formData: FormData) {
     if (weeklyRules.length > 0) {
       offDaysOfWeek = weeklyRules
         .filter((r) => !r.isWorkday)
-        .map((r) => r.dayOfWeek);
+        .map((r) => (r.dayOfWeek === 7 ? 0 : r.dayOfWeek));
     }
   }
 
@@ -112,18 +112,36 @@ export async function createRequestAction(formData: FormData) {
         { studioId: null },
         ...(targetStudioId ? [{ studioId: targetStudioId }] : []),
       ],
-      type: { in: ["NATIONAL_HOLIDAY", "COMPANY_LEAVE", "REGULAR_OFF_DAY"] },
+      type: {
+        in: [
+          "NATIONAL_HOLIDAY",
+          "COMPANY_LEAVE",
+          "REGULAR_OFF_DAY",
+          "REPLACEMENT_WORKDAY",
+        ],
+      },
     },
-    select: { startDate: true, endDate: true },
+    select: { startDate: true, endDate: true, type: true },
   });
 
   const holidayDates: string[] = [];
+  const replacementDates: string[] = [];
+
   for (const evt of calendarEvents) {
     const cur = new Date(evt.startDate);
     const endE = new Date(evt.endDate);
     while (cur <= endE) {
-      holidayDates.push(cur.toISOString().split("T")[0]);
-      cur.setDate(cur.getDate() + 1);
+      const year = cur.getUTCFullYear();
+      const month = String(cur.getUTCMonth() + 1).padStart(2, "0");
+      const day = String(cur.getUTCDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
+
+      if (evt.type === "REPLACEMENT_WORKDAY") {
+        replacementDates.push(dateStr);
+      } else {
+        holidayDates.push(dateStr);
+      }
+      cur.setUTCDate(cur.getUTCDate() + 1);
     }
   }
 
@@ -133,6 +151,7 @@ export async function createRequestAction(formData: FormData) {
       endDateStr,
       offDaysOfWeek,
       holidayDates,
+      replacementDates,
     });
 
     const userObj = await prisma.user.findUnique({
